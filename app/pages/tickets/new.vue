@@ -1,5 +1,20 @@
 <script setup lang="ts">
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
+import { getCategories, getOffices, getProgressStatuses, getEmployees } from '~/utils/api'
+
 const { form, saving, error, handleSubmit } = useTicketNew()
+
+const categories = ref<TroubleCategory[]>([])
+const offices = ref<TroubleOffice[]>([])
+const progressStatuses = ref<TroubleProgressStatus[]>([])
+const employees = ref<Employee[]>([])
+
+onMounted(() => {
+  getCategories().then(r => categories.value = r).catch(() => {})
+  getOffices().then(r => offices.value = r).catch(() => {})
+  getProgressStatuses().then(r => progressStatuses.value = r).catch(() => {})
+  getEmployees().then(r => employees.value = r).catch(() => {})
+})
 </script>
 
 <template>
@@ -13,7 +28,14 @@ const { form, saving, error, handleSubmit } = useTicketNew()
         {{ error }}
       </div>
 
-      <TicketFormFields v-model="form" mode="create" />
+      <TicketFormFields
+        v-model="form"
+        mode="create"
+        :categories="categories"
+        :offices="offices"
+        :progress-statuses="progressStatuses"
+        :employees="employees"
+      />
 
       <div class="flex justify-end gap-2 mt-6">
         <UButton label="キャンセル" variant="outline" to="/tickets" />

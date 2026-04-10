@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
+import { getCategories, getOffices, getProgressStatuses, getEmployees } from '~/utils/api'
+
 const route = useRoute()
 const ticketId = route.params.id as string
 
@@ -8,7 +11,18 @@ const {
   displayValue, startEdit, handleSave, handleDelete, load,
 } = useTicketDetail(ticketId)
 
-onMounted(() => load())
+const categories = ref<TroubleCategory[]>([])
+const offices = ref<TroubleOffice[]>([])
+const progressStatuses = ref<TroubleProgressStatus[]>([])
+const employees = ref<Employee[]>([])
+
+onMounted(() => {
+  load()
+  getCategories().then(r => categories.value = r).catch(() => {})
+  getOffices().then(r => offices.value = r).catch(() => {})
+  getProgressStatuses().then(r => progressStatuses.value = r).catch(() => {})
+  getEmployees().then(r => employees.value = r).catch(() => {})
+})
 </script>
 
 <template>
@@ -49,7 +63,14 @@ onMounted(() => load())
       </div>
 
       <UCard v-if="editing">
-        <TicketFormFields v-model="form" mode="edit" />
+        <TicketFormFields
+          v-model="form"
+          mode="edit"
+          :categories="categories"
+          :offices="offices"
+          :progress-statuses="progressStatuses"
+          :employees="employees"
+        />
         <div class="flex justify-end gap-2 mt-6">
           <UButton label="キャンセル" variant="outline" @click="editing = false" />
           <UButton label="保存" :loading="saving" @click="handleSave" />
