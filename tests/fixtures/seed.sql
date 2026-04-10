@@ -10,6 +10,16 @@ INSERT INTO tenants (id, name, slug) VALUES
 -- Setup default trouble workflow for test tenant
 SELECT set_config('app.current_tenant_id', '11111111-1111-1111-1111-111111111111', false);
 
+-- Default categories for test tenant
+INSERT INTO trouble_categories (tenant_id, name, sort_order) VALUES
+  ('11111111-1111-1111-1111-111111111111', '苦情・トラブル', 0),
+  ('11111111-1111-1111-1111-111111111111', '貨物事故', 1),
+  ('11111111-1111-1111-1111-111111111111', '被害事故', 2),
+  ('11111111-1111-1111-1111-111111111111', '対物事故(他損)', 3),
+  ('11111111-1111-1111-1111-111111111111', '対物事故(自損)', 4),
+  ('11111111-1111-1111-1111-111111111111', '人身事故', 5),
+  ('11111111-1111-1111-1111-111111111111', 'その他', 6);
+
 INSERT INTO trouble_workflow_states (id, tenant_id, name, label, color, sort_order, is_initial, is_terminal) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', '新規', '新規', '#3B82F6', 0, true, false),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111', '対応中', '対応中', '#F59E0B', 1, false, false),
