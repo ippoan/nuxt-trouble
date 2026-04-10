@@ -35,7 +35,8 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       <UInput v-model="filter.q" placeholder="検索" size="sm" class="w-28" />
       <UInput v-model="filter.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="filter.company_name" placeholder="会社名" size="sm" class="w-28" />
-      <UInput v-model="filter.office_name" placeholder="営業所" size="sm" class="w-24" />
+      <USelect v-if="officeOptions.length > 0" v-model="filter.office_name" :items="[{ label: '全て', value: '' }, ...officeOptions]" placeholder="営業所" size="sm" class="w-28" />
+      <UInput v-else v-model="filter.office_name" placeholder="営業所" size="sm" class="w-24" />
       <UInput v-model="filter.date_from" type="date" size="sm" class="w-36" />
       <span class="text-gray-400 text-xs">〜</span>
       <UInput v-model="filter.date_to" type="date" size="sm" class="w-36" />
@@ -85,16 +86,31 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       class="border-dashed"
       @click="showInlineCreate = true"
     />
-    <div v-else class="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
-      <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-32" />
-      <UInput v-model="newTicket.person_name" placeholder="氏名" size="sm" class="w-24" />
-      <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-28" />
-      <USelect v-if="officeOptions.length > 0" v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-28" />
-      <UInput v-else v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" />
-      <UInput v-model="newTicket.occurred_date" type="date" size="sm" class="w-36" />
-      <UInput v-model="newTicket.description" placeholder="説明" size="sm" class="flex-1 min-w-[120px]" />
-      <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
-      <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showInlineCreate = false; resetNewTicket()" />
+    <div v-else class="overflow-x-auto p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
+      <div class="flex items-end gap-2 whitespace-nowrap min-w-[1600px]">
+        <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
+        <UInput v-model="newTicket.occurred_date" type="date" size="sm" class="w-32" />
+        <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
+        <USelect v-if="officeOptions.length > 0" v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" />
+        <UInput v-else v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" />
+        <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
+        <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" class="w-24" />
+        <UInput v-model="newTicket.registration_number" placeholder="登録番号" size="sm" class="w-24" />
+        <UInput v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
+        <UInput v-model="newTicket.description" placeholder="内容" size="sm" class="w-32" />
+        <UInput v-model="newTicket.progress_notes" placeholder="進捗状況" size="sm" class="w-24" />
+        <UInput v-model="newTicket.allowance" placeholder="手当等" size="sm" class="w-20" />
+        <UInput v-model="newTicket.damage_amount" type="number" placeholder="損害額" size="sm" class="w-20" />
+        <UInput v-model="newTicket.compensation_amount" type="number" placeholder="賠償額" size="sm" class="w-20" />
+        <UInput v-model="newTicket.confirmation_notice" placeholder="確認書" size="sm" class="w-20" />
+        <UInput v-model="newTicket.disciplinary_content" placeholder="処分検討" size="sm" class="w-24" />
+        <UInput v-model="newTicket.disciplinary_action" placeholder="処分内容" size="sm" class="w-24" />
+        <UInput v-model="newTicket.road_service_cost" type="number" placeholder="ロードサービス" size="sm" class="w-28" />
+        <UInput v-model="newTicket.counterparty" placeholder="相手" size="sm" class="w-20" />
+        <UInput v-model="newTicket.counterparty_insurance" placeholder="相手保険" size="sm" class="w-24" />
+        <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
+        <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showInlineCreate = false; resetNewTicket()" />
+      </div>
     </div>
 
     <!-- Table -->
