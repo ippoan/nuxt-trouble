@@ -106,8 +106,8 @@ describe('useTicketList', () => {
 
   it('categoryOptions includes all categories', () => {
     const l = useTicketList()
-    expect(l.categoryOptions[0]).toEqual({ label: '全て', value: '' })
-    expect(l.categoryOptions.length).toBe(8)
+    expect(l.categoryOptions.value[0]).toEqual({ label: '全て', value: '' })
+    expect(l.categoryOptions.value.length).toBe(8)
   })
 
   it('clearFilter resets all fields and status', () => {
@@ -330,6 +330,6 @@ describe('useTicketList', () => {
 
   it('createCategoryOptions has correct length', () => {
     const l = useTicketList()
-    expect(l.createCategoryOptions.length).toBe(7)
+    expect(l.createCategoryOptions.value.length).toBe(7)
   })
 })
