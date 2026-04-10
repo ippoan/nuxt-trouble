@@ -1,6 +1,6 @@
-import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow, getCategories, getOffices } from '~/utils/api'
+import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow, getCategories, getOffices, getProgressStatuses } from '~/utils/api'
 import { TICKET_CATEGORIES } from '~/types'
-import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, CreateTroubleTicket } from '~/types'
+import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, CreateTroubleTicket } from '~/types'
 
 const STORAGE_KEY = 'trouble_filter_status'
 
@@ -79,6 +79,7 @@ export function useTicketList() {
   // Master data
   const categories = shallowRef<TroubleCategory[]>([])
   const offices = shallowRef<TroubleOffice[]>([])
+  const progressStatuses = shallowRef<TroubleProgressStatus[]>([])
 
   const categoryOptions = computed(() => {
     const dbNames = new Set(categories.value.map(c => c.name))
@@ -104,14 +105,20 @@ export function useTicketList() {
     offices.value.map(o => ({ label: o.name, value: o.name })),
   )
 
+  const progressOptions = computed(() =>
+    progressStatuses.value.map(p => ({ label: p.name, value: p.name })),
+  )
+
   async function fetchMasterData() {
     try {
-      const [cats, offs] = await Promise.all([
+      const [cats, offs, progs] = await Promise.all([
         getCategories().catch(() => []),
         getOffices().catch(() => []),
+        getProgressStatuses().catch(() => []),
       ])
       categories.value = cats
       offices.value = offs
+      progressStatuses.value = progs
     } catch { /* ignore */ }
   }
 
@@ -255,9 +262,9 @@ export function useTicketList() {
   return {
     filter, selectedStatuses, tickets, total, workflowStates, loading,
     deleteTarget, showDeleteModal, stateMap, totalPages,
-    categoryOptions, createCategoryOptions, officeOptions, filteredTickets,
+    categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
     showInlineCreate, creating, newTicket,
-    categories, offices,
+    categories, offices, progressStatuses,
     loadStatusFilter, toggleStatus, toggleAllStatuses,
     resetNewTicket, handleInlineCreate,
     fetchTickets, fetchWorkflowStates, fetchMasterData,
