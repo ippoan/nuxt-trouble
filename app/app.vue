@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { initApi } from '~/utils/api'
+import { StagingFooter } from '@ippoan/auth-client'
 
 const config = useRuntimeConfig()
 const { init, accessToken, tenantId, isLoading } = useAuth()
+const apiBase = config.public.apiBase as string
+const stagingTenantId = (config.public.stagingTenantId as string) || ''
 
 onMounted(async () => {
   initApi(
-    config.public.apiBase as string,
+    apiBase,
     () => accessToken.value,
     undefined,
     () => tenantId.value,
@@ -23,5 +26,6 @@ onMounted(async () => {
     <NuxtLayout v-else>
       <NuxtPage />
     </NuxtLayout>
+    <StagingFooter :api-base="apiBase" :tenant-id="stagingTenantId" />
   </UApp>
 </template>
