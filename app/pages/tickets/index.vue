@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv } from '~/utils/api'
+import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow } from '~/utils/api'
 import { TICKET_CATEGORIES } from '~/types'
-import type { TroubleTicketFilter, TroubleTicket, TroubleWorkflowState } from '~/types'
+import type { TroubleTicketFilter, TroubleTicket, TroubleWorkflowState, CreateTroubleTicket } from '~/types'
 
 const router = useRouter()
 
@@ -41,6 +41,52 @@ const categoryOptions = [
   { label: '全て', value: '' },
   ...TICKET_CATEGORIES.map(c => ({ label: c, value: c })),
 ]
+
+const createCategoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+
+// Inline create
+const showInlineCreate = ref(false)
+const creating = ref(false)
+const newTicket = reactive({
+  category: '' as string,
+  person_name: '',
+  company_name: '',
+  office_name: '',
+  occurred_date: '',
+  description: '',
+})
+
+function resetNewTicket() {
+  newTicket.category = ''
+  newTicket.person_name = ''
+  newTicket.company_name = ''
+  newTicket.office_name = ''
+  newTicket.occurred_date = ''
+  newTicket.description = ''
+}
+
+async function handleInlineCreate() {
+  if (!newTicket.category) return
+  creating.value = true
+  try {
+    const states = await getWorkflowStates()
+    if (states.length === 0) await setupDefaultWorkflow()
+    const payload: Record<string, unknown> = { category: newTicket.category }
+    if (newTicket.person_name) payload.person_name = newTicket.person_name
+    if (newTicket.company_name) payload.company_name = newTicket.company_name
+    if (newTicket.office_name) payload.office_name = newTicket.office_name
+    if (newTicket.occurred_date) payload.occurred_date = newTicket.occurred_date
+    if (newTicket.description) payload.description = newTicket.description
+    await createTicket(payload as unknown as CreateTroubleTicket)
+    resetNewTicket()
+    showInlineCreate.value = false
+    await fetchTickets()
+  } catch (e) {
+    console.error('Failed to create:', e)
+  } finally {
+    creating.value = false
+  }
+}
 
 async function fetchTickets() {
   loading.value = true
@@ -131,7 +177,7 @@ watch(() => ({ ...filter }), () => {
         <UButton
           label="新規作成"
           icon="i-lucide-plus"
-          to="/tickets/new"
+          @click="showInlineCreate = !showInlineCreate"
         />
       </div>
     </div>
@@ -197,6 +243,46 @@ watch(() => ({ ...filter }), () => {
           </tr>
         </thead>
         <tbody>
+          <!-- Inline create row -->
+          <tr v-if="showInlineCreate" class="border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
+            <td class="py-2 px-2 text-gray-400 text-xs">NEW</td>
+            <td class="py-2 px-1">
+              <USelect
+                v-model="newTicket.category"
+                :items="createCategoryOptions"
+                placeholder="カテゴリ"
+                size="sm"
+              />
+            </td>
+            <td class="py-2 px-1">
+              <UInput v-model="newTicket.person_name" placeholder="氏名" size="sm" />
+            </td>
+            <td class="py-2 px-1">
+              <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" />
+            </td>
+            <td class="py-2 px-1">
+              <UInput v-model="newTicket.occurred_date" type="date" size="sm" />
+            </td>
+            <td class="py-2 px-1" colspan="2">
+              <UInput v-model="newTicket.description" placeholder="説明" size="sm" />
+            </td>
+            <td class="py-2 px-2 text-right whitespace-nowrap">
+              <UButton
+                label="作成"
+                size="xs"
+                :loading="creating"
+                :disabled="!newTicket.category"
+                @click="handleInlineCreate"
+              />
+              <UButton
+                icon="i-lucide-x"
+                variant="ghost"
+                size="xs"
+                class="ml-1"
+                @click="showInlineCreate = false; resetNewTicket()"
+              />
+            </td>
+          </tr>
           <tr
             v-for="ticket in tickets"
             :key="ticket.id"
