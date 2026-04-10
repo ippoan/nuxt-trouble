@@ -11,6 +11,10 @@ vi.mock('~/utils/api', () => ({
   createOffice: vi.fn(),
   deleteOffice: vi.fn(),
   updateOfficeSortOrder: vi.fn(),
+  getProgressStatuses: vi.fn().mockResolvedValue([]),
+  createProgressStatus: vi.fn(),
+  deleteProgressStatus: vi.fn(),
+  updateProgressStatusSortOrder: vi.fn(),
 }))
 
 import SettingsPage from '~/pages/settings.vue'

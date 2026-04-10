@@ -19,6 +19,11 @@ vi.mock('#app/composables/router', async (importOriginal) => {
   }
 })
 
+vi.mock('#app/nuxt', () => ({
+  useRuntimeConfig: () => ({ public: { authWorkerUrl: '' } }),
+  useNuxtApp: () => ({}),
+}))
+
 import middleware from '~/middleware/auth.global'
 import { navigateTo } from '#app/composables/router'
 

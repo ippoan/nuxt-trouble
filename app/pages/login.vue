@@ -2,6 +2,15 @@
 definePageMeta({ layout: 'auth' })
 
 const { loginWithGoogleRedirect } = useAuth()
+const config = useRuntimeConfig()
+
+onMounted(() => {
+  const authWorkerUrl = config.public.authWorkerUrl as string
+  if (authWorkerUrl) {
+    const callbackUrl = `${window.location.origin}/auth/callback`
+    window.location.href = `${authWorkerUrl}/oauth/google/login?redirect_uri=${encodeURIComponent(callbackUrl)}`
+  }
+})
 </script>
 
 <template>

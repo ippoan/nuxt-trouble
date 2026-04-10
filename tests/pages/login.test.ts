@@ -5,6 +5,10 @@ import { allStubs } from '../helpers/nuxt-stubs'
 const loginMock = vi.fn()
 vi.mock('~/composables/useAuth', () => ({ useAuth: () => ({ loginWithGoogleRedirect: loginMock }) }))
 vi.mock('#app/composables/router', () => ({ definePageMeta: vi.fn() }))
+vi.mock('#app/nuxt', () => ({
+  useRuntimeConfig: () => ({ public: { authWorkerUrl: '' } }),
+  useNuxtApp: () => ({}),
+}))
 
 import LoginPage from '~/pages/login.vue'
 
