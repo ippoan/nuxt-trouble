@@ -5,6 +5,18 @@ import type {
   TroubleTicketFilter,
   TroubleTicketsResponse,
   TroubleWorkflowState,
+  TroubleWorkflowTransition,
+  TroubleComment,
+  TroubleStatusHistory,
+  TroubleFile,
+  TroubleCategory,
+  CreateTroubleCategory,
+  TroubleOffice,
+  CreateTroubleOffice,
+  Employee,
+  CreateWorkflowState,
+  CreateWorkflowTransition,
+  TransitionRequest,
 } from '~/types'
 
 let apiBase = ''
@@ -117,4 +129,138 @@ export async function setupDefaultWorkflow(): Promise<TroubleWorkflowState[]> {
   return request<TroubleWorkflowState[]>('/api/trouble/workflow/setup', {
     method: 'POST',
   })
+}
+
+// --- Categories ---
+
+export async function getCategories(): Promise<TroubleCategory[]> {
+  return request<TroubleCategory[]>('/api/trouble/categories')
+}
+
+export async function createCategory(data: CreateTroubleCategory): Promise<TroubleCategory> {
+  return request<TroubleCategory>('/api/trouble/categories', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await request<void>(`/api/trouble/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+// --- Offices ---
+
+export async function getOffices(): Promise<TroubleOffice[]> {
+  return request<TroubleOffice[]>('/api/trouble/offices')
+}
+
+export async function createOffice(data: CreateTroubleOffice): Promise<TroubleOffice> {
+  return request<TroubleOffice>('/api/trouble/offices', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteOffice(id: string): Promise<void> {
+  await request<void>(`/api/trouble/offices/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+// --- Employees ---
+
+export async function getEmployees(): Promise<Employee[]> {
+  return request<Employee[]>('/api/trouble/employees')
+}
+
+// --- Workflow Management ---
+
+export async function getWorkflowTransitions(): Promise<TroubleWorkflowTransition[]> {
+  return request<TroubleWorkflowTransition[]>('/api/trouble/workflow/transitions')
+}
+
+export async function createWorkflowState(data: CreateWorkflowState): Promise<TroubleWorkflowState> {
+  return request<TroubleWorkflowState>('/api/trouble/workflow/states', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteWorkflowState(id: string): Promise<void> {
+  await request<void>(`/api/trouble/workflow/states/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function createWorkflowTransition(data: CreateWorkflowTransition): Promise<TroubleWorkflowTransition> {
+  return request<TroubleWorkflowTransition>('/api/trouble/workflow/transitions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteWorkflowTransition(id: string): Promise<void> {
+  await request<void>(`/api/trouble/workflow/transitions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+// --- Comments ---
+
+export async function getComments(ticketId: string): Promise<TroubleComment[]> {
+  return request<TroubleComment[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/comments`)
+}
+
+export async function createComment(ticketId: string, body: string): Promise<TroubleComment> {
+  return request<TroubleComment>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  })
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  await request<void>(`/api/trouble/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE' })
+}
+
+// --- Status History ---
+
+export async function getStatusHistory(ticketId: string): Promise<TroubleStatusHistory[]> {
+  return request<TroubleStatusHistory[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/status-history`)
+}
+
+// --- Status Transition ---
+
+export async function transitionTicket(ticketId: string, data: TransitionRequest): Promise<void> {
+  await request<void>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/transition`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+// --- Files ---
+
+export async function getFiles(ticketId: string): Promise<TroubleFile[]> {
+  return request<TroubleFile[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/files`)
+}
+
+export async function uploadFile(ticketId: string, file: File): Promise<TroubleFile> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request<TroubleFile>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/files`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export async function downloadFile(fileId: string): Promise<void> {
+  const headers = buildAuthHeaders()
+  const res = await fetch(`${apiBase}/api/trouble/files/${encodeURIComponent(fileId)}/download`, { headers })
+  if (!res.ok) throw new Error(`ダウンロード失敗: ${res.status}`)
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition')
+  const filename = disposition?.match(/filename="?(.+?)"?$/)?.[1] || 'download'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function deleteFile(fileId: string): Promise<void> {
+  await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
 }

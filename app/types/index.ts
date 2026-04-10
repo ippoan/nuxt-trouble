@@ -94,3 +94,39 @@ export const TICKET_CATEGORIES = [
 ] as const
 
 export type TicketCategory = typeof TICKET_CATEGORIES[number]
+
+export interface TroubleCategory {
+  id: string
+  tenant_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export interface CreateTroubleCategory {
+  name: string
+  sort_order?: number
+}
+
+export interface TroubleOffice {
+  id: string
+  tenant_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export interface CreateTroubleOffice {
+  name: string
+  sort_order?: number
+}
+
+export interface Employee {
+  id: string
+  tenant_id: string
+  name: string
+  code: string | null
+}
+
+// Re-export generated types used by new components
+export type { CreateWorkflowState, CreateWorkflowTransition } from './generated'
