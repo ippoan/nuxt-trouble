@@ -1,8 +1,6 @@
-// Re-export ts-rs generated types
+// Re-export ts-rs generated types (ones that work as-is)
 export type {
   TroubleTicket,
-  CreateTroubleTicket,
-  UpdateTroubleTicket,
   TroubleWorkflowState,
   TroubleWorkflowTransition,
   TroubleFile,
@@ -11,8 +9,59 @@ export type {
   TransitionRequest,
 } from './generated'
 
-// Override ts-rs i64 → number for frontend use
-export type { TroubleTicketFilter as _TsRsTroubleTicketFilter } from './generated'
+// Override: ts-rs makes Option<T> fields required (T | null),
+// but they should be optional for create/update payloads.
+export interface CreateTroubleTicket {
+  category: string
+  title?: string | null
+  occurred_at?: string | null
+  occurred_date?: string | null
+  company_name?: string | null
+  office_name?: string | null
+  department?: string | null
+  person_name?: string | null
+  person_id?: string | null
+  vehicle_number?: string | null
+  location?: string | null
+  description?: string | null
+  assigned_to?: string | null
+  damage_amount?: number | null
+  compensation_amount?: number | null
+  road_service_cost?: number | null
+  counterparty?: string | null
+  counterparty_insurance?: string | null
+  custom_fields?: Record<string, unknown> | null
+  due_date?: string | null
+}
+
+export interface UpdateTroubleTicket {
+  category?: string | null
+  title?: string | null
+  occurred_at?: string | null
+  occurred_date?: string | null
+  company_name?: string | null
+  office_name?: string | null
+  department?: string | null
+  person_name?: string | null
+  person_id?: string | null
+  vehicle_number?: string | null
+  location?: string | null
+  description?: string | null
+  assigned_to?: string | null
+  progress_notes?: string | null
+  allowance?: string | null
+  damage_amount?: number | null
+  compensation_amount?: number | null
+  confirmation_notice?: string | null
+  disciplinary_content?: string | null
+  road_service_cost?: number | null
+  counterparty?: string | null
+  counterparty_insurance?: string | null
+  custom_fields?: Record<string, unknown> | null
+  due_date?: string | null
+}
+
+// Override: ts-rs i64 → bigint, but frontend uses number
 export interface TroubleTicketFilter {
   category?: string | null
   status_id?: string | null
@@ -26,7 +75,6 @@ export interface TroubleTicketFilter {
   per_page?: number | null
 }
 
-export type { TroubleTicketsResponse as _TsRsTroubleTicketsResponse } from './generated'
 export interface TroubleTicketsResponse {
   tickets: import('./generated').TroubleTicket[]
   total: number

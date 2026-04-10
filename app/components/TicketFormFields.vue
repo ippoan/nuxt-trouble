@@ -7,7 +7,7 @@ defineProps<{
   mode: 'create' | 'edit'
 }>()
 
-const categoryOptions = [...TICKET_CATEGORIES.map(c => ({ label: c, value: c }))]
+const categoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
 
 function update(key: string, value: unknown) {
   model.value = { ...model.value, [key]: value }

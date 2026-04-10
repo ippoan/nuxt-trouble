@@ -213,10 +213,10 @@ watch(() => ({ ...filter }), () => {
             <td class="py-3 px-2">
               <UBadge
                 v-if="ticket.status_id && stateMap[ticket.status_id]"
-                :style="{ backgroundColor: stateMap[ticket.status_id].color + '20', color: stateMap[ticket.status_id].color }"
+                :style="{ backgroundColor: stateMap[ticket.status_id]!.color + '20', color: stateMap[ticket.status_id]!.color }"
                 variant="subtle"
               >
-                {{ stateMap[ticket.status_id].label }}
+                {{ stateMap[ticket.status_id]!.label }}
               </UBadge>
               <span v-else class="text-gray-400">-</span>
             </td>

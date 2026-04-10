@@ -15,8 +15,9 @@ const showDeleteModal = ref(false)
 const form = ref<Record<string, unknown>>({})
 
 const statusLabel = computed(() => {
-  if (!ticket.value?.status_id) return null
-  return workflowStates.value.find(s => s.id === ticket.value!.status_id)
+  const sid = ticket.value?.status_id
+  if (!sid) return undefined
+  return workflowStates.value.find(s => s.id === sid)
 })
 
 const fields: Array<{ label: string; key: string }> = [
