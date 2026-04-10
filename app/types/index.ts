@@ -54,6 +54,7 @@ export interface UpdateTroubleTicket {
   compensation_amount?: number | null
   confirmation_notice?: string | null
   disciplinary_content?: string | null
+  disciplinary_action?: string | null
   road_service_cost?: number | null
   counterparty?: string | null
   counterparty_insurance?: string | null

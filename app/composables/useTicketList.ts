@@ -1,6 +1,6 @@
-import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow } from '~/utils/api'
+import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow, getCategories, getOffices } from '~/utils/api'
 import { TICKET_CATEGORIES } from '~/types'
-import type { TroubleTicket, TroubleWorkflowState, CreateTroubleTicket } from '~/types'
+import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, CreateTroubleTicket } from '~/types'
 
 const STORAGE_KEY = 'trouble_filter_status'
 
@@ -76,12 +76,38 @@ export function useTicketList() {
 
   const totalPages = computed(() => Math.ceil(total.value / (filter.per_page || 20)))
 
-  const categoryOptions = [
-    { label: '全て', value: '' },
-    ...TICKET_CATEGORIES.map(c => ({ label: c, value: c })),
-  ]
+  // Master data
+  const categories = shallowRef<TroubleCategory[]>([])
+  const offices = shallowRef<TroubleOffice[]>([])
 
-  const createCategoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+  const categoryOptions = computed(() => {
+    const cats = categories.value.length > 0
+      ? categories.value.map(c => c.name)
+      : [...TICKET_CATEGORIES]
+    return [{ label: '全て', value: '' }, ...cats.map(c => ({ label: c, value: c }))]
+  })
+
+  const createCategoryOptions = computed(() => {
+    const cats = categories.value.length > 0
+      ? categories.value.map(c => c.name)
+      : [...TICKET_CATEGORIES]
+    return cats.map(c => ({ label: c, value: c }))
+  })
+
+  const officeOptions = computed(() =>
+    offices.value.map(o => ({ label: o.name, value: o.name })),
+  )
+
+  async function fetchMasterData() {
+    try {
+      const [cats, offs] = await Promise.all([
+        getCategories().catch(() => []),
+        getOffices().catch(() => []),
+      ])
+      categories.value = cats
+      offices.value = offs
+    } catch { /* ignore */ }
+  }
 
   // Filtered tickets (client-side status filter)
   const filteredTickets = computed(() => {
@@ -200,11 +226,12 @@ export function useTicketList() {
   return {
     filter, selectedStatuses, tickets, total, workflowStates, loading,
     deleteTarget, showDeleteModal, stateMap, totalPages,
-    categoryOptions, createCategoryOptions, filteredTickets,
+    categoryOptions, createCategoryOptions, officeOptions, filteredTickets,
     showInlineCreate, creating, newTicket,
+    categories, offices,
     loadStatusFilter, toggleStatus, toggleAllStatuses,
     resetNewTicket, handleInlineCreate,
-    fetchTickets, fetchWorkflowStates,
+    fetchTickets, fetchWorkflowStates, fetchMasterData,
     clearFilter, confirmDelete, handleDelete, handleExportCsv,
     formatDate, navigateToTicket,
   }
