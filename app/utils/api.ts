@@ -168,7 +168,7 @@ export async function deleteOffice(id: string): Promise<void> {
 // --- Employees ---
 
 export async function getEmployees(): Promise<Employee[]> {
-  return request<Employee[]>('/api/trouble/employees')
+  return request<Employee[]>('/api/employees')
 }
 
 // --- Workflow Management ---
@@ -219,7 +219,7 @@ export async function deleteComment(commentId: string): Promise<void> {
 // --- Status History ---
 
 export async function getStatusHistory(ticketId: string): Promise<TroubleStatusHistory[]> {
-  return request<TroubleStatusHistory[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/status-history`)
+  return request<TroubleStatusHistory[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/history`)
 }
 
 // --- Status Transition ---
