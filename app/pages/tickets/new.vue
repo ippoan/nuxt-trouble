@@ -43,17 +43,15 @@ async function handleSubmit() {
 
   try {
     await ensureWorkflow()
-    const data: CreateTroubleTicket = {
-      category: form.value.category as string,
-    }
-    // Only include non-empty fields
+    // Build payload with only non-empty fields
+    const payload: Record<string, unknown> = { category: form.value.category }
     for (const [key, value] of Object.entries(form.value)) {
       if (key === 'category') continue
       if (value != null && value !== '') {
-        ;(data as Record<string, unknown>)[key] = value
+        payload[key] = value
       }
     }
-    const ticket = await createTicket(data)
+    const ticket = await createTicket(payload as CreateTroubleTicket)
     router.push(`/tickets/${ticket.id}`)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '作成に失敗しました'

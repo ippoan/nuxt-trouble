@@ -40,7 +40,8 @@ const fields: Array<{ label: string; key: string }> = [
 
 function displayValue(key: string): string {
   if (!ticket.value) return '-'
-  const val = (ticket.value as Record<string, unknown>)[key]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const val = (ticket.value as any)[key]
   if (val == null || val === '') return '-'
   return String(val)
 }
