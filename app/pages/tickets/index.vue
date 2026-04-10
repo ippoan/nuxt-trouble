@@ -259,6 +259,18 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       </label>
     </div>
 
+    <!-- Inline create -->
+    <div v-if="showInlineCreate" class="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
+      <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-32" />
+      <UInput v-model="newTicket.person_name" placeholder="氏名" size="sm" class="w-24" />
+      <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-28" />
+      <UInput v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" />
+      <UInput v-model="newTicket.occurred_date" type="date" size="sm" class="w-36" />
+      <UInput v-model="newTicket.description" placeholder="説明" size="sm" class="flex-1 min-w-[120px]" />
+      <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
+      <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showInlineCreate = false; resetNewTicket()" />
+    </div>
+
     <!-- Table -->
     <UCard>
       <div v-if="loading" class="flex justify-center py-8">
@@ -279,29 +291,6 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
           </tr>
         </thead>
         <tbody>
-          <!-- Inline create row -->
-          <tr v-if="showInlineCreate" class="border-b border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
-            <td class="py-2 px-2 text-gray-400 text-xs">NEW</td>
-            <td class="py-2 px-1">
-              <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" />
-            </td>
-            <td class="py-2 px-1">
-              <UInput v-model="newTicket.person_name" placeholder="氏名" size="sm" />
-            </td>
-            <td class="py-2 px-1">
-              <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" />
-            </td>
-            <td class="py-2 px-1">
-              <UInput v-model="newTicket.occurred_date" type="date" size="sm" />
-            </td>
-            <td class="py-2 px-1" colspan="2">
-              <UInput v-model="newTicket.description" placeholder="説明" size="sm" />
-            </td>
-            <td class="py-2 px-2 text-right whitespace-nowrap">
-              <UButton label="作成" size="xs" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
-              <UButton icon="i-lucide-x" variant="ghost" size="xs" class="ml-1" @click="showInlineCreate = false; resetNewTicket()" />
-            </td>
-          </tr>
           <tr
             v-for="ticket in filteredTickets"
             :key="ticket.id"
