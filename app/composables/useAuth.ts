@@ -35,8 +35,10 @@ function decodeJwt(token: string): JwtPayload | null {
   try {
     const parts = token.split('.')
     if (!parts[1]) return null
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return payload
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const binary = atob(base64)
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
