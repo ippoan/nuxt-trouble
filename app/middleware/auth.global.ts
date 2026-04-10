@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware((to) => {
     const authWorkerUrl = config.public.authWorkerUrl as string
     if (authWorkerUrl) {
       const callbackUrl = `${window.location.origin}/auth/callback`
-      window.location.href = `${authWorkerUrl}/oauth/google/login?redirect_uri=${encodeURIComponent(callbackUrl)}`
+      window.location.href = `${authWorkerUrl}/oauth/google/redirect?redirect_uri=${encodeURIComponent(callbackUrl)}`
       return false
     }
     return navigateTo('/login')
