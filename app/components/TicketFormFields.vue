@@ -107,16 +107,10 @@ function updateEmployee(employeeId: string) {
 
         <UFormField label="営業所名">
           <USelect
-            v-if="officeOptions.length > 0"
             :model-value="(model.office_name as string) || ''"
             :items="officeOptions"
             placeholder="営業所を選択"
-            @update:model-value="update('office_name', $event)"
-          />
-          <UInput
-            v-else
-            :model-value="(model.office_name as string) || ''"
-            placeholder="営業所名"
+            :disabled="officeOptions.length === 0"
             @update:model-value="update('office_name', $event)"
           />
         </UFormField>
@@ -131,17 +125,11 @@ function updateEmployee(employeeId: string) {
 
         <UFormField label="氏名">
           <USelect
-            v-if="employeeOptions.length > 0"
             :model-value="(model.person_id as string) || ''"
             :items="employeeOptions"
             placeholder="従業員を選択"
+            :disabled="employeeOptions.length === 0"
             @update:model-value="updateEmployee($event as string)"
-          />
-          <UInput
-            v-else
-            :model-value="(model.person_name as string) || ''"
-            placeholder="氏名"
-            @update:model-value="update('person_name', $event)"
           />
         </UFormField>
       </div>
@@ -177,16 +165,10 @@ function updateEmployee(employeeId: string) {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UFormField label="進捗状況">
           <USelect
-            v-if="progressOptions.length > 0"
             :model-value="(model.progress_notes as string) || ''"
             :items="progressOptions"
             placeholder="進捗状況を選択"
-            @update:model-value="update('progress_notes', $event)"
-          />
-          <UInput
-            v-else
-            :model-value="(model.progress_notes as string) || ''"
-            placeholder="進捗状況"
+            :disabled="progressOptions.length === 0"
             @update:model-value="update('progress_notes', $event)"
           />
         </UFormField>

@@ -2,7 +2,7 @@
 const {
   filter, selectedStatuses, loading,
   deleteTarget, showDeleteModal, stateMap, totalPages,
-  categoryOptions, createCategoryOptions, officeOptions, filteredTickets,
+  categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
   showInlineCreate, creating, newTicket, workflowStates, total,
   loadStatusFilter, toggleStatus, toggleAllStatuses,
   resetNewTicket, handleInlineCreate,
@@ -35,8 +35,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       <UInput v-model="filter.q" placeholder="検索" size="sm" class="w-28" />
       <UInput v-model="filter.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="filter.company_name" placeholder="会社名" size="sm" class="w-28" />
-      <USelect v-if="officeOptions.length > 0" v-model="filter.office_name" :items="[{ label: '全て', value: '' }, ...officeOptions]" placeholder="営業所" size="sm" class="w-28" />
-      <UInput v-else v-model="filter.office_name" placeholder="営業所" size="sm" class="w-24" />
+      <USelect v-model="filter.office_name" :items="[{ label: '全て', value: '' }, ...officeOptions]" placeholder="営業所" size="sm" class="w-28" :disabled="officeOptions.length === 0" />
       <UInput v-model="filter.date_from" type="date" size="sm" class="w-36" />
       <span class="text-gray-400 text-xs">〜</span>
       <UInput v-model="filter.date_to" type="date" size="sm" class="w-36" />
@@ -91,14 +90,13 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
         <UInput v-model="newTicket.occurred_date" type="date" size="sm" class="w-32" />
         <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
-        <USelect v-if="officeOptions.length > 0" v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" />
-        <UInput v-else v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" />
+        <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
         <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" class="w-24" />
         <UInput v-model="newTicket.registration_number" placeholder="登録番号" size="sm" class="w-24" />
         <UInput v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
         <UInput v-model="newTicket.description" placeholder="内容" size="sm" class="w-32" />
-        <UInput v-model="newTicket.progress_notes" placeholder="進捗状況" size="sm" class="w-24" />
+        <USelect v-model="newTicket.progress_notes" :items="progressOptions" placeholder="進捗状況" size="sm" class="w-24" :disabled="progressOptions.length === 0" />
         <UInput v-model="newTicket.allowance" placeholder="手当等" size="sm" class="w-20" />
         <UInput v-model="newTicket.damage_amount" type="number" placeholder="損害額" size="sm" class="w-20" />
         <UInput v-model="newTicket.compensation_amount" type="number" placeholder="賠償額" size="sm" class="w-20" />
