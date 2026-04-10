@@ -59,6 +59,13 @@ describe('Trouble API', () => {
 
   describe('getTicket', () => {
     it('fetches single ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        const fetched = await getTicket(created.id)
+        expect(fetched.id).toBe(created.id)
+        await deleteTicket(created.id)
+        return
+      }
       const mockTicket = { id: 'test-id', ticket_no: 1, category: '貨物事故' }
       await verifyApi(() => getTicket('test-id'), mockTicket)
       assertMock(() => {
@@ -88,6 +95,13 @@ describe('Trouble API', () => {
 
   describe('updateTicket', () => {
     it('updates a ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        const updated = await updateTicket(created.id, { category: '人身事故' })
+        expect(updated.category).toBe('人身事故')
+        await deleteTicket(created.id)
+        return
+      }
       const mockTicket = { id: 'test-id', ticket_no: 1, category: '人身事故' }
       await verifyApi(
         () => updateTicket('test-id', { category: '人身事故' }),
@@ -103,6 +117,12 @@ describe('Trouble API', () => {
 
   describe('deleteTicket', () => {
     it('deletes a ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        await deleteTicket(created.id)
+        await expect(getTicket(created.id)).rejects.toThrow()
+        return
+      }
       await verifyApi(() => deleteTicket('test-id'), {}, { expect204: true })
       assertMock(() => {
         const [url, opts] = mockFetch.mock.calls[0]
