@@ -1,0 +1,3 @@
+# Files that must maintain 100% test coverage.
+# CI will fail if any listed file drops below 100%.
+files = []
