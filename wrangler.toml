@@ -9,7 +9,7 @@ pattern = "trouble.ippoan.org"
 custom_domain = true
 
 [vars]
-NUXT_PUBLIC_API_BASE = "https://alc.ippoan.org"
+NUXT_PUBLIC_API_BASE = "https://alc-api.ippoan.org"
 
 [env.staging]
 name = "nuxt-trouble-staging"
