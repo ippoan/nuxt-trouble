@@ -19,5 +19,12 @@ export default defineNuxtConfig({
   ],
 
   css: ['~/assets/css/main.css'],
-})
 
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        skipLibCheck: true,
+      },
+    },
+  },
+})
