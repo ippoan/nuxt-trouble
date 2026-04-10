@@ -1,3 +1,11 @@
 # Files that must maintain 100% test coverage.
 # CI will fail if any listed file drops below 100%.
-files = []
+files = [
+  "app/composables/useAppInit.ts",
+  "app/composables/useAuth.ts",
+  "app/composables/useTicketDetail.ts",
+  "app/composables/useTicketList.ts",
+  "app/composables/useTicketNew.ts",
+  "app/middleware/auth.global.ts",
+  "app/utils/api.ts",
+]
