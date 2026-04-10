@@ -174,9 +174,29 @@ function update(key: string, value: unknown) {
       </div>
     </fieldset>
 
-    <!-- 期限 -->
+    <!-- 管理 -->
     <fieldset class="space-y-4">
       <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">管理</legend>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UFormField label="処分検討内容">
+          <UTextarea
+            :model-value="(model.disciplinary_content as string) || ''"
+            placeholder="処分検討内容"
+            :rows="2"
+            @update:model-value="update('disciplinary_content', $event)"
+          />
+        </UFormField>
+
+        <UFormField label="処分内容">
+          <UTextarea
+            :model-value="(model.disciplinary_action as string) || ''"
+            placeholder="処分内容"
+            :rows="2"
+            @update:model-value="update('disciplinary_action', $event)"
+          />
+        </UFormField>
+      </div>
 
       <UFormField label="対応期限">
         <UInput
