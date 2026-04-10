@@ -1,0 +1,5 @@
+/_nuxt/*.js
+  Content-Type: text/javascript; charset=utf-8
+
+/_nuxt/*.css
+  Content-Type: text/css; charset=utf-8
