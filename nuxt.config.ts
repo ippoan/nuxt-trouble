@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080',
+      stagingTenantId: process.env.NUXT_PUBLIC_STAGING_TENANT_ID || '',
     },
   },
 
@@ -18,5 +19,12 @@ export default defineNuxtConfig({
   ],
 
   css: ['~/assets/css/main.css'],
-})
 
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        skipLibCheck: true,
+      },
+    },
+  },
+})
