@@ -207,10 +207,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     <!-- Header -->
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-bold">チケット一覧</h2>
-      <div class="flex gap-2">
-        <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
-        <UButton label="新規作成" icon="i-lucide-plus" size="sm" @click="showInlineCreate = !showInlineCreate" />
-      </div>
+      <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
     </div>
 
     <!-- Filters: single row -->
@@ -259,8 +256,17 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       </label>
     </div>
 
-    <!-- Inline create -->
-    <div v-if="showInlineCreate" class="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
+    <!-- Create button + inline form -->
+    <UButton
+      v-if="!showInlineCreate"
+      label="＋ 新規作成"
+      variant="outline"
+      size="sm"
+      block
+      class="border-dashed"
+      @click="showInlineCreate = true"
+    />
+    <div v-else class="flex flex-wrap items-end gap-2 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
       <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-32" />
       <UInput v-model="newTicket.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-28" />
