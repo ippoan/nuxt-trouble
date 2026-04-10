@@ -122,20 +122,35 @@ export function useTicketList() {
   const creating = ref(false)
   const newTicket = reactive({
     category: '' as string,
-    person_name: '',
+    occurred_date: '',
     company_name: '',
     office_name: '',
-    occurred_date: '',
+    department: '',
+    person_name: '',
+    registration_number: '',
+    location: '',
     description: '',
+    progress_notes: '',
+    allowance: '',
+    damage_amount: '',
+    compensation_amount: '',
+    confirmation_notice: '',
+    disciplinary_content: '',
+    disciplinary_action: '',
+    road_service_cost: '',
+    counterparty: '',
+    counterparty_insurance: '',
   })
 
   function resetNewTicket() {
-    newTicket.category = ''
-    newTicket.person_name = ''
-    newTicket.company_name = ''
-    newTicket.office_name = ''
-    newTicket.occurred_date = ''
-    newTicket.description = ''
+    Object.assign(newTicket, {
+      category: '', occurred_date: '', company_name: '', office_name: '',
+      department: '', person_name: '', registration_number: '', location: '',
+      description: '', progress_notes: '', allowance: '', damage_amount: '',
+      compensation_amount: '', confirmation_notice: '', disciplinary_content: '',
+      disciplinary_action: '', road_service_cost: '', counterparty: '',
+      counterparty_insurance: '',
+    })
   }
 
   async function handleInlineCreate() {
@@ -145,11 +160,19 @@ export function useTicketList() {
       const states = await getWorkflowStates()
       if (states.length === 0) await setupDefaultWorkflow()
       const payload: Record<string, unknown> = { category: newTicket.category }
-      if (newTicket.person_name) payload.person_name = newTicket.person_name
-      if (newTicket.company_name) payload.company_name = newTicket.company_name
-      if (newTicket.office_name) payload.office_name = newTicket.office_name
-      if (newTicket.occurred_date) payload.occurred_date = newTicket.occurred_date
-      if (newTicket.description) payload.description = newTicket.description
+      const fields = [
+        'occurred_date', 'company_name', 'office_name', 'department',
+        'person_name', 'registration_number', 'location', 'description',
+        'progress_notes', 'allowance', 'confirmation_notice',
+        'disciplinary_content', 'disciplinary_action', 'counterparty',
+        'counterparty_insurance',
+      ] as const
+      for (const key of fields) {
+        if (newTicket[key]) payload[key] = newTicket[key]
+      }
+      for (const key of ['damage_amount', 'compensation_amount', 'road_service_cost'] as const) {
+        if (newTicket[key]) payload[key] = Number(newTicket[key])
+      }
       await createTicket(payload as unknown as CreateTroubleTicket)
       resetNewTicket()
       showInlineCreate.value = false
