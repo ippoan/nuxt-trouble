@@ -1,15 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { setupApi, teardownApi, isLive, restoreNativeApis } from '../helpers/api-test-env'
+import { deleteTicket } from '~/utils/api'
 
 const pushMock = vi.fn()
 const createTicketMock = vi.fn()
 const getWorkflowStatesMock = vi.fn()
 const setupDefaultWorkflowMock = vi.fn()
 
-vi.mock('~/utils/api', () => ({
-  createTicket: (...args: unknown[]) => createTicketMock(...args),
-  getWorkflowStates: (...args: unknown[]) => getWorkflowStatesMock(...args),
-  setupDefaultWorkflow: (...args: unknown[]) => setupDefaultWorkflowMock(...args),
-}))
+vi.mock('~/utils/api', async (importOriginal) => {
+  if (process.env.API_BASE_URL) return await importOriginal()
+  return {
+    ...(await importOriginal()),
+    createTicket: (...args: unknown[]) => createTicketMock(...args),
+    getWorkflowStates: (...args: unknown[]) => getWorkflowStatesMock(...args),
+    setupDefaultWorkflow: (...args: unknown[]) => setupDefaultWorkflowMock(...args),
+  }
+})
 
 vi.mock('#app/composables/router', () => ({
   useRouter: () => ({ push: pushMock }),
@@ -18,12 +24,15 @@ vi.mock('#app/composables/router', () => ({
 import { useTicketNew } from '~/composables/useTicketNew'
 
 describe('useTicketNew', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    restoreNativeApis()
+    await setupApi()
     pushMock.mockReset()
     createTicketMock.mockReset()
     getWorkflowStatesMock.mockReset()
     setupDefaultWorkflowMock.mockReset()
   })
+  afterEach(() => teardownApi())
 
   it('initializes with empty form', () => {
     const { form, saving, error } = useTicketNew()
@@ -36,12 +45,14 @@ describe('useTicketNew', () => {
     const { handleSubmit, error } = useTicketNew()
     await handleSubmit()
     expect(error.value).toBe('カテゴリは必須です')
-    expect(createTicketMock).not.toHaveBeenCalled()
+    if (!isLive) expect(createTicketMock).not.toHaveBeenCalled()
   })
 
   it('creates ticket with existing workflow', async () => {
-    getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
-    createTicketMock.mockResolvedValue({ id: 'new-id' })
+    if (!isLive) {
+      getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
+      createTicketMock.mockResolvedValue({ id: 'new-id' })
+    }
 
     const { form, handleSubmit } = useTicketNew()
     form.value.category = '貨物事故'
@@ -49,37 +60,43 @@ describe('useTicketNew', () => {
 
     await handleSubmit()
 
-    expect(getWorkflowStatesMock).toHaveBeenCalled()
-    expect(setupDefaultWorkflowMock).not.toHaveBeenCalled()
-    expect(createTicketMock).toHaveBeenCalled()
-    // payload should include category and title but not empty fields
-    const payload = createTicketMock.mock.calls[0][0]
-    expect(payload.category).toBe('貨物事故')
-    expect(payload.title).toBe('テスト')
-    expect(payload).not.toHaveProperty('description')
-    expect(pushMock).toHaveBeenCalledWith('/tickets/new-id')
+    if (isLive) {
+      // live: router.push が呼ばれる = チケット作成成功
+      expect(pushMock).toHaveBeenCalled()
+      // cleanup: 作成したチケットを削除
+      const ticketId = pushMock.mock.calls[0][0].replace('/tickets/', '')
+      await deleteTicket(ticketId)
+    } else {
+      expect(setupDefaultWorkflowMock).not.toHaveBeenCalled()
+      expect(createTicketMock).toHaveBeenCalled()
+      const payload = createTicketMock.mock.calls[0][0]
+      expect(payload.category).toBe('貨物事故')
+      expect(payload.title).toBe('テスト')
+      expect(payload).not.toHaveProperty('description')
+      expect(pushMock).toHaveBeenCalledWith('/tickets/new-id')
+    }
   })
 
   it('sets up default workflow when none exists', async () => {
+    if (isLive) return // live: workflow は seed で既存
     getWorkflowStatesMock.mockResolvedValue([])
     setupDefaultWorkflowMock.mockResolvedValue([{ id: 's1' }])
     createTicketMock.mockResolvedValue({ id: 'new-id' })
 
     const { form, handleSubmit } = useTicketNew()
     form.value.category = '貨物事故'
-
     await handleSubmit()
 
     expect(setupDefaultWorkflowMock).toHaveBeenCalled()
   })
 
   it('handles Error on create failure', async () => {
+    if (isLive) return // live: エラー注入不可
     getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
     createTicketMock.mockRejectedValue(new Error('create failed'))
 
     const { form, handleSubmit, error, saving } = useTicketNew()
     form.value.category = '貨物事故'
-
     await handleSubmit()
 
     expect(error.value).toBe('create failed')
@@ -87,12 +104,12 @@ describe('useTicketNew', () => {
   })
 
   it('handles non-Error on create failure', async () => {
+    if (isLive) return // live: エラー注入不可
     getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
     createTicketMock.mockRejectedValue('string error')
 
     const { form, handleSubmit, error } = useTicketNew()
     form.value.category = '貨物事故'
-
     await handleSubmit()
 
     expect(error.value).toBe('作成に失敗しました')

@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { setupApi, teardownApi, isLive, restoreNativeApis } from '../helpers/api-test-env'
 import { makeTroubleTicket, makeWorkflowState } from '../helpers/test-data'
 
 const pushMock = vi.fn()
@@ -7,12 +8,16 @@ const getWorkflowStatesMock = vi.fn()
 const deleteTicketMock = vi.fn()
 const exportTicketsCsvMock = vi.fn()
 
-vi.mock('~/utils/api', () => ({
-  getTickets: (...args: unknown[]) => getTicketsMock(...args),
-  getWorkflowStates: (...args: unknown[]) => getWorkflowStatesMock(...args),
-  deleteTicket: (...args: unknown[]) => deleteTicketMock(...args),
-  exportTicketsCsv: (...args: unknown[]) => exportTicketsCsvMock(...args),
-}))
+vi.mock('~/utils/api', async (importOriginal) => {
+  if (process.env.API_BASE_URL) return await importOriginal()
+  return {
+    ...(await importOriginal()),
+    getTickets: (...args: unknown[]) => getTicketsMock(...args),
+    getWorkflowStates: (...args: unknown[]) => getWorkflowStatesMock(...args),
+    deleteTicket: (...args: unknown[]) => deleteTicketMock(...args),
+    exportTicketsCsv: (...args: unknown[]) => exportTicketsCsvMock(...args),
+  }
+})
 
 vi.mock('#app/composables/router', () => ({
   useRouter: () => ({ push: pushMock }),
@@ -24,13 +29,16 @@ const ticket = makeTroubleTicket()
 const state = makeWorkflowState()
 
 describe('useTicketList', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    restoreNativeApis()
+    await setupApi()
     pushMock.mockReset()
     getTicketsMock.mockReset()
     getWorkflowStatesMock.mockReset()
     deleteTicketMock.mockReset()
     exportTicketsCsvMock.mockReset()
   })
+  afterEach(() => teardownApi())
 
   it('initializes with default filter', () => {
     const list = useTicketList()
@@ -40,17 +48,25 @@ describe('useTicketList', () => {
   })
 
   it('fetchTickets sets tickets and total', async () => {
-    getTicketsMock.mockResolvedValue({ tickets: [ticket], total: 1, page: 1, per_page: 20 })
+    if (!isLive) {
+      getTicketsMock.mockResolvedValue({ tickets: [ticket], total: 1, page: 1, per_page: 20 })
+    }
 
     const list = useTicketList()
     await list.fetchTickets()
 
-    expect(list.tickets.value).toEqual([ticket])
-    expect(list.total.value).toBe(1)
+    if (isLive) {
+      expect(list.tickets.value).toBeDefined()
+      expect(typeof list.total.value).toBe('number')
+    } else {
+      expect(list.tickets.value).toEqual([ticket])
+      expect(list.total.value).toBe(1)
+    }
     expect(list.loading.value).toBe(false)
   })
 
   it('fetchTickets handles error', async () => {
+    if (isLive) return // live: エラー注入不可
     getTicketsMock.mockRejectedValue(new Error('fail'))
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -63,30 +79,43 @@ describe('useTicketList', () => {
   })
 
   it('fetchWorkflowStates sets states', async () => {
-    getWorkflowStatesMock.mockResolvedValue([state])
+    if (!isLive) {
+      getWorkflowStatesMock.mockResolvedValue([state])
+    }
 
     const list = useTicketList()
     await list.fetchWorkflowStates()
 
-    expect(list.workflowStates.value).toEqual([state])
+    if (isLive) {
+      expect(list.workflowStates.value.length).toBeGreaterThan(0)
+    } else {
+      expect(list.workflowStates.value).toEqual([state])
+    }
   })
 
   it('fetchWorkflowStates handles error silently', async () => {
+    if (isLive) return
     getWorkflowStatesMock.mockRejectedValue(new Error('fail'))
 
     const list = useTicketList()
     await list.fetchWorkflowStates()
-
     expect(list.workflowStates.value).toEqual([])
   })
 
   it('stateMap maps by id', async () => {
-    getWorkflowStatesMock.mockResolvedValue([state])
+    if (!isLive) {
+      getWorkflowStatesMock.mockResolvedValue([state])
+    }
 
     const list = useTicketList()
     await list.fetchWorkflowStates()
 
-    expect(list.stateMap.value[state.id]).toEqual(state)
+    if (isLive) {
+      const ids = Object.keys(list.stateMap.value)
+      expect(ids.length).toBeGreaterThan(0)
+    } else {
+      expect(list.stateMap.value[state.id]).toEqual(state)
+    }
   })
 
   it('totalPages computes correctly', () => {
@@ -98,7 +127,7 @@ describe('useTicketList', () => {
   it('categoryOptions includes all categories', () => {
     const list = useTicketList()
     expect(list.categoryOptions[0]).toEqual({ label: '全て', value: '' })
-    expect(list.categoryOptions.length).toBe(8) // 1 + 7 categories
+    expect(list.categoryOptions.length).toBe(8)
   })
 
   it('clearFilter resets all fields', () => {
@@ -123,6 +152,7 @@ describe('useTicketList', () => {
   })
 
   it('handleDelete deletes and re-fetches', async () => {
+    if (isLive) return // live: テストデータ削除は避ける
     deleteTicketMock.mockResolvedValue(undefined)
     getTicketsMock.mockResolvedValue({ tickets: [], total: 0, page: 1, per_page: 20 })
 
@@ -138,10 +168,11 @@ describe('useTicketList', () => {
   it('handleDelete returns early when no target', async () => {
     const list = useTicketList()
     await list.handleDelete()
-    expect(deleteTicketMock).not.toHaveBeenCalled()
+    if (!isLive) expect(deleteTicketMock).not.toHaveBeenCalled()
   })
 
   it('handleDelete logs error', async () => {
+    if (isLive) return
     deleteTicketMock.mockRejectedValue(new Error('del fail'))
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -154,15 +185,16 @@ describe('useTicketList', () => {
   })
 
   it('handleExportCsv calls api', async () => {
+    if (isLive) return // live: CSV はブラウザ API 依存
     exportTicketsCsvMock.mockResolvedValue(undefined)
 
     const list = useTicketList()
     await list.handleExportCsv()
-
     expect(exportTicketsCsvMock).toHaveBeenCalled()
   })
 
   it('handleExportCsv logs error', async () => {
+    if (isLive) return
     exportTicketsCsvMock.mockRejectedValue(new Error('csv fail'))
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
