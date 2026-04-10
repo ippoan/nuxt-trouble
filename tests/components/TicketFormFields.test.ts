@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mount } from '@vue/test-utils'
 import TicketFormFields from '~/components/TicketFormFields.vue'
+
+const stubs = {
+  UFormField: { template: '<div>{{ label }}<slot /></div>', props: ['label', 'required'] },
+  USelect: { template: '<select />', props: ['modelValue', 'items', 'placeholder'] },
+  UInput: { template: '<input />', props: ['modelValue', 'placeholder', 'type'] },
+  UTextarea: { template: '<textarea />', props: ['modelValue', 'placeholder', 'rows'] },
+}
 
 describe('TicketFormFields', () => {
   const defaultForm = {
@@ -22,9 +29,10 @@ describe('TicketFormFields', () => {
     due_date: '',
   }
 
-  it('renders all field groups', async () => {
-    const wrapper = await mountSuspended(TicketFormFields, {
+  it('renders all field groups', () => {
+    const wrapper = mount(TicketFormFields, {
       props: { modelValue: { ...defaultForm }, mode: 'create' },
+      global: { stubs },
     })
 
     expect(wrapper.text()).toContain('基本情報')
@@ -35,9 +43,10 @@ describe('TicketFormFields', () => {
     expect(wrapper.text()).toContain('管理')
   })
 
-  it('renders category select', async () => {
-    const wrapper = await mountSuspended(TicketFormFields, {
+  it('renders category select', () => {
+    const wrapper = mount(TicketFormFields, {
       props: { modelValue: { ...defaultForm }, mode: 'create' },
+      global: { stubs },
     })
 
     expect(wrapper.text()).toContain('カテゴリ')

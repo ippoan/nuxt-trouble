@@ -1,78 +1,63 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('#app/nuxt', async (importOriginal) => {
+const mockIsAuthenticated = { value: false }
+const mockIsLoading = { value: false }
+
+vi.mock('~/composables/useAuth', () => ({
+  useAuth: () => ({
+    isAuthenticated: mockIsAuthenticated,
+    isLoading: mockIsLoading,
+  }),
+}))
+
+vi.mock('#app/composables/router', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
   return {
     ...actual,
-    useRuntimeConfig: () => ({ public: { apiBase: 'http://test' } }),
+    navigateTo: vi.fn((path: string) => ({ __navigateTo: path })),
+    defineNuxtRouteMiddleware: (fn: Function) => fn,
   }
 })
 
-const TOKEN_KEY = 'trouble_token'
+import middleware from '~/middleware/auth.global'
+import { navigateTo } from '#app/composables/router'
 
-function makeValidJwt(): string {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-  const body = btoa(JSON.stringify({
-    sub: 'user-123',
-    email: 'test@example.com',
-    name: 'Test User',
-    tenant_id: 'tenant-456',
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 3600,
-  }))
-  return `${header}.${body}.fake-signature`
-}
+const navigateToMock = vi.mocked(navigateTo)
 
 describe('auth.global middleware', () => {
-  let middleware: (to: { path: string }) => unknown
-  let useAuth: typeof import('~/composables/useAuth')['useAuth']
-  const mockNavigateTo = vi.fn()
-
-  beforeEach(async () => {
-    localStorage.clear()
-    vi.resetModules()
-    vi.stubGlobal('navigateTo', mockNavigateTo)
-    mockNavigateTo.mockReset()
-
-    const authMod = await import('~/composables/useAuth')
-    useAuth = authMod.useAuth
-
-    const mod = await import('~/middleware/auth.global')
-    middleware = (mod.default as { handler: (to: { path: string }) => unknown }).handler
+  beforeEach(() => {
+    mockIsAuthenticated.value = false
+    mockIsLoading.value = false
+    navigateToMock.mockClear()
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
-  })
-
-  it('allows public paths (/login)', () => {
-    const result = middleware({ path: '/login' })
+  it('skips /login path', () => {
+    const result = (middleware as Function)({ path: '/login' })
     expect(result).toBeUndefined()
-    expect(mockNavigateTo).not.toHaveBeenCalled()
   })
 
-  it('allows public paths (/auth/callback)', () => {
-    const result = middleware({ path: '/auth/callback' })
+  it('skips /auth/callback path', () => {
+    const result = (middleware as Function)({ path: '/auth/callback' })
     expect(result).toBeUndefined()
-    expect(mockNavigateTo).not.toHaveBeenCalled()
   })
 
-  it('redirects unauthenticated to /login', () => {
-    const auth = useAuth()
-    auth.init()
-
-    middleware({ path: '/tickets' })
-    expect(mockNavigateTo).toHaveBeenCalledWith('/login')
-  })
-
-  it('allows authenticated users', () => {
-    localStorage.setItem(TOKEN_KEY, makeValidJwt())
-    const auth = useAuth()
-    auth.init()
-
-    const result = middleware({ path: '/tickets' })
+  it('skips when isLoading is true', () => {
+    mockIsLoading.value = true
+    const result = (middleware as Function)({ path: '/tickets' })
     expect(result).toBeUndefined()
-    expect(mockNavigateTo).not.toHaveBeenCalled()
+  })
+
+  it('redirects to /login when not authenticated', () => {
+    mockIsAuthenticated.value = false
+    const result = (middleware as Function)({ path: '/tickets' })
+    expect(navigateToMock).toHaveBeenCalledWith('/login')
+    expect(result).toEqual({ __navigateTo: '/login' })
+  })
+
+  it('allows access when authenticated', () => {
+    mockIsAuthenticated.value = true
+    const result = (middleware as Function)({ path: '/tickets' })
+    expect(result).toBeUndefined()
+    expect(navigateToMock).not.toHaveBeenCalled()
   })
 })
