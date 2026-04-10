@@ -7,4 +7,3 @@ coverage/
 .DS_Store
 worker-configuration.d.ts
 .nuxtrc
-package-lock.json
