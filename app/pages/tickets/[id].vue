@@ -3,7 +3,7 @@ const route = useRoute()
 const ticketId = route.params.id as string
 
 const {
-  ticket, editing, saving, error,
+  ticket, workflowStates, editing, saving, error,
   showDeleteModal, form, statusLabel, fields,
   displayValue, startEdit, handleSave, handleDelete, load,
 } = useTicketDetail(ticketId)
@@ -71,6 +71,34 @@ onMounted(() => load())
             <dd class="text-sm">{{ ticket.created_at.substring(0, 10) }}</dd>
           </div>
         </dl>
+      </UCard>
+
+      <!-- Status Transition -->
+      <UCard v-if="ticket.status_id">
+        <TicketStatusTransition
+          :ticket-id="ticketId"
+          :current-status-id="ticket.status_id"
+          :workflow-states="workflowStates"
+          @transitioned="load"
+        />
+      </UCard>
+
+      <!-- Status History -->
+      <UCard>
+        <TicketStatusHistory
+          :ticket-id="ticketId"
+          :workflow-states="workflowStates"
+        />
+      </UCard>
+
+      <!-- Comments -->
+      <UCard>
+        <TicketComments :ticket-id="ticketId" />
+      </UCard>
+
+      <!-- Files -->
+      <UCard>
+        <TicketFiles :ticket-id="ticketId" />
       </UCard>
     </template>
 

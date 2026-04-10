@@ -19,6 +19,12 @@ export const NuxtPage = { template: '<div />' }
 export const StagingFooter = { template: '<div />', props: ['apiBase', 'tenantId'] }
 export const TicketCategoryBadgeStub = { template: '<span />', props: ['category'] }
 export const TicketFormFieldsStub = { template: '<div />', props: ['modelValue', 'mode'] }
+export const MasterDataManagerStub = { template: '<div />', props: ['title', 'items', 'loading'] }
+export const WorkflowManagerStub = { template: '<div />' }
+export const TicketCommentsStub = { template: '<div />', props: ['ticketId'] }
+export const TicketStatusHistoryStub = { template: '<div />', props: ['ticketId', 'workflowStates'] }
+export const TicketStatusTransitionStub = { template: '<div />', props: ['ticketId', 'currentStatusId', 'workflowStates'] }
+export const TicketFilesStub = { template: '<div />', props: ['ticketId'] }
 
 export const allStubs = {
   UApp, UCard, UButton, UIcon, UBadge, UInput, USelect, UFormField,
@@ -26,4 +32,10 @@ export const allStubs = {
   StagingFooter,
   TicketCategoryBadge: TicketCategoryBadgeStub,
   TicketFormFields: TicketFormFieldsStub,
+  MasterDataManager: MasterDataManagerStub,
+  WorkflowManager: WorkflowManagerStub,
+  TicketComments: TicketCommentsStub,
+  TicketStatusHistory: TicketStatusHistoryStub,
+  TicketStatusTransition: TicketStatusTransitionStub,
+  TicketFiles: TicketFilesStub,
 }
