@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   setupApi,
   teardownApi,
@@ -21,6 +21,7 @@ import {
   deleteTicket,
   getWorkflowStates,
   setupDefaultWorkflow,
+  exportTicketsCsv,
 } from '~/utils/api'
 
 describe('Trouble API', () => {
@@ -136,6 +137,22 @@ describe('Trouble API', () => {
     })
   })
 
+  describe('auth headers', () => {
+    it('includes Authorization header when token getter is set', async () => {
+      if (isLive) return
+      const { initApi } = await import('~/utils/api')
+      initApi(API_BASE, () => 'my-token', undefined, () => 'my-tenant')
+      mockFetch.mockReset()
+      stubOk({ tickets: [], total: 0, page: 1, per_page: 20 })
+      await getTickets()
+      const [, opts] = mockFetch.mock.calls[0]
+      expect(opts.headers['Authorization']).toBe('Bearer my-token')
+      expect(opts.headers['X-Tenant-ID']).toBe('my-tenant')
+      // Restore
+      await setupApi()
+    })
+  })
+
   describe('error handling', () => {
     it('throws on non-ok response', async () => {
       if (isLive) return
@@ -156,6 +173,54 @@ describe('Trouble API', () => {
       await expect(getTickets()).rejects.toThrow('API 未初期化')
       // Restore
       await setupApi()
+    })
+
+    it('uses statusText when res.text() rejects', async () => {
+      if (isLive) return
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        text: () => Promise.reject(new Error('text failed')),
+      })
+      await expect(getTickets()).rejects.toThrow('API エラー (502): Bad Gateway')
+    })
+  })
+
+  describe('exportTicketsCsv', () => {
+    it('triggers CSV download', async () => {
+      if (isLive) return
+
+      const blobUrl = 'blob:http://localhost/fake'
+      const clickMock = vi.fn()
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue({
+        href: '',
+        download: '',
+        click: clickMock,
+      } as unknown as HTMLElement)
+      const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue(blobUrl)
+      const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        blob: () => Promise.resolve(new Blob(['csv-data'])),
+      })
+
+      await exportTicketsCsv()
+
+      expect(clickMock).toHaveBeenCalled()
+      expect(createObjectURLSpy).toHaveBeenCalled()
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith(blobUrl)
+
+      createElementSpy.mockRestore()
+      createObjectURLSpy.mockRestore()
+      revokeObjectURLSpy.mockRestore()
+    })
+
+    it('throws on non-ok response', async () => {
+      if (isLive) return
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+      await expect(exportTicketsCsv()).rejects.toThrow('CSV出力に失敗')
     })
   })
 })

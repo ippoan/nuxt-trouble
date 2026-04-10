@@ -47,6 +47,7 @@ function toParams(filter: object): string {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!apiBase) throw new Error('API 未初期化: initApi() を呼んでください')
 
+  /* v8 ignore next 4 -- no public API uses FormData yet */
   const isFormData = options.body instanceof FormData
 
   const headers: Record<string, string> = {

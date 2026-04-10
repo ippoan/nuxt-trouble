@@ -213,4 +213,61 @@ describe('useAuth', () => {
       expect(auth.tenantId.value).toBe('tid-from-authworker')
     })
   })
+
+  describe('decodeJwt edge cases', () => {
+    it('handles JWT with missing payload part', () => {
+      // Token with no dots → parts[1] is undefined → return null → isTokenExpired returns true
+      localStorage.setItem(TOKEN_KEY, 'no-dots-token')
+
+      const auth = useAuth()
+      auth.init()
+
+      // Token should be removed since it's "expired" (decode returns null)
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+
+    it('handles JWT with invalid base64 payload', () => {
+      // Valid structure but invalid base64 → JSON.parse throws → catch returns null
+      localStorage.setItem(TOKEN_KEY, 'header.!!!invalid!!!.signature')
+
+      const auth = useAuth()
+      auth.init()
+
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+
+    it('handles JWT with no exp claim', () => {
+      // Valid JWT but no exp → isTokenExpired returns true
+      const token = makeJwt({
+        sub: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        iat: Math.floor(Date.now() / 1000),
+        // no exp
+      })
+      localStorage.setItem(TOKEN_KEY, token)
+
+      const auth = useAuth()
+      auth.init()
+
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+  })
+
+  describe('handleCallback edge cases', () => {
+    it('returns false when hash has no token param', () => {
+      vi.spyOn(history, 'replaceState').mockImplementation(() => {})
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, hash: '#other=value', pathname: '/auth/callback', search: '', origin: 'http://localhost:3000' },
+        writable: true,
+        configurable: true,
+      })
+
+      const auth = useAuth()
+      expect(auth.handleCallback()).toBe(false)
+    })
+  })
 })

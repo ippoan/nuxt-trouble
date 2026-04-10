@@ -1,108 +1,11 @@
 <script setup lang="ts">
-import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv } from '~/utils/api'
-import { TICKET_CATEGORIES } from '~/types'
-import type { TroubleTicketFilter, TroubleTicket, TroubleWorkflowState } from '~/types'
-
-const router = useRouter()
-
-// Filter state (use undefined for Nuxt UI v-model compat)
-const filter = reactive({
-  category: undefined as string | undefined,
-  person_name: undefined as string | undefined,
-  company_name: undefined as string | undefined,
-  office_name: undefined as string | undefined,
-  date_from: undefined as string | undefined,
-  date_to: undefined as string | undefined,
-  q: undefined as string | undefined,
-  page: 1,
-  per_page: 20,
-})
-
-// Data (use shallowRef to avoid deep type instantiation with JsonValue)
-const tickets = shallowRef<TroubleTicket[]>([])
-const total = ref(0)
-const workflowStates = shallowRef<TroubleWorkflowState[]>([])
-const loading = ref(false)
-const deleteTarget = shallowRef<TroubleTicket | null>(null)
-const showDeleteModal = ref(false)
-
-// Workflow state map for display
-const stateMap = computed(() => {
-  const map: Record<string, TroubleWorkflowState> = {}
-  for (const s of workflowStates.value) {
-    map[s.id] = s
-  }
-  return map
-})
-
-const totalPages = computed(() => Math.ceil(total.value / (filter.per_page || 20)))
-
-const categoryOptions = [
-  { label: '全て', value: '' },
-  ...TICKET_CATEGORIES.map(c => ({ label: c, value: c })),
-]
-
-async function fetchTickets() {
-  loading.value = true
-  try {
-    const res = await getTickets(filter)
-    tickets.value = res.tickets
-    total.value = res.total
-  } catch (e) {
-    console.error('Failed to fetch tickets:', e)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function fetchWorkflowStates() {
-  try {
-    workflowStates.value = await getWorkflowStates()
-  } catch {
-    // workflow not set up yet
-  }
-}
-
-function clearFilter() {
-  filter.category = undefined
-  filter.person_name = undefined
-  filter.company_name = undefined
-  filter.office_name = undefined
-  filter.date_from = undefined
-  filter.date_to = undefined
-  filter.q = undefined
-  filter.page = 1
-}
-
-function confirmDelete(ticket: TroubleTicket) {
-  deleteTarget.value = ticket
-  showDeleteModal.value = true
-}
-
-async function handleDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await deleteTicket(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await fetchTickets()
-  } catch (e) {
-    console.error('Failed to delete:', e)
-  }
-}
-
-async function handleExportCsv() {
-  try {
-    await exportTicketsCsv(filter)
-  } catch (e) {
-    console.error('CSV export failed:', e)
-  }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-'
-  return dateStr.substring(0, 10)
-}
+const {
+  filter, tickets, total, loading,
+  deleteTarget, showDeleteModal, stateMap, totalPages,
+  categoryOptions, fetchTickets, fetchWorkflowStates,
+  clearFilter, confirmDelete, handleDelete, handleExportCsv,
+  formatDate, navigateToTicket,
+} = useTicketList()
 
 // Initial fetch
 onMounted(() => {
@@ -201,7 +104,7 @@ watch(() => ({ ...filter }), () => {
             v-for="ticket in tickets"
             :key="ticket.id"
             class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
-            @click="router.push(`/tickets/${ticket.id}`)"
+            @click="navigateToTicket(ticket.id)"
           >
             <td class="py-3 px-2 text-gray-500">{{ ticket.ticket_no }}</td>
             <td class="py-3 px-2">
