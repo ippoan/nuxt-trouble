@@ -1,21 +1,9 @@
 <script setup lang="ts">
-import { initApi } from '~/utils/api'
 import { StagingFooter } from '@ippoan/auth-client'
 
-const config = useRuntimeConfig()
-const { init, accessToken, tenantId, isLoading } = useAuth()
-const apiBase = config.public.apiBase as string
-const stagingTenantId = (config.public.stagingTenantId as string) || ''
+const { apiBase, stagingTenantId, isLoading, setup } = useAppInit()
 
-onMounted(async () => {
-  initApi(
-    apiBase,
-    () => accessToken.value,
-    undefined,
-    () => tenantId.value,
-  )
-  await init()
-})
+onMounted(() => setup())
 </script>
 
 <template>

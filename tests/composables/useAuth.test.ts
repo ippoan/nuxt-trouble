@@ -213,4 +213,55 @@ describe('useAuth', () => {
       expect(auth.tenantId.value).toBe('tid-from-authworker')
     })
   })
+
+  describe('decodeJwt edge cases', () => {
+    it('handles JWT with missing payload part', () => {
+      localStorage.setItem(TOKEN_KEY, 'no-dots-token')
+      const auth = useAuth()
+      auth.init()
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+
+    it('handles JWT with invalid base64 payload', () => {
+      localStorage.setItem(TOKEN_KEY, 'header.!!!invalid!!!.signature')
+      const auth = useAuth()
+      auth.init()
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+
+    it('handles JWT with no exp claim', () => {
+      const token = makeJwt({ sub: 'u', email: 'e', name: 'n', iat: 1 })
+      localStorage.setItem(TOKEN_KEY, token)
+      const auth = useAuth()
+      auth.init()
+      expect(auth.accessToken.value).toBeNull()
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
+    })
+  })
+
+  describe('handleCallback edge cases', () => {
+    it('returns false when hash has no token param', () => {
+      vi.spyOn(history, 'replaceState').mockImplementation(() => {})
+      Object.defineProperty(window, 'location', {
+        value: { hash: '#other=value', pathname: '/cb', search: '', origin: 'http://localhost' },
+        writable: true, configurable: true,
+      })
+      const auth = useAuth()
+      expect(auth.handleCallback()).toBe(false)
+    })
+
+    it('returns false in SSR (no window)', () => {
+      const origWindow = globalThis.window
+      // @ts-expect-error -- temporarily remove window for SSR test
+      delete globalThis.window
+      try {
+        const auth = useAuth()
+        expect(auth.handleCallback()).toBe(false)
+      } finally {
+        globalThis.window = origWindow
+      }
+    })
+  })
 })

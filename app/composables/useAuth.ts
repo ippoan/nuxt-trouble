@@ -82,6 +82,7 @@ export function useAuth() {
 
   /** auth-worker コールバック: URL fragment から JWT を取得 */
   function handleCallback(): boolean {
+    /* v8 ignore next */
     if (typeof window === 'undefined') return false
 
     const hash = window.location.hash

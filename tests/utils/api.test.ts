@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   setupApi,
   teardownApi,
@@ -21,6 +21,7 @@ import {
   deleteTicket,
   getWorkflowStates,
   setupDefaultWorkflow,
+  exportTicketsCsv,
 } from '~/utils/api'
 
 describe('Trouble API', () => {
@@ -58,6 +59,13 @@ describe('Trouble API', () => {
 
   describe('getTicket', () => {
     it('fetches single ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        const fetched = await getTicket(created.id)
+        expect(fetched.id).toBe(created.id)
+        await deleteTicket(created.id)
+        return
+      }
       const mockTicket = { id: 'test-id', ticket_no: 1, category: '貨物事故' }
       await verifyApi(() => getTicket('test-id'), mockTicket)
       assertMock(() => {
@@ -87,6 +95,13 @@ describe('Trouble API', () => {
 
   describe('updateTicket', () => {
     it('updates a ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        const updated = await updateTicket(created.id, { category: '人身事故' })
+        expect(updated.category).toBe('人身事故')
+        await deleteTicket(created.id)
+        return
+      }
       const mockTicket = { id: 'test-id', ticket_no: 1, category: '人身事故' }
       await verifyApi(
         () => updateTicket('test-id', { category: '人身事故' }),
@@ -102,6 +117,12 @@ describe('Trouble API', () => {
 
   describe('deleteTicket', () => {
     it('deletes a ticket', async () => {
+      if (isLive) {
+        const created = await createTicket({ category: '貨物事故' })
+        await deleteTicket(created.id)
+        await expect(getTicket(created.id)).rejects.toThrow()
+        return
+      }
       await verifyApi(() => deleteTicket('test-id'), {}, { expect204: true })
       assertMock(() => {
         const [url, opts] = mockFetch.mock.calls[0]
@@ -151,11 +172,77 @@ describe('Trouble API', () => {
     it('throws if API not initialized', async () => {
       if (isLive) return
       const { initApi } = await import('~/utils/api')
-      // Reset apiBase by calling initApi with empty string
       initApi('')
       await expect(getTickets()).rejects.toThrow('API 未初期化')
-      // Restore
       await setupApi()
+    })
+
+    it('uses statusText when res.text() rejects', async () => {
+      if (isLive) return
+      mockFetch.mockResolvedValueOnce({
+        ok: false, status: 502, statusText: 'Bad Gateway',
+        text: () => Promise.reject(new Error('text failed')),
+      })
+      await expect(getTickets()).rejects.toThrow('API エラー (502): Bad Gateway')
+    })
+  })
+
+  describe('auth headers', () => {
+    it('includes Authorization when token getter is set', async () => {
+      if (isLive) return
+      const { initApi } = await import('~/utils/api')
+      initApi(API_BASE, () => 'my-token', undefined, () => 'my-tenant')
+      mockFetch.mockReset()
+      stubOk({ tickets: [], total: 0, page: 1, per_page: 20 })
+      await getTickets()
+      const [, opts] = mockFetch.mock.calls[0]
+      expect(opts.headers['Authorization']).toBe('Bearer my-token')
+      expect(opts.headers['X-Tenant-ID']).toBe('my-tenant')
+      await setupApi()
+    })
+  })
+
+  describe('FormData body', () => {
+    it('omits Content-Type for FormData', async () => {
+      if (isLive) return
+      const { request, initApi } = await import('~/utils/api')
+      initApi(API_BASE, undefined, undefined, () => 'test-tenant')
+      mockFetch.mockReset()
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) })
+      await request('/test', { method: 'POST', body: new FormData() })
+      const [, opts] = mockFetch.mock.calls[0]
+      expect(opts.headers['Content-Type']).toBeUndefined()
+      await setupApi()
+    })
+  })
+
+  describe('exportTicketsCsv', () => {
+    it('triggers CSV download', async () => {
+      if (isLive) return
+      const blobUrl = 'blob:http://localhost/fake'
+      const clickMock = vi.fn()
+      const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue({
+        href: '', download: '', click: clickMock,
+      } as unknown as HTMLElement)
+      const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue(blobUrl)
+      const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true, blob: () => Promise.resolve(new Blob(['csv-data'])),
+      })
+      await exportTicketsCsv()
+      expect(clickMock).toHaveBeenCalled()
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith(blobUrl)
+
+      createElementSpy.mockRestore()
+      createObjectURLSpy.mockRestore()
+      revokeObjectURLSpy.mockRestore()
+    })
+
+    it('throws on non-ok response', async () => {
+      if (isLive) return
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+      await expect(exportTicketsCsv()).rejects.toThrow('CSV出力に失敗')
     })
   })
 })

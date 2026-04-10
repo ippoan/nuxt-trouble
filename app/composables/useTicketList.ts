@@ -1,0 +1,211 @@
+import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow } from '~/utils/api'
+import { TICKET_CATEGORIES } from '~/types'
+import type { TroubleTicket, TroubleWorkflowState, CreateTroubleTicket } from '~/types'
+
+const STORAGE_KEY = 'trouble_filter_status'
+
+export function useTicketList() {
+  const router = useRouter()
+
+  const filter = reactive({
+    category: undefined as string | undefined,
+    person_name: undefined as string | undefined,
+    company_name: undefined as string | undefined,
+    office_name: undefined as string | undefined,
+    date_from: undefined as string | undefined,
+    date_to: undefined as string | undefined,
+    q: undefined as string | undefined,
+    page: 1,
+    per_page: 20,
+  })
+
+  // Status filter (checkbox, localStorage)
+  const selectedStatuses = ref<Set<string>>(new Set())
+
+  function loadStatusFilter() {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const ids = JSON.parse(saved) as string[]
+        selectedStatuses.value = new Set(ids)
+      }
+    } catch { /* ignore */ }
+  }
+
+  function saveStatusFilter() {
+    /* v8 ignore next */
+    if (typeof window === 'undefined') return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...selectedStatuses.value]))
+  }
+
+  function toggleStatus(id: string) {
+    const s = new Set(selectedStatuses.value)
+    if (s.has(id)) s.delete(id)
+    else s.add(id)
+    selectedStatuses.value = s
+    saveStatusFilter()
+    filter.page = 1
+    fetchTickets()
+  }
+
+  function toggleAllStatuses() {
+    if (selectedStatuses.value.size === workflowStates.value.length) {
+      selectedStatuses.value = new Set()
+    } else {
+      selectedStatuses.value = new Set(workflowStates.value.map(s => s.id))
+    }
+    saveStatusFilter()
+    filter.page = 1
+    fetchTickets()
+  }
+
+  // Data
+  const tickets = shallowRef<TroubleTicket[]>([])
+  const total = ref(0)
+  const workflowStates = shallowRef<TroubleWorkflowState[]>([])
+  const loading = ref(false)
+  const deleteTarget = shallowRef<TroubleTicket | null>(null)
+  const showDeleteModal = ref(false)
+
+  const stateMap = computed(() => {
+    const map: Record<string, TroubleWorkflowState> = {}
+    for (const s of workflowStates.value) map[s.id] = s
+    return map
+  })
+
+  const totalPages = computed(() => Math.ceil(total.value / (filter.per_page || 20)))
+
+  const categoryOptions = [
+    { label: '全て', value: '' },
+    ...TICKET_CATEGORIES.map(c => ({ label: c, value: c })),
+  ]
+
+  const createCategoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+
+  // Filtered tickets (client-side status filter)
+  const filteredTickets = computed(() => {
+    if (selectedStatuses.value.size === 0) return tickets.value
+    return tickets.value.filter(t =>
+      t.status_id ? selectedStatuses.value.has(t.status_id) : false,
+    )
+  })
+
+  // Inline create
+  const showInlineCreate = ref(false)
+  const creating = ref(false)
+  const newTicket = reactive({
+    category: '' as string,
+    person_name: '',
+    company_name: '',
+    office_name: '',
+    occurred_date: '',
+    description: '',
+  })
+
+  function resetNewTicket() {
+    newTicket.category = ''
+    newTicket.person_name = ''
+    newTicket.company_name = ''
+    newTicket.office_name = ''
+    newTicket.occurred_date = ''
+    newTicket.description = ''
+  }
+
+  async function handleInlineCreate() {
+    if (!newTicket.category) return
+    creating.value = true
+    try {
+      const states = await getWorkflowStates()
+      if (states.length === 0) await setupDefaultWorkflow()
+      const payload: Record<string, unknown> = { category: newTicket.category }
+      if (newTicket.person_name) payload.person_name = newTicket.person_name
+      if (newTicket.company_name) payload.company_name = newTicket.company_name
+      if (newTicket.office_name) payload.office_name = newTicket.office_name
+      if (newTicket.occurred_date) payload.occurred_date = newTicket.occurred_date
+      if (newTicket.description) payload.description = newTicket.description
+      await createTicket(payload as unknown as CreateTroubleTicket)
+      resetNewTicket()
+      showInlineCreate.value = false
+      await fetchTickets()
+    } catch (e) {
+      console.error('Failed to create:', e)
+    } finally {
+      creating.value = false
+    }
+  }
+
+  async function fetchTickets() {
+    loading.value = true
+    try {
+      const res = await getTickets(filter)
+      tickets.value = res.tickets
+      total.value = res.total
+    } catch (e) {
+      console.error('Failed to fetch tickets:', e)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchWorkflowStates() {
+    try {
+      workflowStates.value = await getWorkflowStates()
+    } catch { /* workflow not set up yet */ }
+  }
+
+  function clearFilter() {
+    filter.category = undefined
+    filter.person_name = undefined
+    filter.company_name = undefined
+    filter.office_name = undefined
+    filter.date_from = undefined
+    filter.date_to = undefined
+    filter.q = undefined
+    filter.page = 1
+    selectedStatuses.value = new Set()
+    saveStatusFilter()
+  }
+
+  function confirmDelete(ticket: TroubleTicket) {
+    deleteTarget.value = ticket
+    showDeleteModal.value = true
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget.value) return
+    try {
+      await deleteTicket(deleteTarget.value.id)
+      showDeleteModal.value = false
+      deleteTarget.value = null
+      await fetchTickets()
+    } catch (e) {
+      console.error('Failed to delete:', e)
+    }
+  }
+
+  async function handleExportCsv() {
+    try { await exportTicketsCsv(filter) } catch (e) { console.error('CSV export failed:', e) }
+  }
+
+  function formatDate(dateStr: string | null): string {
+    if (!dateStr) return '-'
+    return dateStr.substring(0, 10)
+  }
+
+  function navigateToTicket(ticketId: string) {
+    router.push(`/tickets/${ticketId}`)
+  }
+
+  return {
+    filter, selectedStatuses, tickets, total, workflowStates, loading,
+    deleteTarget, showDeleteModal, stateMap, totalPages,
+    categoryOptions, createCategoryOptions, filteredTickets,
+    showInlineCreate, creating, newTicket,
+    loadStatusFilter, toggleStatus, toggleAllStatuses,
+    resetNewTicket, handleInlineCreate,
+    fetchTickets, fetchWorkflowStates,
+    clearFilter, confirmDelete, handleDelete, handleExportCsv,
+    formatDate, navigateToTicket,
+  }
+}

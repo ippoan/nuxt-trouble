@@ -44,7 +44,8 @@ function toParams(filter: object): string {
   return qs ? `?${qs}` : ''
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+/** @internal テスト用にも export */
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!apiBase) throw new Error('API 未初期化: initApi() を呼んでください')
 
   const isFormData = options.body instanceof FormData
