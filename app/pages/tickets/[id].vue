@@ -6,8 +6,8 @@ const route = useRoute()
 const router = useRouter()
 const ticketId = route.params.id as string
 
-const ticket = ref<TroubleTicket | null>(null)
-const workflowStates = ref<TroubleWorkflowState[]>([])
+const ticket = shallowRef<TroubleTicket | null>(null)
+const workflowStates = shallowRef<TroubleWorkflowState[]>([])
 const editing = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)

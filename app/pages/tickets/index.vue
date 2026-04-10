@@ -18,12 +18,12 @@ const filter = reactive({
   per_page: 20,
 })
 
-// Data
-const tickets = ref<TroubleTicket[]>([])
+// Data (use shallowRef to avoid deep type instantiation with JsonValue)
+const tickets = shallowRef<TroubleTicket[]>([])
 const total = ref(0)
-const workflowStates = ref<TroubleWorkflowState[]>([])
+const workflowStates = shallowRef<TroubleWorkflowState[]>([])
 const loading = ref(false)
-const deleteTarget = ref<TroubleTicket | null>(null)
+const deleteTarget = shallowRef<TroubleTicket | null>(null)
 const showDeleteModal = ref(false)
 
 // Workflow state map for display

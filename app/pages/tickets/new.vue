@@ -51,7 +51,7 @@ async function handleSubmit() {
         payload[key] = value
       }
     }
-    const ticket = await createTicket(payload as CreateTroubleTicket)
+    const ticket = await createTicket(payload as unknown as CreateTroubleTicket)
     router.push(`/tickets/${ticket.id}`)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '作成に失敗しました'
