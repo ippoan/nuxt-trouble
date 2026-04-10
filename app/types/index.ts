@@ -122,6 +122,19 @@ export interface CreateTroubleOffice {
   sort_order?: number
 }
 
+export interface TroubleProgressStatus {
+  id: string
+  tenant_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export interface CreateTroubleProgressStatus {
+  name: string
+  sort_order?: number
+}
+
 export interface Employee {
   id: string
   tenant_id: string

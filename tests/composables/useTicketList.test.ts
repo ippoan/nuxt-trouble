@@ -104,10 +104,21 @@ describe('useTicketList', () => {
     expect(l.totalPages.value).toBe(3)
   })
 
-  it('categoryOptions includes all categories', () => {
+  it('categoryOptions includes all hardcoded categories when no DB categories', () => {
     const l = useTicketList()
     expect(l.categoryOptions.value[0]).toEqual({ label: '全て', value: '' })
+    // 7 hardcoded + 1 "全て"
     expect(l.categoryOptions.value.length).toBe(8)
+  })
+
+  it('categoryOptions merges DB and hardcoded categories', () => {
+    const l = useTicketList()
+    // Simulate DB categories
+    l.categories.value = [{ id: 'c1', tenant_id: 't1', name: '貨物事故', sort_order: 1, created_at: '' }]
+    // DB has '貨物事故' which is also hardcoded — should deduplicate
+    // Total: 1 "全て" + 1 DB + 6 remaining hardcoded = 8
+    expect(l.categoryOptions.value.length).toBe(8)
+    expect(l.categoryOptions.value[1]).toEqual({ label: '貨物事故', value: '貨物事故' })
   })
 
   it('clearFilter resets all fields and status', () => {
@@ -328,8 +339,16 @@ describe('useTicketList', () => {
     expect(l.newTicket.person_name).toBe('')
   })
 
-  it('createCategoryOptions has correct length', () => {
+  it('createCategoryOptions has correct length with no DB categories', () => {
     const l = useTicketList()
     expect(l.createCategoryOptions.value.length).toBe(7)
+  })
+
+  it('createCategoryOptions merges DB and hardcoded', () => {
+    const l = useTicketList()
+    l.categories.value = [{ id: 'c1', tenant_id: 't1', name: 'カスタム', sort_order: 1, created_at: '' }]
+    // 1 DB (カスタム) + 7 hardcoded = 8
+    expect(l.createCategoryOptions.value.length).toBe(8)
+    expect(l.createCategoryOptions.value[0]).toEqual({ label: 'カスタム', value: 'カスタム' })
   })
 })

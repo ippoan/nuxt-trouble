@@ -105,7 +105,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UInput v-model="newTicket.confirmation_notice" placeholder="確認書" size="sm" class="w-20" />
         <UInput v-model="newTicket.disciplinary_content" placeholder="処分検討" size="sm" class="w-24" />
         <UInput v-model="newTicket.disciplinary_action" placeholder="処分内容" size="sm" class="w-24" />
-        <UInput v-model="newTicket.road_service_cost" type="number" placeholder="ロードサービス" size="sm" class="w-28" />
+        <UInput v-model="newTicket.road_service_cost" type="number" placeholder="ロードサービス費用" size="sm" class="w-28" />
         <UInput v-model="newTicket.counterparty" placeholder="相手" size="sm" class="w-20" />
         <UInput v-model="newTicket.counterparty_insurance" placeholder="相手保険" size="sm" class="w-24" />
         <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
@@ -140,7 +140,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               <th class="text-left py-2 px-2 font-medium">確認書</th>
               <th class="text-left py-2 px-2 font-medium">処分検討内容</th>
               <th class="text-left py-2 px-2 font-medium">処分内容</th>
-              <th class="text-right py-2 px-2 font-medium">ロードサービス</th>
+              <th class="text-right py-2 px-2 font-medium">ロードサービス費用</th>
               <th class="text-left py-2 px-2 font-medium">相手</th>
               <th class="text-left py-2 px-2 font-medium">相手保険会社</th>
               <th class="text-left py-2 px-2 font-medium">ステータス</th>
