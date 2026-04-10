@@ -36,8 +36,8 @@ const mergedItems = computed(() => {
 
 function moveUp(index: number) {
   const item = mergedItems.value[index]
-  if (index === 0 || item.isBuiltin || !item.id) return
   const prev = mergedItems.value[index - 1]
+  if (!item || !prev || index === 0 || item.isBuiltin || !item.id) return
   if (prev.isBuiltin || !prev.id) return
   emit('reorder', item.id, prev.sort_order)
   emit('reorder', prev.id, item.sort_order)
@@ -45,8 +45,8 @@ function moveUp(index: number) {
 
 function moveDown(index: number) {
   const item = mergedItems.value[index]
-  if (index >= mergedItems.value.length - 1 || item.isBuiltin || !item.id) return
   const next = mergedItems.value[index + 1]
+  if (!item || !next || index >= mergedItems.value.length - 1 || item.isBuiltin || !item.id) return
   if (next.isBuiltin || !next.id) return
   emit('reorder', item.id, next.sort_order)
   emit('reorder', next.id, item.sort_order)
