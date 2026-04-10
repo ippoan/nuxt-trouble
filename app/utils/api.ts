@@ -13,6 +13,8 @@ import type {
   CreateTroubleCategory,
   TroubleOffice,
   CreateTroubleOffice,
+  TroubleProgressStatus,
+  CreateTroubleProgressStatus,
   Employee,
   CreateWorkflowState,
   CreateWorkflowTransition,
@@ -148,6 +150,13 @@ export async function deleteCategory(id: string): Promise<void> {
   await request<void>(`/api/trouble/categories/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+export async function updateCategorySortOrder(id: string, sort_order: number): Promise<TroubleCategory> {
+  return request<TroubleCategory>(`/api/trouble/categories/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sort_order }),
+  })
+}
+
 // --- Offices ---
 
 export async function getOffices(): Promise<TroubleOffice[]> {
@@ -163,6 +172,37 @@ export async function createOffice(data: CreateTroubleOffice): Promise<TroubleOf
 
 export async function deleteOffice(id: string): Promise<void> {
   await request<void>(`/api/trouble/offices/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateOfficeSortOrder(id: string, sort_order: number): Promise<TroubleOffice> {
+  return request<TroubleOffice>(`/api/trouble/offices/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sort_order }),
+  })
+}
+
+// --- Progress Statuses ---
+
+export async function getProgressStatuses(): Promise<TroubleProgressStatus[]> {
+  return request<TroubleProgressStatus[]>('/api/trouble/progress-statuses')
+}
+
+export async function createProgressStatus(data: CreateTroubleProgressStatus): Promise<TroubleProgressStatus> {
+  return request<TroubleProgressStatus>('/api/trouble/progress-statuses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteProgressStatus(id: string): Promise<void> {
+  await request<void>(`/api/trouble/progress-statuses/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateProgressStatusSortOrder(id: string, sort_order: number): Promise<TroubleProgressStatus> {
+  return request<TroubleProgressStatus>(`/api/trouble/progress-statuses/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sort_order }),
+  })
 }
 
 // --- Employees ---

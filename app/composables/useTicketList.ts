@@ -81,17 +81,23 @@ export function useTicketList() {
   const offices = shallowRef<TroubleOffice[]>([])
 
   const categoryOptions = computed(() => {
-    const cats = categories.value.length > 0
-      ? categories.value.map(c => c.name)
-      : [...TICKET_CATEGORIES]
-    return [{ label: '全て', value: '' }, ...cats.map(c => ({ label: c, value: c }))]
+    const dbNames = new Set(categories.value.map(c => c.name))
+    const hardcoded = TICKET_CATEGORIES.filter(c => !dbNames.has(c))
+    const allCats = [
+      ...categories.value.map(c => c.name),
+      ...hardcoded,
+    ]
+    return [{ label: '全て', value: '' }, ...allCats.map(c => ({ label: c, value: c }))]
   })
 
   const createCategoryOptions = computed(() => {
-    const cats = categories.value.length > 0
-      ? categories.value.map(c => c.name)
-      : [...TICKET_CATEGORIES]
-    return cats.map(c => ({ label: c, value: c }))
+    const dbNames = new Set(categories.value.map(c => c.name))
+    const hardcoded = TICKET_CATEGORIES.filter(c => !dbNames.has(c))
+    const allCats = [
+      ...categories.value.map(c => c.name),
+      ...hardcoded,
+    ]
+    return allCats.map(c => ({ label: c, value: c }))
   })
 
   const officeOptions = computed(() =>

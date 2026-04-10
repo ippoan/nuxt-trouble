@@ -16,9 +16,11 @@ import {
   getCategories,
   createCategory,
   deleteCategory,
+  updateCategorySortOrder,
   getOffices,
   createOffice,
   deleteOffice,
+  updateOfficeSortOrder,
   getEmployees,
   getWorkflowStates,
   getWorkflowTransitions,
@@ -97,6 +99,26 @@ describe('Trouble API Phase 3', () => {
     })
   })
 
+  describe('updateCategorySortOrder', () => {
+    it('updates category sort order', async () => {
+      if (isLive) {
+        const cat = await createCategory({ name: `sort-cat-${Date.now()}` })
+        const updated = await updateCategorySortOrder(cat.id, 5)
+        expect(updated.sort_order).toBe(5)
+        await deleteCategory(cat.id)
+        return
+      }
+      const mockData = { id: 'c1', name: '貨物事故', sort_order: 5 }
+      await verifyApi(() => updateCategorySortOrder('c1', 5), mockData)
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/trouble/categories/c1`)
+        expect(opts.method).toBe('PUT')
+        expect(JSON.parse(opts.body)).toEqual({ sort_order: 5 })
+      })
+    })
+  })
+
   // --- Offices ---
   describe('getOffices', () => {
     it('fetches offices', async () => {
@@ -141,6 +163,26 @@ describe('Trouble API Phase 3', () => {
         const [url, opts] = mockFetch.mock.calls[0]
         expect(url).toBe(`${API_BASE}/api/trouble/offices/o1`)
         expect(opts.method).toBe('DELETE')
+      })
+    })
+  })
+
+  describe('updateOfficeSortOrder', () => {
+    it('updates office sort order', async () => {
+      if (isLive) {
+        const off = await createOffice({ name: `sort-off-${Date.now()}` })
+        const updated = await updateOfficeSortOrder(off.id, 3)
+        expect(updated.sort_order).toBe(3)
+        await deleteOffice(off.id)
+        return
+      }
+      const mockData = { id: 'o1', name: '東京営業所', sort_order: 3 }
+      await verifyApi(() => updateOfficeSortOrder('o1', 3), mockData)
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/trouble/offices/o1`)
+        expect(opts.method).toBe('PUT')
+        expect(JSON.parse(opts.body)).toEqual({ sort_order: 3 })
       })
     })
   })
