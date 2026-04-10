@@ -3,8 +3,6 @@ export type {
   TroubleTicket,
   CreateTroubleTicket,
   UpdateTroubleTicket,
-  TroubleTicketFilter,
-  TroubleTicketsResponse,
   TroubleWorkflowState,
   TroubleWorkflowTransition,
   TroubleFile,
@@ -12,6 +10,29 @@ export type {
   TroubleStatusHistory,
   TransitionRequest,
 } from './generated'
+
+// Override ts-rs i64 → number for frontend use
+export type { TroubleTicketFilter as _TsRsTroubleTicketFilter } from './generated'
+export interface TroubleTicketFilter {
+  category?: string | null
+  status_id?: string | null
+  person_name?: string | null
+  company_name?: string | null
+  office_name?: string | null
+  date_from?: string | null
+  date_to?: string | null
+  q?: string | null
+  page?: number | null
+  per_page?: number | null
+}
+
+export type { TroubleTicketsResponse as _TsRsTroubleTicketsResponse } from './generated'
+export interface TroubleTicketsResponse {
+  tickets: import('./generated').TroubleTicket[]
+  total: number
+  page: number
+  per_page: number
+}
 
 // UI constants
 export const TICKET_CATEGORIES = [

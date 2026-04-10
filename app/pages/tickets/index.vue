@@ -5,15 +5,15 @@ import type { TroubleTicketFilter, TroubleTicket, TroubleWorkflowState } from '~
 
 const router = useRouter()
 
-// Filter state
-const filter = reactive<TroubleTicketFilter>({
-  category: null,
-  person_name: null,
-  company_name: null,
-  office_name: null,
-  date_from: null,
-  date_to: null,
-  q: null,
+// Filter state (use undefined for Nuxt UI v-model compat)
+const filter = reactive({
+  category: undefined as string | undefined,
+  person_name: undefined as string | undefined,
+  company_name: undefined as string | undefined,
+  office_name: undefined as string | undefined,
+  date_from: undefined as string | undefined,
+  date_to: undefined as string | undefined,
+  q: undefined as string | undefined,
   page: 1,
   per_page: 20,
 })
@@ -64,13 +64,13 @@ async function fetchWorkflowStates() {
 }
 
 function clearFilter() {
-  filter.category = null
-  filter.person_name = null
-  filter.company_name = null
-  filter.office_name = null
-  filter.date_from = null
-  filter.date_to = null
-  filter.q = null
+  filter.category = undefined
+  filter.person_name = undefined
+  filter.company_name = undefined
+  filter.office_name = undefined
+  filter.date_from = undefined
+  filter.date_to = undefined
+  filter.q = undefined
   filter.page = 1
 }
 
@@ -225,7 +225,7 @@ watch(() => ({ ...filter }), () => {
               <UButton
                 icon="i-lucide-trash-2"
                 variant="ghost"
-                color="red"
+                color="error"
                 size="xs"
                 @click.stop="confirmDelete(ticket)"
               />
@@ -259,7 +259,7 @@ watch(() => ({ ...filter }), () => {
           </p>
           <div class="flex justify-end gap-2">
             <UButton label="キャンセル" variant="outline" @click="showDeleteModal = false" />
-            <UButton label="削除" color="red" @click="handleDelete" />
+            <UButton label="削除" color="error" @click="handleDelete" />
           </div>
         </div>
       </template>

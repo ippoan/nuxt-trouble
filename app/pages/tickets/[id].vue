@@ -19,7 +19,7 @@ const statusLabel = computed(() => {
   return workflowStates.value.find(s => s.id === ticket.value!.status_id)
 })
 
-const fields: Array<{ label: string; key: keyof TroubleTicket }> = [
+const fields: Array<{ label: string; key: string }> = [
   { label: 'カテゴリ', key: 'category' },
   { label: 'タイトル', key: 'title' },
   { label: '説明', key: 'description' },
@@ -37,9 +37,9 @@ const fields: Array<{ label: string; key: keyof TroubleTicket }> = [
   { label: '相手方保険', key: 'counterparty_insurance' },
 ]
 
-function displayValue(key: keyof TroubleTicket): string {
+function displayValue(key: string): string {
   if (!ticket.value) return '-'
-  const val = ticket.value[key]
+  const val = (ticket.value as Record<string, unknown>)[key]
   if (val == null || val === '') return '-'
   return String(val)
 }
@@ -77,7 +77,7 @@ async function handleSave() {
         data[key] = value
       }
     }
-    ticket.value = await updateTicket(ticketId, data)
+    ticket.value = await updateTicket(ticketId, data as import('~/types').UpdateTroubleTicket)
     editing.value = false
   } catch (e) {
     error.value = e instanceof Error ? e.message : '更新に失敗しました'
@@ -141,7 +141,7 @@ onMounted(async () => {
         <div class="flex gap-2">
           <template v-if="!editing">
             <UButton label="編集" icon="i-lucide-pencil" variant="outline" @click="startEdit" />
-            <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="red" @click="showDeleteModal = true" />
+            <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="showDeleteModal = true" />
           </template>
         </div>
       </div>
@@ -189,7 +189,7 @@ onMounted(async () => {
           </p>
           <div class="flex justify-end gap-2">
             <UButton label="キャンセル" variant="outline" @click="showDeleteModal = false" />
-            <UButton label="削除" color="red" @click="handleDelete" />
+            <UButton label="削除" color="error" @click="handleDelete" />
           </div>
         </div>
       </template>

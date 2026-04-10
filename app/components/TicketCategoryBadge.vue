@@ -3,17 +3,19 @@ const props = defineProps<{
   category: string
 }>()
 
-const colorMap: Record<string, string> = {
-  '苦情・トラブル': 'yellow',
-  '貨物事故': 'red',
-  '被害事故': 'red',
-  '対物事故(他損)': 'orange',
-  '対物事故(自損)': 'orange',
-  '人身事故': 'red',
+type BadgeColor = 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'
+
+const colorMap: Record<string, BadgeColor> = {
+  '苦情・トラブル': 'warning',
+  '貨物事故': 'error',
+  '被害事故': 'error',
+  '対物事故(他損)': 'warning',
+  '対物事故(自損)': 'warning',
+  '人身事故': 'error',
   'その他': 'neutral',
 }
 
-const color = computed(() => colorMap[props.category] || 'neutral')
+const color = computed<BadgeColor>(() => colorMap[props.category] || 'neutral')
 </script>
 
 <template>

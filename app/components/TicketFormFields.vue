@@ -7,7 +7,7 @@ defineProps<{
   mode: 'create' | 'edit'
 }>()
 
-const categoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c }))
+const categoryOptions = [...TICKET_CATEGORIES.map(c => ({ label: c, value: c }))]
 
 function update(key: string, value: unknown) {
   model.value = { ...model.value, [key]: value }
@@ -125,7 +125,7 @@ function update(key: string, value: unknown) {
         <UFormField label="損害額">
           <UInput
             type="number"
-            :model-value="model.damage_amount ?? ''"
+            :model-value="String(model.damage_amount ?? '')"
             placeholder="0"
             @update:model-value="update('damage_amount', $event ? Number($event) : null)"
           />
@@ -134,7 +134,7 @@ function update(key: string, value: unknown) {
         <UFormField label="補償額">
           <UInput
             type="number"
-            :model-value="model.compensation_amount ?? ''"
+            :model-value="String(model.compensation_amount ?? '')"
             placeholder="0"
             @update:model-value="update('compensation_amount', $event ? Number($event) : null)"
           />
@@ -143,7 +143,7 @@ function update(key: string, value: unknown) {
         <UFormField label="ロードサービス費">
           <UInput
             type="number"
-            :model-value="model.road_service_cost ?? ''"
+            :model-value="String(model.road_service_cost ?? '')"
             placeholder="0"
             @update:model-value="update('road_service_cost', $event ? Number($event) : null)"
           />
