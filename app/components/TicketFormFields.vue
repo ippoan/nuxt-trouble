@@ -1,16 +1,53 @@
 <script setup lang="ts">
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
 import { TICKET_CATEGORIES } from '~/types'
 
 const model = defineModel<Record<string, unknown>>({ required: true })
 
-defineProps<{
+const props = defineProps<{
   mode: 'create' | 'edit'
+  categories?: TroubleCategory[]
+  offices?: TroubleOffice[]
+  progressStatuses?: TroubleProgressStatus[]
+  employees?: Employee[]
 }>()
 
-const categoryOptions = TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+const categoryOptions = computed(() => {
+  if (props.categories && props.categories.length > 0) {
+    const dbNames = new Set(props.categories.map(c => c.name))
+    const hardcoded = ([...TICKET_CATEGORIES] as string[]).filter(c => !dbNames.has(c))
+    return [...props.categories.map(c => c.name), ...hardcoded].map(c => ({ label: c, value: c }))
+  }
+  return TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+})
+
+const officeOptions = computed(() => {
+  if (!props.offices || props.offices.length === 0) return []
+  return props.offices.map(o => ({ label: o.name, value: o.name }))
+})
+
+const progressOptions = computed(() => {
+  if (!props.progressStatuses || props.progressStatuses.length === 0) return []
+  return props.progressStatuses.map(p => ({ label: p.name, value: p.name }))
+})
+
+const employeeOptions = computed(() => {
+  if (!props.employees || props.employees.length === 0) return []
+  return props.employees.map(e => ({
+    label: e.code ? `${e.name} (${e.code})` : e.name,
+    value: e.id,
+  }))
+})
 
 function update(key: string, value: unknown) {
   model.value = { ...model.value, [key]: value }
+}
+
+function updateEmployee(employeeId: string) {
+  const emp = props.employees?.find(e => e.id === employeeId)
+  if (emp) {
+    model.value = { ...model.value, person_name: emp.name, person_id: emp.id }
+  }
 }
 </script>
 
@@ -69,7 +106,15 @@ function update(key: string, value: unknown) {
         </UFormField>
 
         <UFormField label="営業所名">
+          <USelect
+            v-if="officeOptions.length > 0"
+            :model-value="(model.office_name as string) || ''"
+            :items="officeOptions"
+            placeholder="営業所を選択"
+            @update:model-value="update('office_name', $event)"
+          />
           <UInput
+            v-else
             :model-value="(model.office_name as string) || ''"
             placeholder="営業所名"
             @update:model-value="update('office_name', $event)"
@@ -85,7 +130,15 @@ function update(key: string, value: unknown) {
         </UFormField>
 
         <UFormField label="氏名">
+          <USelect
+            v-if="employeeOptions.length > 0"
+            :model-value="(model.person_id as string) || ''"
+            :items="employeeOptions"
+            placeholder="従業員を選択"
+            @update:model-value="updateEmployee($event as string)"
+          />
           <UInput
+            v-else
             :model-value="(model.person_name as string) || ''"
             placeholder="氏名"
             @update:model-value="update('person_name', $event)"
@@ -117,6 +170,37 @@ function update(key: string, value: unknown) {
       </div>
     </fieldset>
 
+    <!-- 進捗・手当 -->
+    <fieldset class="space-y-4">
+      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">進捗・手当</legend>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UFormField label="進捗状況">
+          <USelect
+            v-if="progressOptions.length > 0"
+            :model-value="(model.progress_notes as string) || ''"
+            :items="progressOptions"
+            placeholder="進捗状況を選択"
+            @update:model-value="update('progress_notes', $event)"
+          />
+          <UInput
+            v-else
+            :model-value="(model.progress_notes as string) || ''"
+            placeholder="進捗状況"
+            @update:model-value="update('progress_notes', $event)"
+          />
+        </UFormField>
+
+        <UFormField label="手当等">
+          <UInput
+            :model-value="(model.allowance as string) || ''"
+            placeholder="手当等"
+            @update:model-value="update('allowance', $event)"
+          />
+        </UFormField>
+      </div>
+    </fieldset>
+
     <!-- 金額 -->
     <fieldset class="space-y-4">
       <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">金額</legend>
@@ -140,7 +224,7 @@ function update(key: string, value: unknown) {
           />
         </UFormField>
 
-        <UFormField label="ロードサービス費">
+        <UFormField label="ロードサービス費用">
           <UInput
             type="number"
             :model-value="String(model.road_service_cost ?? '')"
