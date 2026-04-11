@@ -2,8 +2,9 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { allStubs } from '../helpers/nuxt-stubs'
 
-vi.stubGlobal('useRuntimeConfig', () => ({
-  public: { authWorkerUrl: 'https://auth.example.com' },
+vi.mock('#app/nuxt', () => ({
+  useRuntimeConfig: () => ({ public: { authWorkerUrl: 'https://auth.example.com' } }),
+  useNuxtApp: () => ({}),
 }))
 
 vi.mock('~/utils/api', () => ({
