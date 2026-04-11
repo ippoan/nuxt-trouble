@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { allStubs } from '../helpers/nuxt-stubs'
 
+vi.mock('#app/nuxt', () => ({
+  useRuntimeConfig: () => ({ public: { authWorkerUrl: 'https://auth.example.com' } }),
+  useNuxtApp: () => ({}),
+}))
+
 vi.mock('~/utils/api', () => ({
   getCategories: vi.fn().mockResolvedValue([]),
   createCategory: vi.fn(),
@@ -15,6 +20,10 @@ vi.mock('~/utils/api', () => ({
   createProgressStatus: vi.fn(),
   deleteProgressStatus: vi.fn(),
   updateProgressStatusSortOrder: vi.fn(),
+  getNotificationPrefs: vi.fn().mockResolvedValue([]),
+  upsertNotificationPref: vi.fn(),
+  deleteNotificationPref: vi.fn(),
+  getLineworksMembers: vi.fn().mockResolvedValue([]),
 }))
 
 import SettingsPage from '~/pages/settings.vue'
