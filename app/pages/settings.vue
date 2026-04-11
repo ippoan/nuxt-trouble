@@ -323,7 +323,9 @@ onMounted(() => {
 
         <template v-else>
           <div v-if="notifMembers.length === 0" class="p-4 bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 rounded-lg text-sm">
-            LINE WORKS Bot が未設定です。管理画面で Bot を設定してください。
+            LINE WORKS Bot が未設定です。
+            <a href="https://alc.ippoan.org" target="_blank" class="underline font-medium">管理画面</a>
+            で Bot を設定してください。
           </div>
 
           <div v-if="notifPrefs.length === 0" class="text-center py-8 text-gray-500">
