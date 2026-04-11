@@ -144,3 +144,62 @@ export interface Employee {
 
 // Re-export generated types used by new components
 export type { CreateWorkflowState, CreateWorkflowTransition } from './generated'
+
+// --- Notification Prefs ---
+export interface TroubleNotificationPref {
+  id: string
+  tenant_id: string
+  event_type: string
+  notify_channel: string
+  enabled: boolean
+  recipient_ids: string[]
+  notify_admins: boolean
+  lineworks_user_ids: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface UpsertNotificationPref {
+  event_type: string
+  notify_channel: string
+  enabled?: boolean | null
+  recipient_ids?: string[] | null
+  notify_admins?: boolean | null
+  lineworks_user_ids?: string[] | null
+}
+
+// --- Schedules ---
+export interface TroubleSchedule {
+  id: string
+  tenant_id: string
+  ticket_id: string
+  scheduled_at: string
+  message: string
+  lineworks_user_ids: string[]
+  cloud_task_name: string | null
+  status: string
+  created_by: string | null
+  created_at: string
+  sent_at: string | null
+}
+
+export interface CreateTroubleSchedule {
+  ticket_id: string
+  scheduled_at: string
+  message: string
+  lineworks_user_ids: string[]
+}
+
+// --- LINE WORKS Members ---
+export interface LineworksMember {
+  user_id: string
+  user_name: string | null
+  email: string | null
+}
+
+export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [
+  { value: 'trouble_created', label: 'チケット作成' },
+  { value: 'trouble_status_changed', label: 'ステータス変更' },
+  { value: 'trouble_comment_added', label: 'コメント追加' },
+  { value: 'trouble_assigned', label: '担当者アサイン' },
+]

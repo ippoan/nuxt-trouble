@@ -4,7 +4,7 @@ const route = useRoute()
 
 const navigation = [
   { label: 'チケット一覧', icon: 'i-lucide-list', to: '/tickets' },
-  { label: '設定', icon: 'i-lucide-settings', to: '/settings' },
+  { label: '通知設定', icon: 'i-lucide-bell', to: '/settings' },
 ]
 
 async function handleLogout() {
