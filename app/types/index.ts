@@ -197,9 +197,9 @@ export interface LineworksMember {
   email: string | null
 }
 
-export const NOTIFICATION_EVENT_TYPES = [
+export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [
   { value: 'trouble_created', label: 'チケット作成' },
   { value: 'trouble_status_changed', label: 'ステータス変更' },
   { value: 'trouble_comment_added', label: 'コメント追加' },
   { value: 'trouble_assigned', label: '担当者アサイン' },
-] as const
+]
