@@ -19,6 +19,11 @@ import type {
   CreateWorkflowState,
   CreateWorkflowTransition,
   TransitionRequest,
+  TroubleNotificationPref,
+  UpsertNotificationPref,
+  LineworksMember,
+  TroubleSchedule,
+  CreateTroubleSchedule,
 } from '~/types'
 
 let apiBase = ''
@@ -303,4 +308,42 @@ export async function downloadFile(fileId: string): Promise<void> {
 
 export async function deleteFile(fileId: string): Promise<void> {
   await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
+}
+
+// --- Notification Prefs ---
+
+export async function getNotificationPrefs(): Promise<TroubleNotificationPref[]> {
+  return request<TroubleNotificationPref[]>('/api/trouble/notification-prefs')
+}
+
+export async function upsertNotificationPref(data: UpsertNotificationPref): Promise<TroubleNotificationPref> {
+  return request<TroubleNotificationPref>('/api/trouble/notification-prefs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteNotificationPref(id: string): Promise<void> {
+  await request<void>(`/api/trouble/notification-prefs/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function getLineworksMembers(): Promise<LineworksMember[]> {
+  return request<LineworksMember[]>('/api/trouble/lineworks/members')
+}
+
+// --- Schedules ---
+
+export async function createSchedule(data: CreateTroubleSchedule): Promise<TroubleSchedule> {
+  return request<TroubleSchedule>('/api/trouble/schedules', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getTicketSchedules(ticketId: string): Promise<TroubleSchedule[]> {
+  return request<TroubleSchedule[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/schedules`)
+}
+
+export async function cancelSchedule(id: string): Promise<void> {
+  await request<void>(`/api/trouble/schedules/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
