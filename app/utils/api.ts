@@ -313,6 +313,14 @@ export async function downloadFile(fileId: string): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+export async function getFileBlobUrl(fileId: string): Promise<string> {
+  const headers = buildAuthHeaders()
+  const res = await fetch(`${apiBase}/api/trouble/files/${encodeURIComponent(fileId)}/download`, { headers })
+  if (!res.ok) throw new Error(`ファイル取得失敗: ${res.status}`)
+  const blob = await res.blob()
+  return URL.createObjectURL(blob)
+}
+
 export async function deleteFile(fileId: string): Promise<void> {
   await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
 }
