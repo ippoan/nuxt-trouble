@@ -18,13 +18,9 @@ vi.mock('#app/composables/router', () => ({
   navigateTo: (...args: unknown[]) => navigateToMock(...args),
 }))
 
-vi.mock('#imports', async (importOriginal) => {
-  const orig = await importOriginal<Record<string, unknown>>()
-  return {
-    ...orig,
-    useColorMode: () => ({ value: 'light', preference: 'light' }),
-  }
-})
+vi.mock('@nuxtjs/color-mode/dist/runtime/composables', () => ({
+  useColorMode: () => ({ value: 'light', preference: 'light' }),
+}))
 
 import DefaultLayout from '~/layouts/default.vue'
 
