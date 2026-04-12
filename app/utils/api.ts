@@ -431,6 +431,13 @@ export async function createActivity(taskId: string, data: CreateTroubleTaskActi
   })
 }
 
+export async function updateActivity(activityId: string, data: { body?: string; occurred_at?: string | null }): Promise<TroubleTaskActivity> {
+  return request<TroubleTaskActivity>(`/api/trouble/activities/${encodeURIComponent(activityId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function deleteActivity(activityId: string): Promise<void> {
   await request<void>(`/api/trouble/activities/${encodeURIComponent(activityId)}`, { method: 'DELETE' })
 }
