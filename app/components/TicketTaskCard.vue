@@ -17,6 +17,7 @@ const emit = defineEmits<{
 const activities = ref<TroubleTaskActivity[]>([])
 const activityFiles = ref<Record<string, TroubleActivityFile[]>>({})
 const newActivityBody = ref('')
+const newActivityDate = ref('')
 const submittingActivity = ref(false)
 const loadingActivities = ref(false)
 const savingNextAction = ref(false)
@@ -116,8 +117,12 @@ async function handleAddActivity() {
   if (!newActivityBody.value.trim()) return
   submittingActivity.value = true
   try {
-    await createActivity(props.task.id, { body: newActivityBody.value.trim() })
+    await createActivity(props.task.id, {
+      body: newActivityBody.value.trim(),
+      occurred_at: newActivityDate.value ? new Date(newActivityDate.value).toISOString() : undefined,
+    })
     newActivityBody.value = ''
+    newActivityDate.value = ''
     await loadActivities()
   } catch (e) {
     console.error('Failed to add activity:', e)
@@ -203,8 +208,13 @@ onMounted(loadActivities)
       </div>
     </div>
 
-    <!-- Row 3: add activity -->
+    <!-- Row 3: add activity [日時] [内容] [+] -->
     <div class="flex items-center gap-1">
+      <input
+        v-model="newActivityDate"
+        type="datetime-local"
+        class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 w-40"
+      />
       <input
         v-model="newActivityBody"
         placeholder="活動を記録..."
