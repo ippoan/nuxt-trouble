@@ -39,7 +39,7 @@ function statusProgress(status: string): number {
 async function renderGantt() {
   if (!chartRef.value || tasks.value.length === 0) return
 
-  await import('frappe-gantt/dist/frappe-gantt.css')
+  await import('~/assets/css/frappe-gantt.css')
   const { default: Gantt } = await import('frappe-gantt')
 
   const ganttTasks = tasks.value.map(task => ({
