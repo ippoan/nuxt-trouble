@@ -159,13 +159,13 @@ onMounted(() => {
         <TicketCompactOverview :ticket="ticket" :workflow-states="workflowStates" />
       </UCard>
 
-      <!-- Status Transition -->
-      <UCard v-if="ticket.status_id">
-        <TicketStatusTransition
+      <!-- Tasks -->
+      <UCard>
+        <TicketTaskList
           :ticket-id="ticketId"
-          :current-status-id="ticket.status_id"
           :workflow-states="workflowStates"
-          @transitioned="load"
+          :current-status-id="ticket.status_id"
+          @suggest-transition="handleTransitionSuggestion"
         />
       </UCard>
 
@@ -181,13 +181,13 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Tasks -->
-      <UCard>
-        <TicketTaskList
+      <!-- Status Transition -->
+      <UCard v-if="ticket.status_id">
+        <TicketStatusTransition
           :ticket-id="ticketId"
-          :workflow-states="workflowStates"
           :current-status-id="ticket.status_id"
-          @suggest-transition="handleTransitionSuggestion"
+          :workflow-states="workflowStates"
+          @transitioned="load"
         />
       </UCard>
 
