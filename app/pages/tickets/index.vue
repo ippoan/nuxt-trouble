@@ -44,7 +44,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       <UInput v-model="filter.q" placeholder="検索" size="sm" class="w-28" />
       <UInput v-model="filter.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="filter.company_name" placeholder="会社名" size="sm" class="w-28" />
-      <USelect v-model="filter.office_name" :items="[{ label: '全て', value: '' }, ...officeOptions]" placeholder="営業所" size="sm" class="w-28" :disabled="officeOptions.length === 0" />
+      <USelect v-model="filter.office_name" :items="officeOptions" placeholder="営業所(全て)" size="sm" class="w-28" :disabled="officeOptions.length === 0" />
       <UInput v-model="filter.date_from" type="date" size="sm" class="w-36" />
       <span class="text-gray-400 text-xs">〜</span>
       <UInput v-model="filter.date_to" type="date" size="sm" class="w-36" />

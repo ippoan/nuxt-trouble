@@ -88,7 +88,7 @@ export function useTicketList() {
       ...categories.value.map(c => c.name),
       ...hardcoded,
     ]
-    return [{ label: '全て', value: '' }, ...allCats.map(c => ({ label: c, value: c }))]
+    return allCats.map(c => ({ label: c, value: c }))
   })
 
   const createCategoryOptions = computed(() => {
