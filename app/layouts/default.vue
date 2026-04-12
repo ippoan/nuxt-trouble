@@ -1,6 +1,12 @@
 <script setup lang="ts">
 const { username, clearAuth } = useAuth()
 const route = useRoute()
+const colorMode = useColorMode()
+
+const isDark = computed({
+  get: () => colorMode.value === 'dark',
+  set: (v) => { colorMode.preference = v ? 'dark' : 'light' },
+})
 
 const navigation = [
   { label: 'チケット一覧', icon: 'i-lucide-list', to: '/tickets' },
@@ -36,8 +42,12 @@ function handleLogout() {
         </NuxtLink>
       </nav>
 
-      <!-- User -->
+      <!-- Dark mode toggle + User -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs text-gray-500 dark:text-gray-400">ダークモード</span>
+          <UToggle v-model="isDark" size="xs" />
+        </div>
         <div class="text-sm text-gray-600 dark:text-gray-400 truncate mb-2">
           {{ username }}
         </div>
