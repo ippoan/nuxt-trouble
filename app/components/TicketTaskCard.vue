@@ -32,9 +32,9 @@ const statusColor = computed(() => {
 })
 
 const statusOptions = [
-  { label: TASK_STATUS_LABELS.open.label, value: 'open' },
-  { label: TASK_STATUS_LABELS.in_progress.label, value: 'in_progress' },
-  { label: TASK_STATUS_LABELS.done.label, value: 'done' },
+  { label: TASK_STATUS_LABELS['open']!.label, value: 'open' },
+  { label: TASK_STATUS_LABELS['in_progress']!.label, value: 'in_progress' },
+  { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
 ]
 
 const selectedStatus = ref(props.task.status)
