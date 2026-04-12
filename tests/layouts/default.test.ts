@@ -18,6 +18,7 @@ vi.mock('#app/composables/router', () => ({
   navigateTo: (...args: unknown[]) => navigateToMock(...args),
 }))
 
+
 import DefaultLayout from '~/layouts/default.vue'
 
 describe('default layout', () => {
