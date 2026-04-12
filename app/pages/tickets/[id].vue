@@ -169,6 +169,13 @@ onMounted(() => {
         />
       </UCard>
 
+      <!-- Gantt Chart -->
+      <UCard>
+        <ClientOnly>
+          <TicketGanttChart :ticket-id="ticketId" />
+        </ClientOnly>
+      </UCard>
+
       <!-- Task suggestion banner -->
       <div
         v-if="suggestedTransition"
