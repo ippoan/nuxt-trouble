@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TroubleFile } from '~/types'
-import { getFiles, uploadFile, downloadFile, deleteFile } from '~/utils/api'
+import { getFiles, uploadFile, downloadFile, deleteFile, getFileBlobUrl } from '~/utils/api'
 
 const props = defineProps<{ ticketId: string }>()
 
@@ -8,6 +8,22 @@ const files = ref<TroubleFile[]>([])
 const loading = ref(false)
 const uploading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+// サムネイル用 blob URL キャッシュ
+const thumbnailUrls = ref<Record<string, string>>({})
+
+// 画像プレビューモーダル
+const previewOpen = ref(false)
+const previewUrl = ref('')
+const previewFilename = ref('')
+
+function isImage(contentType: string): boolean {
+  return contentType.startsWith('image/')
+}
+
+function isPdf(contentType: string): boolean {
+  return contentType === 'application/pdf'
+}
 
 function formatSize(bytes: number | bigint): string {
   const n = Number(bytes)
@@ -20,10 +36,24 @@ async function fetchFiles() {
   loading.value = true
   try {
     files.value = await getFiles(props.ticketId)
+    for (const f of files.value) {
+      if (isImage(f.content_type)) {
+        loadThumbnail(f.id)
+      }
+    }
   } catch (e) {
     console.error('ファイル取得エラー:', e)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadThumbnail(fileId: string) {
+  try {
+    const url = await getFileBlobUrl(fileId)
+    thumbnailUrls.value[fileId] = url
+  } catch {
+    // サムネイル取得失敗は無視
   }
 }
 
@@ -35,11 +65,30 @@ async function handleUpload(event: Event) {
   try {
     const uploaded = await uploadFile(props.ticketId, file)
     files.value.push(uploaded)
+    if (isImage(uploaded.content_type)) {
+      loadThumbnail(uploaded.id)
+    }
   } catch (e) {
     console.error('アップロードエラー:', e)
   } finally {
     uploading.value = false
     target.value = ''
+  }
+}
+
+async function handlePreview(f: TroubleFile) {
+  if (isPdf(f.content_type)) {
+    try {
+      const url = await getFileBlobUrl(f.id)
+      window.open(url, '_blank')
+    } catch (e) {
+      console.error('PDF表示エラー:', e)
+    }
+  } else if (isImage(f.content_type)) {
+    const url = thumbnailUrls.value[f.id] || await getFileBlobUrl(f.id)
+    previewUrl.value = url
+    previewFilename.value = f.filename
+    previewOpen.value = true
   }
 }
 
@@ -54,6 +103,10 @@ async function handleDownload(fileId: string) {
 async function handleDelete(id: string) {
   try {
     await deleteFile(id)
+    if (thumbnailUrls.value[id]) {
+      URL.revokeObjectURL(thumbnailUrls.value[id])
+      delete thumbnailUrls.value[id]
+    }
     files.value = files.value.filter(f => f.id !== id)
   } catch (e) {
     console.error('ファイル削除エラー:', e)
@@ -61,6 +114,12 @@ async function handleDelete(id: string) {
 }
 
 onMounted(fetchFiles)
+
+onUnmounted(() => {
+  for (const url of Object.values(thumbnailUrls.value)) {
+    URL.revokeObjectURL(url)
+  }
+})
 </script>
 
 <template>
@@ -94,13 +153,53 @@ onMounted(fetchFiles)
       <li
         v-for="f in files"
         :key="f.id"
-        class="flex items-center justify-between py-2"
+        class="flex items-center gap-3 py-2"
       >
-        <div>
-          <span class="text-sm font-medium">{{ f.filename }}</span>
-          <span class="text-xs text-gray-400 ml-2">{{ formatSize(f.size_bytes) }}</span>
+        <!-- サムネイル (画像) -->
+        <div
+          v-if="isImage(f.content_type) && thumbnailUrls[f.id]"
+          class="shrink-0 cursor-pointer"
+          @click="handlePreview(f)"
+        >
+          <img
+            :src="thumbnailUrls[f.id]"
+            :alt="f.filename"
+            class="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
+          />
         </div>
-        <div class="flex gap-1">
+
+        <!-- PDF アイコン -->
+        <div
+          v-else-if="isPdf(f.content_type)"
+          class="shrink-0 w-12 h-12 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 cursor-pointer text-red-500"
+          @click="handlePreview(f)"
+        >
+          <UIcon name="i-lucide-file-text" class="size-6" />
+        </div>
+
+        <!-- その他のファイルアイコン -->
+        <div
+          v-else
+          class="shrink-0 w-12 h-12 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-gray-400"
+        >
+          <UIcon name="i-lucide-file" class="size-6" />
+        </div>
+
+        <!-- ファイル名 -->
+        <div class="min-w-0 flex-1">
+          <button
+            v-if="isImage(f.content_type) || isPdf(f.content_type)"
+            class="text-sm font-medium text-primary hover:underline truncate block text-left"
+            @click="handlePreview(f)"
+          >
+            {{ f.filename }}
+          </button>
+          <span v-else class="text-sm font-medium truncate block">{{ f.filename }}</span>
+          <span class="text-xs text-gray-400">{{ formatSize(f.size_bytes) }}</span>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="flex gap-1 shrink-0">
           <UButton
             icon="i-lucide-download"
             variant="ghost"
@@ -117,5 +216,27 @@ onMounted(fetchFiles)
         </div>
       </li>
     </ul>
+
+    <!-- 画像プレビューモーダル -->
+    <UModal v-model:open="previewOpen">
+      <template #content>
+        <div class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-medium truncate">{{ previewFilename }}</h3>
+            <UButton
+              icon="i-lucide-x"
+              variant="ghost"
+              size="xs"
+              @click="previewOpen = false"
+            />
+          </div>
+          <img
+            :src="previewUrl"
+            :alt="previewFilename"
+            class="max-w-full max-h-[70vh] mx-auto rounded"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
