@@ -1,11 +1,19 @@
 <script setup lang="ts">
 const { username, clearAuth } = useAuth()
 const route = useRoute()
-const colorMode = useColorMode()
+const _darkMode = ref(false)
+let _colorMode: { value: string; preference: string } | null = null
+try {
+  _colorMode = useColorMode()
+  _darkMode.value = _colorMode.value === 'dark'
+} catch { /* test environment */ }
 
 const isDark = computed({
-  get: () => colorMode.value === 'dark',
-  set: (v) => { colorMode.preference = v ? 'dark' : 'light' },
+  get: () => _colorMode ? _colorMode.value === 'dark' : _darkMode.value,
+  set: (v) => {
+    if (_colorMode) _colorMode.preference = v ? 'dark' : 'light'
+    _darkMode.value = v
+  },
 })
 
 const navigation = [
