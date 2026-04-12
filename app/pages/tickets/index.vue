@@ -11,6 +11,12 @@ const {
   formatDate, navigateToTicket,
 } = useTicketList()
 
+const showBulkImport = ref(false)
+
+function handleBulkImportDone() {
+  fetchTickets()
+}
+
 onMounted(() => {
   loadStatusFilter()
   fetchTickets()
@@ -26,7 +32,10 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     <!-- Header -->
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-bold">チケット一覧</h2>
-      <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
+      <div class="flex gap-2">
+        <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
+        <UButton label="一括登録" icon="i-lucide-upload" variant="outline" size="sm" @click="showBulkImport = true" />
+      </div>
     </div>
 
     <!-- Filters: single row -->
@@ -197,6 +206,9 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UPagination v-model="filter.page" :total="total" :items-per-page="filter.per_page || 20" />
       </div>
     </UCard>
+
+    <!-- Bulk import modal -->
+    <BulkImportModal v-model:open="showBulkImport" @done="handleBulkImportDone" />
 
     <!-- Delete modal -->
     <UModal v-model:open="showDeleteModal">
