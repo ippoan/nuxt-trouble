@@ -2,6 +2,14 @@
 definePageMeta({ layout: 'auth' })
 
 const { redirectToLogin } = useAuth()
+const config = useRuntimeConfig()
+
+onMounted(() => {
+  // auth-worker 設定時は自動でリダイレクト（ログインページを表示しない）
+  if (config.public.authWorkerUrl) {
+    redirectToLogin({ provider: 'google', callbackPath: '/auth/callback' })
+  }
+})
 </script>
 
 <template>
