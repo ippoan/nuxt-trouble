@@ -69,6 +69,7 @@ async function handleCancelSchedule(id: string) {
 
 // --- Task suggestion ---
 const suggestedTransition = ref<{ toStateId: string; message: string } | null>(null)
+const ganttKey = ref(0)
 
 function handleTransitionSuggestion(toStateId: string, message: string) {
   suggestedTransition.value = { toStateId, message }
@@ -166,13 +167,14 @@ onMounted(() => {
           :workflow-states="workflowStates"
           :current-status-id="ticket.status_id"
           @suggest-transition="handleTransitionSuggestion"
+          @tasks-changed="ganttKey++"
         />
       </UCard>
 
       <!-- Gantt Chart -->
       <UCard>
         <ClientOnly>
-          <TicketGanttChart :ticket-id="ticketId" />
+          <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
         </ClientOnly>
       </UCard>
 

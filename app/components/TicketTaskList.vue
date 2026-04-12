@@ -11,45 +11,39 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   suggestTransition: [toStateId: string, message: string]
+  tasksChanged: []
 }>()
 
-interface NewTaskRow {
-  _id: number
-  task_type: string
-  title: string
-  description: string
-  next_action: string
-  due_date: string
-  assigned_to: string
-  assigned_name: string
-  error: boolean
-}
+const UNSET = '__unset__'
 
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const taskTypes = ref<string[]>([])
 const adding = ref(false)
 const employees = ref<Employee[]>([])
-let rowIdCounter = 0
+const addError = ref(false)
 
-function createEmptyRow(): NewTaskRow {
-  return {
-    _id: ++rowIdCounter,
-    task_type: taskTypes.value[0] ?? '',
-    title: '',
-    description: '',
-    next_action: '',
-    due_date: '',
-    assigned_to: UNSET,
-    assigned_name: '',
-    error: false,
-  }
+// Single-row form state
+const newTask = reactive({
+  task_type: '',
+  title: '',
+  description: '',
+  next_action: '',
+  due_date: '',
+  assigned_to: UNSET,
+  assigned_name: '',
+})
+
+function resetForm() {
+  newTask.title = ''
+  newTask.description = ''
+  newTask.next_action = ''
+  newTask.due_date = ''
+  newTask.assigned_to = UNSET
+  newTask.assigned_name = ''
+  addError.value = false
 }
 
-const newRows = ref<NewTaskRow[]>([])
-
-// Employee select items: empty option + employee list
-const UNSET = '__unset__'
 const employeeItems = computed(() => [
   { label: '未設定', value: UNSET },
   ...employees.value.map(e => ({ label: e.name, value: e.id })),
@@ -70,20 +64,11 @@ async function fetchTaskTypes() {
   } catch {
     taskTypes.value = [...DEFAULT_TASK_TYPES]
   }
-  // Initialize first row after task types are loaded
-  if (newRows.value.length === 0) {
-    newRows.value = [createEmptyRow()]
+  if (taskTypes.value.length > 0 && !newTask.task_type) {
+    newTask.task_type = taskTypes.value[0]!
   }
 }
 
-function addRow() {
-  newRows.value.push(createEmptyRow())
-}
-
-function removeRow(id: number) {
-  if (newRows.value.length <= 1) return
-  newRows.value = newRows.value.filter(r => r._id !== id)
-}
 
 const groupedTasks = computed(() => {
   const groups: Record<string, TroubleTask[]> = {}
@@ -137,52 +122,38 @@ function checkSuggestions() {
   }
 }
 
-async function handleBatchAdd() {
-  const validRows = newRows.value.filter(r => r.title.trim())
-  if (validRows.length === 0) return
+async function handleAddTask() {
+  if (!newTask.title.trim()) return
   adding.value = true
+  addError.value = false
 
-  // Reset error flags
-  for (const row of newRows.value) row.error = false
-
-  const succeeded: number[] = []
-  for (const row of validRows) {
-    try {
-      await createTask(props.ticketId, {
-        task_type: row.task_type,
-        title: row.title.trim(),
-        description: row.description.trim() || undefined,
-        next_action: row.next_action.trim() || undefined,
-        due_date: row.due_date || null,
-        assigned_to: (row.assigned_to && row.assigned_to !== UNSET) ? row.assigned_to : null,
-        next_action_by: (row.assigned_to && row.assigned_to !== UNSET) ? undefined : (row.assigned_name.trim() || undefined),
-      })
-      succeeded.push(row._id)
-    } catch (e) {
-      console.error('Failed to add task:', e)
-      row.error = true
-    }
-  }
-
-  // Remove succeeded rows
-  if (succeeded.length > 0) {
-    newRows.value = newRows.value.filter(r => !succeeded.includes(r._id))
-    // Ensure at least 1 row remains
-    if (newRows.value.length === 0) {
-      newRows.value = [createEmptyRow()]
-    }
+  try {
+    const assignedTo = (newTask.assigned_to && newTask.assigned_to !== UNSET) ? newTask.assigned_to : null
+    await createTask(props.ticketId, {
+      task_type: newTask.task_type,
+      title: newTask.title.trim(),
+      description: newTask.description.trim() || undefined,
+      next_action: newTask.next_action.trim() || undefined,
+      due_date: newTask.due_date || null,
+      assigned_to: assignedTo,
+      next_action_by: assignedTo ? undefined : (newTask.assigned_name.trim() || undefined),
+    })
+    resetForm()
     await loadTasks()
+    emit('tasksChanged')
+  } catch (e) {
+    console.error('Failed to add task:', e)
+    addError.value = true
+  } finally {
+    adding.value = false
   }
-
-  adding.value = false
 }
-
-const hasValidRow = computed(() => newRows.value.some(r => r.title.trim()))
 
 async function handleStatusChange(taskId: string, newStatus: string) {
   try {
     await updateTask(taskId, { status: newStatus })
     await loadTasks()
+    emit('tasksChanged')
   } catch (e) {
     console.error('Failed to update task status:', e)
   }
@@ -192,6 +163,7 @@ async function handleDeleteTask(taskId: string) {
   try {
     await deleteTask(taskId)
     await loadTasks()
+    emit('tasksChanged')
   } catch (e) {
     console.error('Failed to delete task:', e)
   }
@@ -293,10 +265,9 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Batch add task form -->
+      <!-- Add task form (single row) -->
       <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
-        <!-- Header row labels -->
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_1.5rem] gap-1 mb-1 px-0.5">
+        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
           <span class="text-[10px] text-gray-400">種別</span>
           <span class="text-[10px] text-gray-400">タイトル</span>
           <span class="text-[10px] text-gray-400">内容</span>
@@ -306,55 +277,43 @@ onMounted(() => {
           <span />
         </div>
 
-        <!-- Rows -->
-        <div v-for="row in newRows" :key="row._id" class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_1.5rem] gap-1 mb-1" :class="{ 'ring-1 ring-red-400 rounded': row.error }">
-          <USelect v-model="row.task_type" :items="taskTypes" size="xs" class="min-w-0" />
+        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+          <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input
-            v-model="row.title"
+            v-model="newTask.title"
             placeholder="タイトル"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-            @keydown.enter="handleBatchAdd"
+            @keydown.enter="handleAddTask"
           />
           <input
-            v-model="row.description"
+            v-model="newTask.description"
             placeholder="内容"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <input
-            v-model="row.next_action"
+            v-model="newTask.next_action"
             placeholder="次のアクション"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <input
-            v-model="row.due_date"
+            v-model="newTask.due_date"
             type="date"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <USelect v-if="employees.length > 0" v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
+          <USelect v-if="employees.length > 0" v-model="newTask.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
           <input
             v-else
-            v-model="row.assigned_name"
+            v-model="newTask.assigned_name"
             placeholder="対応者名"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <UButton
-            icon="i-lucide-x"
+            icon="i-lucide-plus"
             size="xs"
-            variant="ghost"
-            color="neutral"
-            :disabled="newRows.length <= 1"
-            @click="removeRow(row._id)"
+            :loading="adding"
+            :disabled="!newTask.title.trim()"
+            @click="handleAddTask"
           />
-        </div>
-
-        <!-- Action buttons -->
-        <div class="flex items-center gap-2 mt-2">
-          <UButton icon="i-lucide-plus" size="xs" variant="outline" @click="addRow">
-            行追加
-          </UButton>
-          <UButton size="xs" :loading="adding" :disabled="!hasValidRow" @click="handleBatchAdd">
-            一括登録
-          </UButton>
         </div>
       </div>
     </template>

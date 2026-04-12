@@ -77,26 +77,22 @@ describe('TicketTaskList', () => {
     expect(wrapper.text()).toContain('テストタスク')
   })
 
-  it('handleBatchAdd sends null for empty due_date', async () => {
+  it('handleAddTask sends null for empty due_date', async () => {
     const wrapper = mount(TicketTaskList, {
       props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
       global: { stubs },
     })
     await flushPromises()
 
-    // Fill in a title in the first row via the input element
     const titleInput = wrapper.find('input[placeholder="タイトル"]')
     await titleInput.setValue('新しいタスク')
+    await wrapper.vm.$nextTick()
 
-    // Click the batch add button
     mockCreateTask.mockResolvedValue({ ...sampleTask, id: 'task-new', title: '新しいタスク' })
-    const buttons = wrapper.findAll('button')
-    const batchAddButton = buttons.find(b => b.text().includes('一括登録'))
-    expect(batchAddButton).toBeTruthy()
-    await batchAddButton!.trigger('click')
+    // Trigger enter key on title input (same as clicking add)
+    await titleInput.trigger('keydown.enter')
     await flushPromises()
 
-    // Verify createTask was called with due_date: null (not empty string)
     expect(mockCreateTask).toHaveBeenCalled()
     const callArgs = mockCreateTask.mock.calls[0]
     expect(callArgs[1].due_date).toBeNull()
