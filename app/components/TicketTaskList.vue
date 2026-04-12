@@ -29,6 +29,7 @@ const newTask = reactive({
   description: '',
   next_action: '',
   due_date: '',
+  occurred_at: '',
   assigned_to: UNSET,
   assigned_name: '',
 })
@@ -38,6 +39,7 @@ function resetForm() {
   newTask.description = ''
   newTask.next_action = ''
   newTask.due_date = ''
+  newTask.occurred_at = ''
   newTask.assigned_to = UNSET
   newTask.assigned_name = ''
   addError.value = false
@@ -132,7 +134,8 @@ async function handleAddTask() {
       title: newTask.title.trim(),
       description: newTask.description.trim() || undefined,
       next_action: newTask.next_action.trim() || undefined,
-      due_date: newTask.due_date || null,
+      due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
+      occurred_at: newTask.occurred_at ? new Date(newTask.occurred_at).toISOString() : null,
       assigned_to: assignedTo,
       next_action_by: assignedTo ? undefined : (newTask.assigned_name.trim() || undefined),
     })
@@ -265,17 +268,18 @@ onMounted(() => {
 
       <!-- Add task form (single row) -->
       <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
+        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
           <span class="text-[10px] text-gray-400">種別</span>
           <span class="text-[10px] text-gray-400">タイトル</span>
           <span class="text-[10px] text-gray-400">内容</span>
           <span class="text-[10px] text-gray-400">次のアクション</span>
           <span class="text-[10px] text-gray-400">期限</span>
+          <span class="text-[10px] text-gray-400">発生日</span>
           <span class="text-[10px] text-gray-400">対応者</span>
           <span />
         </div>
 
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input
             v-model="newTask.title"
@@ -295,6 +299,11 @@ onMounted(() => {
           />
           <input
             v-model="newTask.due_date"
+            type="date"
+            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <input
+            v-model="newTask.occurred_at"
             type="date"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
