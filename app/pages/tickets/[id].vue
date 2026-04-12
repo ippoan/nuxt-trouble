@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, TroubleSchedule, LineworksMember } from '~/types'
-import { getCategories, getOffices, getProgressStatuses, getEmployees, getTicketSchedules, createSchedule, cancelSchedule, getLineworksMembers } from '~/utils/api'
+import { getCategories, getOffices, getProgressStatuses, getEmployees, getTicketSchedules, createSchedule, cancelSchedule, getLineworksMembers, transitionTicket } from '~/utils/api'
 
 const route = useRoute()
 const ticketId = route.params.id as string
@@ -64,6 +64,27 @@ async function handleCancelSchedule(id: string) {
     await loadSchedules()
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'キャンセルに失敗しました'
+  }
+}
+
+// --- Task suggestion ---
+const suggestedTransition = ref<{ toStateId: string; message: string } | null>(null)
+
+function handleTransitionSuggestion(toStateId: string, message: string) {
+  suggestedTransition.value = { toStateId, message }
+}
+
+async function handleSuggestedTransition() {
+  if (!suggestedTransition.value) return
+  try {
+    await transitionTicket(ticketId, {
+      to_state_id: suggestedTransition.value.toStateId,
+      comment: null,
+    })
+    suggestedTransition.value = null
+    await load()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'ステータス変更に失敗しました'
   }
 }
 
@@ -135,20 +156,7 @@ onMounted(() => {
       </UCard>
 
       <UCard v-else>
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div v-for="field in fields" :key="field.key" class="space-y-1">
-            <dt class="text-xs text-gray-500 dark:text-gray-400">{{ field.label }}</dt>
-            <dd class="text-sm">{{ displayValue(field.key) }}</dd>
-          </div>
-          <div class="space-y-1">
-            <dt class="text-xs text-gray-500 dark:text-gray-400">対応期限</dt>
-            <dd class="text-sm">{{ ticket.due_date ? ticket.due_date.substring(0, 10) : '-' }}</dd>
-          </div>
-          <div class="space-y-1">
-            <dt class="text-xs text-gray-500 dark:text-gray-400">作成日</dt>
-            <dd class="text-sm">{{ ticket.created_at.substring(0, 10) }}</dd>
-          </div>
-        </dl>
+        <TicketCompactOverview :ticket="ticket" :workflow-states="workflowStates" />
       </UCard>
 
       <!-- Status Transition -->
@@ -158,6 +166,28 @@ onMounted(() => {
           :current-status-id="ticket.status_id"
           :workflow-states="workflowStates"
           @transitioned="load"
+        />
+      </UCard>
+
+      <!-- Task suggestion banner -->
+      <div
+        v-if="suggestedTransition"
+        class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg"
+      >
+        <span class="text-sm text-blue-700 dark:text-blue-300">{{ suggestedTransition.message }}</span>
+        <div class="flex gap-2">
+          <UButton label="変更する" size="xs" @click="handleSuggestedTransition" />
+          <UButton label="閉じる" size="xs" variant="outline" @click="suggestedTransition = null" />
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <UCard>
+        <TicketTaskList
+          :ticket-id="ticketId"
+          :workflow-states="workflowStates"
+          :current-status-id="ticket.status_id"
+          @suggest-transition="handleTransitionSuggestion"
         />
       </UCard>
 

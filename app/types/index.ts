@@ -197,6 +197,85 @@ export interface LineworksMember {
   email: string | null
 }
 
+// --- Tasks ---
+export interface TroubleTask {
+  id: string
+  tenant_id: string
+  ticket_id: string
+  task_type: string
+  title: string
+  description: string | null
+  status: string
+  assigned_to: string | null
+  due_date: string | null
+  completed_at: string | null
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTroubleTask {
+  task_type: string
+  title: string
+  description?: string | null
+  assigned_to?: string | null
+  due_date?: string | null
+  sort_order?: number | null
+}
+
+export interface UpdateTroubleTask {
+  task_type?: string | null
+  title?: string | null
+  description?: string | null
+  status?: string | null
+  assigned_to?: string | null
+  due_date?: string | null
+  completed_at?: string | null
+  sort_order?: number | null
+}
+
+export interface TroubleTaskActivity {
+  id: string
+  tenant_id: string
+  task_id: string
+  body: string
+  occurred_at: string
+  created_by: string | null
+  created_at: string
+}
+
+export interface CreateTroubleTaskActivity {
+  body: string
+  occurred_at?: string | null
+}
+
+export interface TroubleActivityFile {
+  id: string
+  tenant_id: string
+  activity_id: string
+  filename: string
+  content_type: string
+  size_bytes: number
+  storage_key: string
+  created_at: string
+}
+
+export const TASK_TYPES: { value: string; label: string }[] = [
+  { value: 'investigation', label: '調査' },
+  { value: 'repair', label: '修理' },
+  { value: 'negotiation', label: '交渉' },
+  { value: 'documentation', label: '書類作成' },
+  { value: 'insurance', label: '保険対応' },
+  { value: 'other', label: 'その他' },
+]
+
+export const TASK_STATUS_LABELS: Record<string, string> = {
+  open: '未着手',
+  in_progress: '対応中',
+  done: '完了',
+}
+
 export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [
   { value: 'trouble_created', label: 'チケット作成' },
   { value: 'trouble_status_changed', label: 'ステータス変更' },
