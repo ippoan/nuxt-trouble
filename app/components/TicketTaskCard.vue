@@ -7,32 +7,25 @@ import {
   updateTask,
 } from '~/utils/api'
 
-const props = defineProps<{
-  task: TroubleTask
-}>()
-
+const props = defineProps<{ task: TroubleTask }>()
 const emit = defineEmits<{
   statusChange: [taskId: string, newStatus: string]
   delete: [taskId: string]
   updated: []
 }>()
 
-const expanded = ref(true)
 const activities = ref<TroubleTaskActivity[]>([])
 const activityFiles = ref<Record<string, TroubleActivityFile[]>>({})
 const newActivityBody = ref('')
 const submittingActivity = ref(false)
 const loadingActivities = ref(false)
-const editingNextAction = ref(false)
+const savingNextAction = ref(false)
+
 const nextActionDraft = ref(props.task.next_action || '')
+const nextActionDueDraft = ref(props.task.next_action_due?.substring(0, 10) || '')
 
 const statusColor = computed(() => {
-  switch (props.task.status) {
-    case 'open': return '#9CA3AF'
-    case 'in_progress': return '#3B82F6'
-    case 'done': return '#10B981'
-    default: return '#9CA3AF'
-  }
+  return TASK_STATUS_LABELS[props.task.status]?.color || '#9CA3AF'
 })
 
 const statusOptions = [
@@ -43,13 +36,43 @@ const statusOptions = [
 
 const selectedStatus = ref(props.task.status)
 
-watch(() => props.task.status, (val) => {
-  selectedStatus.value = val
-})
+watch(() => props.task.status, (val) => { selectedStatus.value = val })
+watch(() => props.task.next_action, (val) => { nextActionDraft.value = val || '' })
+watch(() => props.task.next_action_due, (val) => { nextActionDueDraft.value = val?.substring(0, 10) || '' })
 
 function handleStatusChange(newStatus: string) {
   if (newStatus !== props.task.status) {
     emit('statusChange', props.task.id, newStatus)
+  }
+}
+
+async function saveNextAction() {
+  const trimmed = nextActionDraft.value.trim()
+  if (trimmed === (props.task.next_action || '')) return
+  savingNextAction.value = true
+  try {
+    await updateTask(props.task.id, { next_action: trimmed })
+    emit('updated')
+  } catch (e) {
+    console.error('Failed to update next_action:', e)
+    nextActionDraft.value = props.task.next_action || ''
+  } finally {
+    savingNextAction.value = false
+  }
+}
+
+async function saveNextActionDue() {
+  const val = nextActionDueDraft.value || null
+  const current = props.task.next_action_due?.substring(0, 10) || null
+  if (val === current) return
+  try {
+    await updateTask(props.task.id, {
+      next_action_due: val ? new Date(val).toISOString() : null,
+    })
+    emit('updated')
+  } catch (e) {
+    console.error('Failed to update next_action_due:', e)
+    nextActionDueDraft.value = props.task.next_action_due?.substring(0, 10) || ''
   }
 }
 
@@ -58,7 +81,6 @@ async function loadActivities() {
   loadingActivities.value = true
   try {
     activities.value = await getActivities(props.task.id)
-    // Load files for each activity
     for (const act of activities.value) {
       try {
         activityFiles.value[act.id] = await getActivityFiles(act.id)
@@ -70,13 +92,6 @@ async function loadActivities() {
     console.error('Failed to load activities:', e)
   } finally {
     loadingActivities.value = false
-  }
-}
-
-async function handleToggle() {
-  expanded.value = !expanded.value
-  if (expanded.value && activities.value.length === 0) {
-    await loadActivities()
   }
 }
 
@@ -118,197 +133,92 @@ async function handleFileUpload(activityId: string, event: Event) {
 }
 
 async function handleDownloadFile(fileId: string) {
-  try {
-    await downloadActivityFile(fileId)
-  } catch (e) {
-    console.error('Failed to download file:', e)
-  }
+  try { await downloadActivityFile(fileId) } catch (e) { console.error('Download error:', e) }
 }
 
 async function handleDeleteFile(activityId: string, fileId: string) {
   try {
     await deleteActivityFile(fileId)
     activityFiles.value[activityId] = await getActivityFiles(activityId)
-  } catch (e) {
-    console.error('Failed to delete file:', e)
-  }
-}
-
-watch(() => props.task.next_action, (val) => {
-  nextActionDraft.value = val || ''
-})
-
-async function saveNextAction() {
-  editingNextAction.value = false
-  const trimmed = nextActionDraft.value.trim()
-  if (trimmed === (props.task.next_action || '')) return
-  try {
-    await updateTask(props.task.id, { next_action: trimmed })
-    emit('updated')
-  } catch (e) {
-    console.error('Failed to update next_action:', e)
-    nextActionDraft.value = props.task.next_action || ''
-  }
+  } catch (e) { console.error('Delete file error:', e) }
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('ja-JP')
+  const d = new Date(dateStr)
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-function formatDateShort(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('ja-JP')
-}
-
-onMounted(() => {
-  loadActivities()
-})
+onMounted(loadActivities)
 </script>
 
 <template>
-  <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
-    <!-- Header -->
-    <div class="flex items-center gap-2 p-3 cursor-pointer" @click="handleToggle">
-      <UIcon
-        :name="expanded ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-        class="size-4 text-gray-400 shrink-0"
-      />
+  <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 space-y-1.5">
+    <!-- Row 1: title + status + delete -->
+    <div class="flex items-center gap-2">
       <span class="text-sm font-medium flex-1 truncate">{{ task.title }}</span>
-      <UBadge
-        :style="{ backgroundColor: statusColor + '20', color: statusColor }"
-        variant="subtle"
-        size="xs"
-      >
-        {{ TASK_STATUS_LABELS[task.status]?.label || task.status }}
-      </UBadge>
       <USelect
         v-model="selectedStatus"
         :items="statusOptions"
         size="xs"
         class="w-24"
         @update:model-value="handleStatusChange"
-        @click.stop
+      />
+      <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="emit('delete', task.id)" />
+    </div>
+
+    <!-- Row 2: next action + due date -->
+    <div class="flex items-center gap-2">
+      <input
+        v-model="nextActionDraft"
+        placeholder="次のアクション..."
+        class="flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+        @blur="saveNextAction"
+        @keydown.enter="($event.target as HTMLInputElement).blur()"
+      />
+      <input
+        v-model="nextActionDueDraft"
+        type="date"
+        class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
+        @change="saveNextActionDue"
+      />
+    </div>
+
+    <!-- Row 3: add activity -->
+    <div class="flex items-center gap-1">
+      <input
+        v-model="newActivityBody"
+        placeholder="活動を記録..."
+        class="flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+        @keydown.enter="handleAddActivity"
       />
       <UButton
-        icon="i-lucide-trash-2"
-        variant="ghost"
-        color="error"
+        icon="i-lucide-plus"
         size="xs"
-        @click.stop="emit('delete', task.id)"
+        :loading="submittingActivity"
+        :disabled="!newActivityBody.trim()"
+        @click="handleAddActivity"
       />
     </div>
 
-    <!-- Next action & meta info -->
-    <div class="px-3 pb-2 space-y-1">
-      <!-- Next action -->
-      <div class="flex items-start gap-1 text-sm">
-        <span class="text-gray-500 shrink-0">次のアクション:</span>
-        <div v-if="editingNextAction" class="flex-1">
-          <input
-            v-model="nextActionDraft"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-            @blur="saveNextAction"
-            @keydown.enter="saveNextAction"
-            ref="nextActionInput"
-          />
+    <!-- Activity timeline (always visible) -->
+    <div v-if="loadingActivities" class="text-xs text-gray-500 pl-2">読み込み中...</div>
+    <div v-else-if="activities.length > 0" class="space-y-1 pl-2 border-l-2 border-gray-300 dark:border-gray-600 ml-1">
+      <div v-for="act in activities" :key="act.id" class="flex items-start gap-1 group">
+        <div class="flex-1 min-w-0">
+          <span class="text-xs text-gray-400">{{ formatDate(act.occurred_at) }}</span>
+          <span class="text-xs ml-1">{{ act.body }}</span>
+          <!-- Files inline -->
+          <span v-for="f in (activityFiles[act.id] || [])" :key="f.id" class="inline-flex items-center gap-0.5 ml-1 text-xs text-blue-500">
+            <UIcon name="i-lucide-paperclip" class="size-3" />
+            <button class="hover:underline" @click="handleDownloadFile(f.id)">{{ f.filename }}</button>
+            <button class="text-red-400 hover:text-red-600" @click="handleDeleteFile(act.id, f.id)"><UIcon name="i-lucide-x" class="size-3" /></button>
+          </span>
         </div>
-        <span
-          v-else
-          class="flex-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1"
-          :class="task.next_action ? '' : 'text-gray-400 italic'"
-          @click="editingNextAction = true; $nextTick(() => ($refs.nextActionInput as HTMLInputElement)?.focus())"
-        >
-          {{ task.next_action || '(未設定 - クリックして入力)' }}
-        </span>
-      </div>
-      <!-- Next action due -->
-      <div v-if="task.next_action_due" class="text-xs text-gray-500">
-        <span>期限: {{ formatDateShort(task.next_action_due) }}</span>
-      </div>
-      <!-- Next action by -->
-      <div v-if="task.next_action_by" class="text-xs text-gray-500">
-        <span>担当: {{ task.next_action_by }}</span>
-      </div>
-      <!-- Created at -->
-      <div class="text-xs text-gray-400">
-        作成: {{ formatDate(task.created_at) }}
-      </div>
-    </div>
-
-    <!-- Expanded content -->
-    <div v-if="expanded" class="border-t border-gray-200 dark:border-gray-700 p-3 space-y-3">
-      <div v-if="loadingActivities" class="flex justify-center py-4">
-        <UIcon name="i-lucide-loader-circle" class="animate-spin size-5 text-gray-400" />
-      </div>
-
-      <template v-else>
-        <!-- Activities timeline -->
-        <div v-if="activities.length === 0" class="text-sm text-gray-500 text-center py-2">
-          活動記録はありません
+        <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 shrink-0">
+          <label class="cursor-pointer"><UIcon name="i-lucide-upload" class="size-3 text-gray-400 hover:text-gray-300" /><input type="file" class="hidden" @change="handleFileUpload(act.id, $event)" /></label>
+          <button class="text-red-400 hover:text-red-600" @click="handleDeleteActivity(act.id)"><UIcon name="i-lucide-trash-2" class="size-3" /></button>
         </div>
-
-        <div v-else class="space-y-3">
-          <div
-            v-for="activity in activities"
-            :key="activity.id"
-            class="relative pl-4 border-l-2 border-gray-200 dark:border-gray-600"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="space-y-1 flex-1">
-                <div class="text-xs text-gray-400">{{ formatDate(activity.occurred_at) }}</div>
-                <p class="text-sm">{{ activity.body }}</p>
-
-                <!-- Files for this activity -->
-                <div v-if="activityFiles[activity.id]?.length" class="flex flex-wrap gap-1 mt-1">
-                  <div
-                    v-for="f in activityFiles[activity.id]"
-                    :key="f.id"
-                    class="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 rounded px-2 py-1"
-                  >
-                    <UIcon name="i-lucide-paperclip" class="size-3" />
-                    <button class="hover:underline text-primary-500" @click="handleDownloadFile(f.id)">
-                      {{ f.filename }}
-                    </button>
-                    <button class="text-red-400 hover:text-red-600 ml-1" @click="handleDeleteFile(activity.id, f.id)">
-                      <UIcon name="i-lucide-x" class="size-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <label class="cursor-pointer">
-                  <UIcon name="i-lucide-upload" class="size-4 text-gray-400 hover:text-gray-600" />
-                  <input type="file" class="hidden" @change="handleFileUpload(activity.id, $event)" />
-                </label>
-                <UButton
-                  icon="i-lucide-trash-2"
-                  variant="ghost"
-                  color="error"
-                  size="xs"
-                  @click="handleDeleteActivity(activity.id)"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Add activity form -->
-        <div class="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-          <UInput
-            v-model="newActivityBody"
-            placeholder="活動を記録..."
-            size="sm"
-            class="flex-1"
-            @keydown.enter="handleAddActivity"
-          />
-          <UButton
-            label="追加"
-            size="sm"
-            :loading="submittingActivity"
-            :disabled="!newActivityBody.trim()"
-            @click="handleAddActivity"
-          />
-        </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
