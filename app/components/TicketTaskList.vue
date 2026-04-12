@@ -166,29 +166,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Add task form -->
-      <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <USelect
-          v-model="newTaskType"
-          :items="taskTypes"
-          size="sm"
-          class="w-32"
-        />
-        <UInput
+      <!-- Add task form (compact) -->
+      <div class="flex items-center gap-1 mt-2">
+        <USelect v-model="newTaskType" :items="taskTypes" size="xs" class="w-28" />
+        <input
           v-model="newTaskTitle"
           placeholder="項目を追加..."
-          size="sm"
-          class="flex-1"
+          class="flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           @keydown.enter="handleAddTask"
         />
-        <UButton
-          label="追加"
-          icon="i-lucide-plus"
-          size="sm"
-          :loading="adding"
-          :disabled="!newTaskTitle.trim()"
-          @click="handleAddTask"
-        />
+        <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTaskTitle.trim()" @click="handleAddTask" />
       </div>
     </template>
   </div>
