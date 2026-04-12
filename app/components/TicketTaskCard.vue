@@ -4,6 +4,7 @@ import { TASK_STATUS_LABELS } from '~/types'
 import {
   getActivities, createActivity, deleteActivity,
   getActivityFiles, uploadActivityFile, downloadActivityFile, deleteActivityFile,
+  updateTask,
 } from '~/utils/api'
 
 const props = defineProps<{
@@ -13,14 +14,17 @@ const props = defineProps<{
 const emit = defineEmits<{
   statusChange: [taskId: string, newStatus: string]
   delete: [taskId: string]
+  updated: []
 }>()
 
-const expanded = ref(false)
+const expanded = ref(true)
 const activities = ref<TroubleTaskActivity[]>([])
 const activityFiles = ref<Record<string, TroubleActivityFile[]>>({})
 const newActivityBody = ref('')
 const submittingActivity = ref(false)
 const loadingActivities = ref(false)
+const editingNextAction = ref(false)
+const nextActionDraft = ref(props.task.next_action || '')
 
 const statusColor = computed(() => {
   switch (props.task.status) {
@@ -130,9 +134,34 @@ async function handleDeleteFile(activityId: string, fileId: string) {
   }
 }
 
+watch(() => props.task.next_action, (val) => {
+  nextActionDraft.value = val || ''
+})
+
+async function saveNextAction() {
+  editingNextAction.value = false
+  const trimmed = nextActionDraft.value.trim()
+  if (trimmed === (props.task.next_action || '')) return
+  try {
+    await updateTask(props.task.id, { next_action: trimmed })
+    emit('updated')
+  } catch (e) {
+    console.error('Failed to update next_action:', e)
+    nextActionDraft.value = props.task.next_action || ''
+  }
+}
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString('ja-JP')
 }
+
+function formatDateShort(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('ja-JP')
+}
+
+onMounted(() => {
+  loadActivities()
+})
 </script>
 
 <template>
@@ -166,6 +195,43 @@ function formatDate(dateStr: string): string {
         size="xs"
         @click.stop="emit('delete', task.id)"
       />
+    </div>
+
+    <!-- Next action & meta info -->
+    <div class="px-3 pb-2 space-y-1">
+      <!-- Next action -->
+      <div class="flex items-start gap-1 text-sm">
+        <span class="text-gray-500 shrink-0">次のアクション:</span>
+        <div v-if="editingNextAction" class="flex-1">
+          <input
+            v-model="nextActionDraft"
+            class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+            @blur="saveNextAction"
+            @keydown.enter="saveNextAction"
+            ref="nextActionInput"
+          />
+        </div>
+        <span
+          v-else
+          class="flex-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1"
+          :class="task.next_action ? '' : 'text-gray-400 italic'"
+          @click="editingNextAction = true; $nextTick(() => ($refs.nextActionInput as HTMLInputElement)?.focus())"
+        >
+          {{ task.next_action || '(未設定 - クリックして入力)' }}
+        </span>
+      </div>
+      <!-- Next action due -->
+      <div v-if="task.next_action_due" class="text-xs text-gray-500">
+        <span>期限: {{ formatDateShort(task.next_action_due) }}</span>
+      </div>
+      <!-- Next action by -->
+      <div v-if="task.next_action_by" class="text-xs text-gray-500">
+        <span>担当: {{ task.next_action_by }}</span>
+      </div>
+      <!-- Created at -->
+      <div class="text-xs text-gray-400">
+        作成: {{ formatDate(task.created_at) }}
+      </div>
     </div>
 
     <!-- Expanded content -->

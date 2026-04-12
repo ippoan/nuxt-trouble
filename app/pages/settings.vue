@@ -14,7 +14,7 @@ const activeTab = ref('categories')
 
 const tabs = [
   { label: 'カテゴリ', value: 'categories' },
-  { label: 'タスクタイプ', value: 'taskTypes' },
+  { label: '状況管理タイプ', value: 'taskTypes' },
   { label: '営業所', value: 'offices' },
   { label: '進捗状況', value: 'progress' },
   { label: 'ワークフロー', value: 'workflow' },
@@ -327,7 +327,7 @@ onMounted(() => {
 
       <MasterDataManager
         v-if="activeTab === 'taskTypes'"
-        title="タスクタイプ管理"
+        title="状況管理タイプ"
         :items="taskTypes"
         :builtin-items="DEFAULT_TASK_TYPES as unknown as string[]"
         :loading="taskTypesLoading"
