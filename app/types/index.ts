@@ -300,4 +300,6 @@ export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [
   { value: 'trouble_status_changed', label: 'ステータス変更' },
   { value: 'trouble_comment_added', label: 'コメント追加' },
   { value: 'trouble_assigned', label: '担当者アサイン' },
+  { value: 'task_assigned', label: 'タスクアサイン' },
+  { value: 'task_due_reminder', label: 'タスク期限リマインダー' },
 ]

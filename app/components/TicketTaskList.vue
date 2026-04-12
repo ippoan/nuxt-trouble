@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { TroubleTask, TroubleWorkflowState } from '~/types'
+import type { TroubleTask, TroubleWorkflowState, Employee } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, getTaskTypes, createTask, updateTask, deleteTask } from '~/utils/api'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees } from '~/utils/api'
 
 const props = defineProps<{
   ticketId: string
@@ -13,12 +13,50 @@ const emit = defineEmits<{
   suggestTransition: [toStateId: string, message: string]
 }>()
 
+interface NewTaskRow {
+  _id: number
+  task_type: string
+  title: string
+  next_action: string
+  due_date: string
+  assigned_to: string
+  error: boolean
+}
+
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const taskTypes = ref<string[]>([])
-const newTaskType = ref('')
-const newTaskTitle = ref('')
 const adding = ref(false)
+const employees = ref<Employee[]>([])
+let rowIdCounter = 0
+
+function createEmptyRow(): NewTaskRow {
+  return {
+    _id: ++rowIdCounter,
+    task_type: taskTypes.value[0] ?? '',
+    title: '',
+    next_action: '',
+    due_date: '',
+    assigned_to: '',
+    error: false,
+  }
+}
+
+const newRows = ref<NewTaskRow[]>([])
+
+// Employee select items: empty option + employee list
+const employeeItems = computed(() => [
+  { label: '未設定', value: '' },
+  ...employees.value.map(e => ({ label: e.name, value: e.id })),
+])
+
+async function fetchEmployees() {
+  try {
+    employees.value = await getEmployees()
+  } catch {
+    employees.value = []
+  }
+}
 
 async function fetchTaskTypes() {
   try {
@@ -27,9 +65,19 @@ async function fetchTaskTypes() {
   } catch {
     taskTypes.value = [...DEFAULT_TASK_TYPES]
   }
-  if (taskTypes.value.length > 0 && !newTaskType.value) {
-    newTaskType.value = taskTypes.value[0]!
+  // Initialize first row after task types are loaded
+  if (newRows.value.length === 0) {
+    newRows.value = [createEmptyRow()]
   }
+}
+
+function addRow() {
+  newRows.value.push(createEmptyRow())
+}
+
+function removeRow(id: number) {
+  if (newRows.value.length <= 1) return
+  newRows.value = newRows.value.filter(r => r._id !== id)
 }
 
 const groupedTasks = computed(() => {
@@ -70,13 +118,11 @@ function checkSuggestions() {
   const anyInProgress = tasks.value.some(t => t.status === 'in_progress')
 
   if (allDone) {
-    // Suggest transitioning to terminal state
     const terminalState = props.workflowStates.find(s => s.is_terminal)
     if (terminalState && props.currentStatusId !== terminalState.id) {
       emit('suggestTransition', terminalState.id, '全てのタスクが完了しました。ステータスを変更しますか？')
     }
   } else if (anyInProgress) {
-    // Suggest transitioning to "対応中" state (non-initial, non-terminal)
     const inProgressState = props.workflowStates.find(
       s => !s.is_initial && !s.is_terminal && s.label.includes('対応中'),
     )
@@ -86,22 +132,45 @@ function checkSuggestions() {
   }
 }
 
-async function handleAddTask() {
-  if (!newTaskTitle.value.trim()) return
+async function handleBatchAdd() {
+  const validRows = newRows.value.filter(r => r.title.trim())
+  if (validRows.length === 0) return
   adding.value = true
-  try {
-    await createTask(props.ticketId, {
-      task_type: newTaskType.value,
-      title: newTaskTitle.value.trim(),
-    })
-    newTaskTitle.value = ''
-    await loadTasks()
-  } catch (e) {
-    console.error('Failed to add task:', e)
-  } finally {
-    adding.value = false
+
+  // Reset error flags
+  for (const row of newRows.value) row.error = false
+
+  const succeeded: number[] = []
+  for (const row of validRows) {
+    try {
+      await createTask(props.ticketId, {
+        task_type: row.task_type,
+        title: row.title.trim(),
+        next_action: row.next_action.trim() || undefined,
+        due_date: row.due_date || null,
+        assigned_to: row.assigned_to || null,
+      })
+      succeeded.push(row._id)
+    } catch (e) {
+      console.error('Failed to add task:', e)
+      row.error = true
+    }
   }
+
+  // Remove succeeded rows
+  if (succeeded.length > 0) {
+    newRows.value = newRows.value.filter(r => !succeeded.includes(r._id))
+    // Ensure at least 1 row remains
+    if (newRows.value.length === 0) {
+      newRows.value = [createEmptyRow()]
+    }
+    await loadTasks()
+  }
+
+  adding.value = false
 }
+
+const hasValidRow = computed(() => newRows.value.some(r => r.title.trim()))
 
 async function handleStatusChange(taskId: string, newStatus: string) {
   try {
@@ -121,8 +190,40 @@ async function handleDeleteTask(taskId: string) {
   }
 }
 
+// --- Reorder ---
+async function handleMoveUp(groupTasks: TroubleTask[], index: number) {
+  if (index <= 0) return
+  const current = groupTasks[index]!
+  const prev = groupTasks[index - 1]!
+  try {
+    await Promise.all([
+      updateTask(current.id, { sort_order: prev.sort_order }),
+      updateTask(prev.id, { sort_order: current.sort_order }),
+    ])
+    await loadTasks()
+  } catch (e) {
+    console.error('Failed to reorder tasks:', e)
+  }
+}
+
+async function handleMoveDown(groupTasks: TroubleTask[], index: number) {
+  if (index >= groupTasks.length - 1) return
+  const current = groupTasks[index]!
+  const next = groupTasks[index + 1]!
+  try {
+    await Promise.all([
+      updateTask(current.id, { sort_order: next.sort_order }),
+      updateTask(next.id, { sort_order: current.sort_order }),
+    ])
+    await loadTasks()
+  } catch (e) {
+    console.error('Failed to reorder tasks:', e)
+  }
+}
+
 onMounted(() => {
   fetchTaskTypes()
+  fetchEmployees()
   loadTasks()
 })
 </script>
@@ -154,28 +255,88 @@ onMounted(() => {
             {{ taskTypeLabel(type) }}
           </h4>
           <div class="space-y-2">
-            <TicketTaskCard
-              v-for="task in groupTasks"
-              :key="task.id"
-              :task="task"
-              @status-change="handleStatusChange"
-              @delete="handleDeleteTask"
-              @updated="loadTasks"
-            />
+            <div v-for="(task, idx) in groupTasks" :key="task.id" class="flex items-start gap-1">
+              <!-- Reorder buttons -->
+              <div class="flex flex-col gap-0.5 pt-1">
+                <UButton
+                  icon="i-lucide-chevron-up"
+                  size="2xs"
+                  variant="ghost"
+                  :disabled="idx === 0"
+                  @click="handleMoveUp(groupTasks, idx)"
+                />
+                <UButton
+                  icon="i-lucide-chevron-down"
+                  size="2xs"
+                  variant="ghost"
+                  :disabled="idx === groupTasks.length - 1"
+                  @click="handleMoveDown(groupTasks, idx)"
+                />
+              </div>
+              <div class="flex-1">
+                <TicketTaskCard
+                  :task="task"
+                  @status-change="handleStatusChange"
+                  @delete="handleDeleteTask"
+                  @updated="loadTasks"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Add task form (compact) -->
-      <div class="flex items-center gap-1 mt-2">
-        <USelect v-model="newTaskType" :items="taskTypes" size="xs" class="w-28" />
-        <input
-          v-model="newTaskTitle"
-          placeholder="項目を追加..."
-          class="flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          @keydown.enter="handleAddTask"
-        />
-        <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTaskTitle.trim()" @click="handleAddTask" />
+      <!-- Batch add task form -->
+      <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
+        <!-- Header row labels -->
+        <div class="grid grid-cols-[6rem_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1 px-0.5">
+          <span class="text-[10px] text-gray-400">種別</span>
+          <span class="text-[10px] text-gray-400">タイトル</span>
+          <span class="text-[10px] text-gray-400">次のアクション</span>
+          <span class="text-[10px] text-gray-400">期限</span>
+          <span class="text-[10px] text-gray-400">対応者</span>
+          <span />
+        </div>
+
+        <!-- Rows -->
+        <div v-for="row in newRows" :key="row._id" class="grid grid-cols-[6rem_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1" :class="{ 'ring-1 ring-red-400 rounded': row.error }">
+          <USelect v-model="row.task_type" :items="taskTypes" size="xs" />
+          <input
+            v-model="row.title"
+            placeholder="タイトル"
+            class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+            @keydown.enter="handleBatchAdd"
+          />
+          <input
+            v-model="row.next_action"
+            placeholder="次のアクション"
+            class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <input
+            v-model="row.due_date"
+            type="date"
+            class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <USelect v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" />
+          <UButton
+            icon="i-lucide-x"
+            size="2xs"
+            variant="ghost"
+            color="neutral"
+            :disabled="newRows.length <= 1"
+            @click="removeRow(row._id)"
+          />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2 mt-2">
+          <UButton icon="i-lucide-plus" size="xs" variant="outline" @click="addRow">
+            行追加
+          </UButton>
+          <UButton size="xs" :loading="adding" :disabled="!hasValidRow" @click="handleBatchAdd">
+            一括登録
+          </UButton>
+        </div>
       </div>
     </template>
   </div>
