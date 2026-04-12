@@ -21,6 +21,7 @@ interface NewTaskRow {
   next_action: string
   due_date: string
   assigned_to: string
+  assigned_name: string
   error: boolean
 }
 
@@ -40,6 +41,7 @@ function createEmptyRow(): NewTaskRow {
     next_action: '',
     due_date: '',
     assigned_to: '',
+    assigned_name: '',
     error: false,
   }
 }
@@ -152,6 +154,7 @@ async function handleBatchAdd() {
         next_action: row.next_action.trim() || undefined,
         due_date: row.due_date || null,
         assigned_to: row.assigned_to || null,
+        next_action_by: row.assigned_to ? undefined : (row.assigned_name.trim() || undefined),
       })
       succeeded.push(row._id)
     } catch (e) {
@@ -326,7 +329,13 @@ onMounted(() => {
             type="date"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <USelect v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
+          <USelect v-if="employees.length > 0" v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
+          <input
+            v-else
+            v-model="row.assigned_name"
+            placeholder="対応者名"
+            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
           <UButton
             icon="i-lucide-x"
             size="xs"
