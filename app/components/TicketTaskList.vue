@@ -40,7 +40,7 @@ function createEmptyRow(): NewTaskRow {
     description: '',
     next_action: '',
     due_date: '',
-    assigned_to: '',
+    assigned_to: UNSET,
     assigned_name: '',
     error: false,
   }
@@ -49,8 +49,9 @@ function createEmptyRow(): NewTaskRow {
 const newRows = ref<NewTaskRow[]>([])
 
 // Employee select items: empty option + employee list
+const UNSET = '__unset__'
 const employeeItems = computed(() => [
-  { label: '未設定', value: '' },
+  { label: '未設定', value: UNSET },
   ...employees.value.map(e => ({ label: e.name, value: e.id })),
 ])
 
@@ -147,14 +148,16 @@ async function handleBatchAdd() {
   const succeeded: number[] = []
   for (const row of validRows) {
     try {
+      const assignedTo = (row.assigned_to && row.assigned_to !== UNSET) ? row.assigned_to : null
+      const dueDate = row.due_date || null
       await createTask(props.ticketId, {
         task_type: row.task_type,
         title: row.title.trim(),
         description: row.description.trim() || undefined,
         next_action: row.next_action.trim() || undefined,
-        due_date: row.due_date || null,
-        assigned_to: row.assigned_to || null,
-        next_action_by: row.assigned_to ? undefined : (row.assigned_name.trim() || undefined),
+        due_date: dueDate,
+        assigned_to: assignedTo,
+        next_action_by: assignedTo ? undefined : (row.assigned_name.trim() || undefined),
       })
       succeeded.push(row._id)
     } catch (e) {
