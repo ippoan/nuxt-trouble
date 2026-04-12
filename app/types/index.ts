@@ -131,3 +131,87 @@ export interface Employee {
 
 // Re-export generated types used by new components
 export type { CreateWorkflowState, CreateWorkflowTransition } from './generated'
+
+// --- Tasks ---
+
+export interface TroubleTask {
+  id: string
+  tenant_id: string
+  ticket_id: string
+  task_type: string
+  title: string
+  description: string
+  status: string
+  assigned_to: string | null
+  due_date: string | null
+  completed_at: string | null
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTroubleTask {
+  task_type: string
+  title: string
+  description?: string
+  assigned_to?: string | null
+  due_date?: string | null
+  sort_order?: number
+}
+
+export interface UpdateTroubleTask {
+  task_type?: string
+  title?: string
+  description?: string
+  status?: string
+  assigned_to?: string | null
+  due_date?: string | null
+  completed_at?: string | null
+  sort_order?: number
+}
+
+export interface TroubleTaskActivity {
+  id: string
+  tenant_id: string
+  task_id: string
+  body: string
+  occurred_at: string
+  created_by: string | null
+  created_at: string
+}
+
+export interface CreateTroubleTaskActivity {
+  body: string
+  occurred_at?: string
+}
+
+export interface TroubleActivityFile {
+  id: string
+  tenant_id: string
+  activity_id: string
+  filename: string
+  content_type: string
+  size_bytes: number
+  storage_key: string
+  created_at: string
+}
+
+export const TASK_TYPES = [
+  'レッカー対応',
+  '修理手配',
+  '保険対応',
+  '示談交渉',
+  '処分決定',
+  '再発防止策',
+  '現場確認',
+  'その他',
+] as const
+
+export type TaskType = typeof TASK_TYPES[number]
+
+export const TASK_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  open: { label: '未着手', color: '#9CA3AF' },
+  in_progress: { label: '進行中', color: '#3B82F6' },
+  done: { label: '完了', color: '#10B981' },
+}
