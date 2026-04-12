@@ -166,11 +166,14 @@ function parseTsvQuoted(text: string): string[][] {
 /** Auto-guess API field for a given Excel header */
 export function guessApiField(header: string): string {
   const trimmed = header.trim()
-  if (HEADER_MAP[trimmed]) return HEADER_MAP[trimmed]
+  const normalized = trimmed.replace(/[\r\n]+/g, '')
 
-  // Partial match
+  if (HEADER_MAP[trimmed]) return HEADER_MAP[trimmed]
+  if (HEADER_MAP[normalized]) return HEADER_MAP[normalized]
+
+  // Partial match (against normalized)
   for (const [key, value] of Object.entries(HEADER_MAP)) {
-    if (trimmed.includes(key) || key.includes(trimmed)) return value
+    if (normalized.includes(key) || key.includes(normalized)) return value
   }
 
   return '__skip__'
