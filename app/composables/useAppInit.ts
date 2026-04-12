@@ -2,7 +2,7 @@ import { initApi } from '~/utils/api'
 
 export function useAppInit() {
   const config = useRuntimeConfig()
-  const { consumeFragment, loadFromStorage, token, orgId, isLoading, clearAuth } = useAuth()
+  const { loadFromStorage, token, orgId, isLoading, clearAuth } = useAuth()
   const apiBase = config.public.apiBase as string
   const stagingTenantId = (config.public.stagingTenantId as string) || ''
 
@@ -17,7 +17,6 @@ export function useAppInit() {
         navigateTo('/login')
       },
     )
-    consumeFragment()
     loadFromStorage()
   }
 
