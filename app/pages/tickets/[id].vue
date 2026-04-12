@@ -72,6 +72,14 @@ const suggestedTransition = ref<{ toStateId: string; message: string } | null>(n
 const ganttKey = ref(0)
 const showGantt = ref(false)
 
+function handleGanttTaskClick(taskId: string) {
+  showGantt.value = false
+  nextTick(() => {
+    const el = document.querySelector(`[data-task-id="${taskId}"]`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
+}
+
 function handleTransitionSuggestion(toStateId: string, message: string) {
   suggestedTransition.value = { toStateId, message }
 }
@@ -187,7 +195,7 @@ onMounted(() => {
             </div>
             <div class="flex-1 overflow-auto">
               <ClientOnly>
-                <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
+                <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" @task-click="handleGanttTaskClick" />
               </ClientOnly>
             </div>
           </div>

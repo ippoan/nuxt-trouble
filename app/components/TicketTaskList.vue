@@ -250,7 +250,7 @@ onMounted(() => {
                   @click="handleMoveDown(groupTasks, idx)"
                 />
               </div>
-              <div class="flex-1">
+              <div class="flex-1" :data-task-id="task.id">
                 <TicketTaskCard
                   :task="task"
                   @status-change="handleStatusChange"

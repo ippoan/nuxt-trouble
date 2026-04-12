@@ -7,6 +7,10 @@ const props = defineProps<{
   ticketId: string
 }>()
 
+const emit = defineEmits<{
+  taskClick: [taskId: string]
+}>()
+
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const chartRef = ref<HTMLElement | null>(null)
@@ -50,9 +54,8 @@ async function renderGantt() {
 
   const ganttTasks = tasks.value.map(task => {
     const start = toDateStr(task.created_at)
-    const minDays = 3
-    const rawEnd = task.due_date ? toDateStr(task.due_date) : addDays(start, minDays)
-    const end = rawEnd <= start ? addDays(start, minDays) : rawEnd
+    const rawEnd = task.due_date ? toDateStr(task.due_date) : addDays(start, 1)
+    const end = rawEnd <= start ? addDays(start, 1) : rawEnd
     return {
       id: task.id,
       name: task.title,
@@ -77,6 +80,9 @@ async function renderGantt() {
     bar_height: 30,
     bar_corner_radius: 4,
     padding: 18,
+    on_click: (task: { id: string }) => {
+      emit('taskClick', task.id)
+    },
   })
 }
 

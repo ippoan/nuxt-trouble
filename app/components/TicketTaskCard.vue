@@ -23,6 +23,7 @@ const savingNextAction = ref(false)
 
 const nextActionDraft = ref(props.task.next_action || '')
 const nextActionDueDraft = ref(props.task.next_action_due?.substring(0, 10) || '')
+const dueDateDraft = ref(props.task.due_date?.substring(0, 10) || '')
 
 const statusColor = computed(() => {
   return TASK_STATUS_LABELS[props.task.status]?.color || '#9CA3AF'
@@ -39,6 +40,7 @@ const selectedStatus = ref(props.task.status)
 watch(() => props.task.status, (val) => { selectedStatus.value = val })
 watch(() => props.task.next_action, (val) => { nextActionDraft.value = val || '' })
 watch(() => props.task.next_action_due, (val) => { nextActionDueDraft.value = val?.substring(0, 10) || '' })
+watch(() => props.task.due_date, (val) => { dueDateDraft.value = val?.substring(0, 10) || '' })
 
 function handleStatusChange(newStatus: string) {
   if (newStatus !== props.task.status) {
@@ -73,6 +75,21 @@ async function saveNextActionDue() {
   } catch (e) {
     console.error('Failed to update next_action_due:', e)
     nextActionDueDraft.value = props.task.next_action_due?.substring(0, 10) || ''
+  }
+}
+
+async function saveDueDate() {
+  const val = dueDateDraft.value || null
+  const current = props.task.due_date?.substring(0, 10) || null
+  if (val === current) return
+  try {
+    await updateTask(props.task.id, {
+      due_date: val ? new Date(val).toISOString() : null,
+    })
+    emit('updated')
+  } catch (e) {
+    console.error('Failed to update due_date:', e)
+    dueDateDraft.value = props.task.due_date?.substring(0, 10) || ''
   }
 }
 
@@ -166,7 +183,7 @@ onMounted(loadActivities)
       <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="emit('delete', task.id)" />
     </div>
 
-    <!-- Row 2: next action + due date -->
+    <!-- Row 2: next action + next action due + task due date -->
     <div class="flex items-center gap-2">
       <input
         v-model="nextActionDraft"
@@ -175,12 +192,15 @@ onMounted(loadActivities)
         @blur="saveNextAction"
         @keydown.enter="($event.target as HTMLInputElement).blur()"
       />
-      <input
-        v-model="nextActionDueDraft"
-        type="date"
-        class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
-        @change="saveNextActionDue"
-      />
+      <div class="flex items-center gap-1">
+        <span class="text-[10px] text-gray-400 shrink-0">期限</span>
+        <input
+          v-model="dueDateDraft"
+          type="date"
+          class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
+          @change="saveDueDate"
+        />
+      </div>
     </div>
 
     <!-- Row 3: add activity -->
