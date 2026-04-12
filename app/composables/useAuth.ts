@@ -69,6 +69,12 @@ export function useAuth() {
       }
     }
 
+    // Staging auth bypass: JWT なしでも tenantId をセット
+    const stagingTid = config.public.stagingTenantId as string
+    if (stagingTid && !isAuthenticated.value) {
+      tenantId.value = stagingTid
+    }
+
     isLoading.value = false
   }
 
