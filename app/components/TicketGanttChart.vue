@@ -68,11 +68,15 @@ async function renderGantt() {
     chartRef.value.innerHTML = ''
   }
 
+  console.log('Gantt tasks:', JSON.stringify(ganttTasks, null, 2))
+
   ganttInstance = new Gantt(chartRef.value, ganttTasks, {
     view_mode: viewMode.value,
     date_format: 'YYYY-MM-DD',
     language: 'ja',
-    readonly: true,
+    bar_height: 30,
+    bar_corner_radius: 4,
+    padding: 18,
   })
 }
 
