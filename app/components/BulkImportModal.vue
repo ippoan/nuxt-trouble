@@ -131,6 +131,19 @@ const totalCount = computed(() => previewData.value.length)
 const mappedFields = computed(() =>
   columns.value.filter(c => c.apiField !== '__skip__'),
 )
+
+async function copyDebug() {
+  try {
+    await navigator.clipboard.writeText(debugInfo.value)
+  } catch {
+    const ta = document.createElement('textarea')
+    ta.value = debugInfo.value
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  }
+}
 </script>
 
 <template>
@@ -201,7 +214,10 @@ const mappedFields = computed(() =>
           </div>
           <details class="text-xs">
             <summary class="cursor-pointer text-gray-400 hover:text-gray-600">Debug</summary>
-            <pre class="mt-2 p-2 bg-gray-900 text-green-400 rounded overflow-auto max-h-48 text-[10px]">{{ debugInfo }}</pre>
+            <div class="mt-2 relative">
+              <button class="absolute top-1 right-1 px-2 py-0.5 text-[10px] bg-gray-700 text-gray-300 rounded hover:bg-gray-600" @click="copyDebug">Copy</button>
+              <pre class="p-2 bg-gray-900 text-green-400 rounded overflow-auto max-h-48 text-[10px]">{{ debugInfo }}</pre>
+            </div>
           </details>
 
           <div class="flex justify-between">
