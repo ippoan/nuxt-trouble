@@ -10,7 +10,7 @@ const props = defineProps<{
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const chartRef = ref<HTMLElement | null>(null)
-const viewMode = ref<'Day' | 'Week' | 'Month'>('Week')
+const viewMode = ref<'Day' | 'Week' | 'Month'>('Day')
 let ganttInstance: any = null
 
 async function loadTasks() {
