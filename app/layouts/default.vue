@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { user, logout } = useAuth()
+const { username, clearAuth } = useAuth()
 const route = useRoute()
 
 const navigation = [
@@ -7,8 +7,8 @@ const navigation = [
   { label: '通知設定', icon: 'i-lucide-bell', to: '/settings' },
 ]
 
-async function handleLogout() {
-  await logout()
+function handleLogout() {
+  clearAuth()
   navigateTo('/login')
 }
 </script>
@@ -39,7 +39,7 @@ async function handleLogout() {
       <!-- User -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800">
         <div class="text-sm text-gray-600 dark:text-gray-400 truncate mb-2">
-          {{ user?.name || user?.email }}
+          {{ username }}
         </div>
         <UButton
           label="ログアウト"

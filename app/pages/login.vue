@@ -1,16 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
-const { loginWithGoogleRedirect } = useAuth()
-const config = useRuntimeConfig()
-
-onMounted(() => {
-  const authWorkerUrl = config.public.authWorkerUrl as string
-  if (authWorkerUrl) {
-    const callbackUrl = `${window.location.origin}/auth/callback`
-    window.location.href = `${authWorkerUrl}/oauth/google/redirect?redirect_uri=${encodeURIComponent(callbackUrl)}`
-  }
-})
+const { redirectToLogin } = useAuth()
 </script>
 
 <template>
@@ -23,7 +14,7 @@ onMounted(() => {
         icon="i-lucide-log-in"
         size="lg"
         block
-        @click="loginWithGoogleRedirect()"
+        @click="redirectToLogin({ provider: 'google', callbackPath: '/auth/callback' })"
       />
     </div>
   </UCard>

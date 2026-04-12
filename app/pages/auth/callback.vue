@@ -1,11 +1,11 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
-const { handleCallback } = useAuth()
+const { consumeFragment } = useAuth()
 const error = ref<string | null>(null)
 
 onMounted(() => {
-  const success = handleCallback()
+  const success = consumeFragment()
   if (success) {
     navigateTo('/tickets')
   } else {
