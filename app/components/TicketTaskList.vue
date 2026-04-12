@@ -17,6 +17,7 @@ interface NewTaskRow {
   _id: number
   task_type: string
   title: string
+  description: string
   next_action: string
   due_date: string
   assigned_to: string
@@ -35,6 +36,7 @@ function createEmptyRow(): NewTaskRow {
     _id: ++rowIdCounter,
     task_type: taskTypes.value[0] ?? '',
     title: '',
+    description: '',
     next_action: '',
     due_date: '',
     assigned_to: '',
@@ -146,6 +148,7 @@ async function handleBatchAdd() {
       await createTask(props.ticketId, {
         task_type: row.task_type,
         title: row.title.trim(),
+        description: row.description.trim() || undefined,
         next_action: row.next_action.trim() || undefined,
         due_date: row.due_date || null,
         assigned_to: row.assigned_to || null,
@@ -289,9 +292,10 @@ onMounted(() => {
       <!-- Batch add task form -->
       <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
         <!-- Header row labels -->
-        <div class="grid grid-cols-[6rem_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1 px-0.5">
+        <div class="grid grid-cols-[6rem_1fr_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1 px-0.5">
           <span class="text-[10px] text-gray-400">種別</span>
           <span class="text-[10px] text-gray-400">タイトル</span>
+          <span class="text-[10px] text-gray-400">内容</span>
           <span class="text-[10px] text-gray-400">次のアクション</span>
           <span class="text-[10px] text-gray-400">期限</span>
           <span class="text-[10px] text-gray-400">対応者</span>
@@ -299,13 +303,18 @@ onMounted(() => {
         </div>
 
         <!-- Rows -->
-        <div v-for="row in newRows" :key="row._id" class="grid grid-cols-[6rem_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1" :class="{ 'ring-1 ring-red-400 rounded': row.error }">
+        <div v-for="row in newRows" :key="row._id" class="grid grid-cols-[6rem_1fr_1fr_1fr_7rem_8rem_2rem] gap-1 mb-1" :class="{ 'ring-1 ring-red-400 rounded': row.error }">
           <USelect v-model="row.task_type" :items="taskTypes" size="xs" />
           <input
             v-model="row.title"
             placeholder="タイトル"
             class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
             @keydown.enter="handleBatchAdd"
+          />
+          <input
+            v-model="row.description"
+            placeholder="内容"
+            class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <input
             v-model="row.next_action"
