@@ -52,7 +52,10 @@ const HEADER_MAP: Record<string, string> = {
   'リンク': '__skip__',
   'No.': '__skip__',
   'No': '__skip__',
+  '№': '__skip__',
   '発生時間': '__skip__',
+  '賞罰委員会内容': 'disciplinary_content',
+  '決定通知書': '__skip__',
 }
 
 const NUMERIC_FIELDS = new Set(['damage_amount', 'compensation_amount', 'road_service_cost'])
@@ -64,12 +67,15 @@ export interface ColumnMapping {
   sampleValue: string
 }
 
-/** Parse TSV text (from Excel clipboard) */
+/**
+ * Parse TSV text from Excel clipboard.
+ * Handles quoted fields with embedded newlines (RFC 4180 style).
+ * Excel wraps cells containing newlines in double quotes.
+ */
 export function parseTsv(text: string): { headers: string[]; rows: string[][] } {
-  const lines = text.trim().split(/\r?\n/)
-  if (lines.length === 0) return { headers: [], rows: [] }
+  const allRows = parseTsvQuoted(text.trim())
+  if (allRows.length === 0) return { headers: [], rows: [] }
 
-  const allRows = lines.map(line => line.split('\t'))
   const firstRow = allRows[0]
   if (!firstRow) return { headers: [], rows: [] }
 
@@ -92,6 +98,73 @@ export function parseTsv(text: string): { headers: string[]; rows: string[][] } 
     headers,
     rows: allRows.filter(r => r.some(c => c.trim() !== '')),
   }
+}
+
+/** Parse TSV handling double-quoted fields with embedded newlines */
+function parseTsvQuoted(text: string): string[][] {
+  const rows: string[][] = []
+  let currentRow: string[] = []
+  let currentField = ''
+  let inQuotes = false
+  let i = 0
+
+  while (i < text.length) {
+    const ch = text[i]
+
+    if (inQuotes) {
+      if (ch === '"') {
+        // Check for escaped quote ""
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          currentField += '"'
+          i += 2
+        } else {
+          // End of quoted field
+          inQuotes = false
+          i++
+        }
+      } else {
+        currentField += ch
+        i++
+      }
+    } else {
+      if (ch === '"' && currentField === '') {
+        // Start of quoted field
+        inQuotes = true
+        i++
+      } else if (ch === '\t') {
+        currentRow.push(currentField)
+        currentField = ''
+        i++
+      } else if (ch === '\n' || (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n')) {
+        currentRow.push(currentField)
+        currentField = ''
+        if (currentRow.some(c => c.trim() !== '')) {
+          rows.push(currentRow)
+        }
+        currentRow = []
+        i += ch === '\r' ? 2 : 1
+      } else if (ch === '\r') {
+        currentRow.push(currentField)
+        currentField = ''
+        if (currentRow.some(c => c.trim() !== '')) {
+          rows.push(currentRow)
+        }
+        currentRow = []
+        i++
+      } else {
+        currentField += ch
+        i++
+      }
+    }
+  }
+
+  // Flush last field/row
+  currentRow.push(currentField)
+  if (currentRow.some(c => c.trim() !== '')) {
+    rows.push(currentRow)
+  }
+
+  return rows
 }
 
 /** Auto-guess API field for a given Excel header */
