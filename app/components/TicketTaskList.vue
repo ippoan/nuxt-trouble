@@ -21,6 +21,7 @@ interface NewTaskRow {
   next_action: string
   due_date: string
   assigned_to: string
+  assigned_name: string
   error: boolean
 }
 
@@ -40,6 +41,7 @@ function createEmptyRow(): NewTaskRow {
     next_action: '',
     due_date: '',
     assigned_to: '',
+    assigned_name: '',
     error: false,
   }
 }
@@ -145,13 +147,16 @@ async function handleBatchAdd() {
   const succeeded: number[] = []
   for (const row of validRows) {
     try {
+      const assignedTo = row.assigned_to || null
+      const assignedName = row.assigned_name.trim() || null
       await createTask(props.ticketId, {
         task_type: row.task_type,
         title: row.title.trim(),
         description: row.description.trim() || undefined,
         next_action: row.next_action.trim() || undefined,
         due_date: row.due_date || null,
-        assigned_to: row.assigned_to || null,
+        assigned_to: assignedTo,
+        next_action_by: assignedTo ? undefined : assignedName,
       })
       succeeded.push(row._id)
     } catch (e) {
@@ -326,7 +331,13 @@ onMounted(() => {
             type="date"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <USelect v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
+          <USelect v-if="employees.length > 0" v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
+          <input
+            v-else
+            v-model="row.assigned_name"
+            placeholder="対応者名"
+            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
           <UButton
             icon="i-lucide-x"
             size="xs"
