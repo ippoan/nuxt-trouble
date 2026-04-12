@@ -131,7 +131,7 @@ onMounted(() => {
   <div>
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
-        <h3 class="text-base font-semibold">タスク</h3>
+        <h3 class="text-base font-semibold">状況管理</h3>
         <UBadge v-if="tasks.length > 0" variant="subtle" size="xs">
           {{ completionCount.done }}/{{ completionCount.total }} 完了
         </UBadge>
@@ -145,7 +145,7 @@ onMounted(() => {
     <template v-else>
       <!-- Grouped task list -->
       <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
-        タスクはありません
+        状況管理項目はありません
       </div>
 
       <div v-else class="space-y-4">
@@ -160,6 +160,7 @@ onMounted(() => {
               :task="task"
               @status-change="handleStatusChange"
               @delete="handleDeleteTask"
+              @updated="loadTasks"
             />
           </div>
         </div>
@@ -175,7 +176,7 @@ onMounted(() => {
         />
         <UInput
           v-model="newTaskTitle"
-          placeholder="タスクを追加..."
+          placeholder="項目を追加..."
           size="sm"
           class="flex-1"
           @keydown.enter="handleAddTask"
