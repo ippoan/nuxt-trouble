@@ -178,12 +178,18 @@ onMounted(() => {
       </UCard>
 
       <!-- Gantt Chart Dialog -->
-      <UModal v-model:open="showGantt">
+      <UModal v-model:open="showGantt" fullscreen>
         <template #content>
-          <div class="p-6 min-w-[80vw]">
-            <ClientOnly>
-              <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
-            </ClientOnly>
+          <div class="p-6 h-full flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-bold">ガントチャート</h2>
+              <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showGantt = false" />
+            </div>
+            <div class="flex-1 overflow-auto">
+              <ClientOnly>
+                <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
+              </ClientOnly>
+            </div>
           </div>
         </template>
       </UModal>
