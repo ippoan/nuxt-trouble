@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const initApiMock = vi.fn()
-const consumeFragmentMock = vi.fn()
 const loadFromStorageMock = vi.fn()
 const clearAuthMock = vi.fn()
 
@@ -13,7 +12,6 @@ vi.mock('~/composables/useAuth', () => {
   const { ref } = require('vue')
   return {
     useAuth: () => ({
-      consumeFragment: consumeFragmentMock,
       loadFromStorage: loadFromStorageMock,
       clearAuth: clearAuthMock,
       token: ref('test-token'),
@@ -42,7 +40,6 @@ import { useAppInit } from '~/composables/useAppInit'
 describe('useAppInit', () => {
   beforeEach(() => {
     initApiMock.mockReset()
-    consumeFragmentMock.mockReset()
     loadFromStorageMock.mockReset()
     clearAuthMock.mockReset()
   })
@@ -53,7 +50,7 @@ describe('useAppInit', () => {
     expect(stagingTenantId).toBe('stg-tenant')
   })
 
-  it('setup calls initApi with correct args, consumeFragment, and loadFromStorage', async () => {
+  it('setup calls initApi and loadFromStorage', async () => {
     const { setup } = useAppInit()
     await setup()
 
@@ -64,10 +61,8 @@ describe('useAppInit', () => {
       expect.any(Function),
       expect.any(Function),
     )
-    expect(consumeFragmentMock).toHaveBeenCalled()
     expect(loadFromStorageMock).toHaveBeenCalled()
 
-    // Exercise the arrow function getters
     const tokenGetter = initApiMock.mock.calls[0][1]
     const orgIdGetter = initApiMock.mock.calls[0][3]
     expect(tokenGetter()).toBe('test-token')
