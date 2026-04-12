@@ -44,7 +44,7 @@ describe('TicketGanttChart', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).not.toContain('ガントチャート')
+    expect(wrapper.text()).not.toContain('未着手')
   })
 
   it('renders gantt container when tasks exist', async () => {
@@ -54,6 +54,6 @@ describe('TicketGanttChart', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('ガントチャート')
+    expect(wrapper.text()).toContain('未着手')
   })
 })
