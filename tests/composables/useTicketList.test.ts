@@ -106,19 +106,18 @@ describe('useTicketList', () => {
 
   it('categoryOptions includes all hardcoded categories when no DB categories', () => {
     const l = useTicketList()
-    expect(l.categoryOptions.value[0]).toEqual({ label: '全て', value: '' })
-    // 7 hardcoded + 1 "全て"
-    expect(l.categoryOptions.value.length).toBe(8)
+    // 7 hardcoded categories (no "全て" — use USelect placeholder)
+    expect(l.categoryOptions.value.length).toBe(7)
+    expect(l.categoryOptions.value[0]).toEqual({ label: '苦情・トラブル', value: '苦情・トラブル' })
   })
 
   it('categoryOptions merges DB and hardcoded categories', () => {
     const l = useTicketList()
-    // Simulate DB categories
     l.categories.value = [{ id: 'c1', tenant_id: 't1', name: '貨物事故', sort_order: 1, created_at: '' }]
     // DB has '貨物事故' which is also hardcoded — should deduplicate
-    // Total: 1 "全て" + 1 DB + 6 remaining hardcoded = 8
-    expect(l.categoryOptions.value.length).toBe(8)
-    expect(l.categoryOptions.value[1]).toEqual({ label: '貨物事故', value: '貨物事故' })
+    // Total: 1 DB + 6 remaining hardcoded = 7
+    expect(l.categoryOptions.value.length).toBe(7)
+    expect(l.categoryOptions.value[0]).toEqual({ label: '貨物事故', value: '貨物事故' })
   })
 
   it('clearFilter resets all fields and status', () => {
