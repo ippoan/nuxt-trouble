@@ -153,20 +153,24 @@ watch(() => props.ticketId, async () => {
   font-size: 12px;
 }
 
-/* Dark mode adjustments */
-.dark .gantt .grid-header,
-.dark .gantt .grid-background {
-  fill: #1f2937;
-}
-.dark .gantt .lower-text,
-.dark .gantt .upper-text {
-  fill: #9CA3AF;
-}
-.dark .gantt .row-line,
-.dark .gantt .tick {
-  stroke: #374151;
-}
-.dark .gantt .today-highlight {
-  fill: rgba(59, 130, 246, 0.1);
+/* Dark mode — frappe-gantt uses html[data-theme=dark] but Nuxt uses html.dark */
+html.dark {
+  --g-bar-color: #374151;
+  --g-bar-border: #4b5563;
+  --g-progress-color: #4b5563;
+  --g-header-background: #111827;
+  --g-row-color: #1f2937;
+  --g-row-border-color: #374151;
+  --g-tick-color: #1f2937;
+  --g-tick-color-thick: #374151;
+  --g-border-color: #374151;
+  --g-text-dark: #e5e7eb;
+  --g-text-muted: #9ca3af;
+  --g-text-light: #fff;
+  --g-actions-background: #374151;
+  --g-today-highlight: #6b7280;
+  --g-weekend-highlight-color: #111827;
+  --g-arrow-color: #9ca3af;
+  --g-handle-color: #9ca3af;
 }
 </style>
