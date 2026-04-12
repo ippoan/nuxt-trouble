@@ -28,6 +28,12 @@ function toDateStr(iso: string): string {
   return iso.slice(0, 10)
 }
 
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 function statusProgress(status: string): number {
   switch (status) {
     case 'done': return 100
@@ -42,14 +48,18 @@ async function renderGantt() {
   await import('~/assets/css/frappe-gantt.css')
   const { default: Gantt } = await import('frappe-gantt')
 
-  const ganttTasks = tasks.value.map(task => ({
-    id: task.id,
-    name: task.title,
-    start: toDateStr(task.created_at),
-    end: task.due_date ? toDateStr(task.due_date) : toDateStr(task.created_at),
-    progress: statusProgress(task.status),
-    custom_class: `bar-${task.status}`,
-  }))
+  const ganttTasks = tasks.value.map(task => {
+    const start = toDateStr(task.created_at)
+    const end = task.due_date ? toDateStr(task.due_date) : addDays(start, 1)
+    return {
+      id: task.id,
+      name: task.title,
+      start,
+      end: end <= start ? addDays(start, 1) : end,
+      progress: statusProgress(task.status),
+      custom_class: `status-${task.status}`,
+    }
+  })
 
   // Clear previous instance
   if (chartRef.value) {
@@ -117,18 +127,18 @@ watch(() => props.ticketId, async () => {
   background: transparent;
 }
 
-/* Status colors */
-.gantt .bar-wrapper.bar-open .bar-progress,
-.gantt .bar-wrapper.bar-open .bar {
-  fill: #9CA3AF;
+/* Status colors — custom_class applied to bar-wrapper <g> */
+.status-open .bar-progress,
+.status-open .bar {
+  fill: #9CA3AF !important;
 }
-.gantt .bar-wrapper.bar-in_progress .bar-progress,
-.gantt .bar-wrapper.bar-in_progress .bar {
-  fill: #3B82F6;
+.status-in_progress .bar-progress,
+.status-in_progress .bar {
+  fill: #3B82F6 !important;
 }
-.gantt .bar-wrapper.bar-done .bar-progress,
-.gantt .bar-wrapper.bar-done .bar {
-  fill: #10B981;
+.status-done .bar-progress,
+.status-done .bar {
+  fill: #10B981 !important;
 }
 
 /* Dark mode adjustments */
