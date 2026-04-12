@@ -169,6 +169,23 @@ describe('Trouble API', () => {
       await expect(getTickets()).rejects.toThrow('API エラー (500)')
     })
 
+    it('calls onUnauthorized on 401 response', async () => {
+      if (isLive) return
+      const onUnauthorized = vi.fn()
+      const { initApi } = await import('~/utils/api')
+      initApi(API_BASE, () => 'tok', undefined, () => 'tid', onUnauthorized)
+      mockFetch.mockReset()
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: () => Promise.resolve(''),
+      })
+      await expect(getTickets()).rejects.toThrow('Unauthorized')
+      expect(onUnauthorized).toHaveBeenCalled()
+      await setupApi()
+    })
+
     it('throws if API not initialized', async () => {
       if (isLive) return
       const { initApi } = await import('~/utils/api')

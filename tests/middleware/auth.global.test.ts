@@ -3,11 +3,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockIsAuthenticated = { value: false }
 const mockIsLoading = { value: false }
 
-vi.mock('~/composables/useAuth', () => ({
-  useAuth: () => ({
-    isAuthenticated: mockIsAuthenticated,
-    isLoading: mockIsLoading,
-  }),
+vi.mock('@ippoan/auth-client', () => ({
+  authMiddleware: (options: { publicPaths?: string[]; loginPath?: string }) => {
+    const { useRuntimeConfig, navigateTo } = require('#app/nuxt')
+    const publicPaths = options?.publicPaths || ['/login']
+    const loginPath = options?.loginPath || '/login'
+
+    return (to: { path: string }) => {
+      const config = useRuntimeConfig()
+      if (config.public.stagingTenantId) return
+      if (publicPaths.some((p: string) => to.path.startsWith(p))) return
+
+      if (mockIsLoading.value) return
+      if (!mockIsAuthenticated.value) {
+        return navigateTo(loginPath)
+      }
+    }
+  },
 }))
 
 vi.mock('#app/composables/router', async (importOriginal) => {
@@ -20,7 +32,7 @@ vi.mock('#app/composables/router', async (importOriginal) => {
 })
 
 vi.mock('#app/nuxt', () => ({
-  useRuntimeConfig: () => ({ public: { authWorkerUrl: '' } }),
+  useRuntimeConfig: () => ({ public: { stagingTenantId: '' } }),
   useNuxtApp: () => ({}),
 }))
 

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const initApiMock = vi.fn()
-const initMock = vi.fn().mockResolvedValue(undefined)
+const consumeFragmentMock = vi.fn()
+const loadFromStorageMock = vi.fn()
+const clearAuthMock = vi.fn()
 
 vi.mock('~/utils/api', () => ({
   initApi: (...args: unknown[]) => initApiMock(...args),
@@ -11,9 +13,11 @@ vi.mock('~/composables/useAuth', () => {
   const { ref } = require('vue')
   return {
     useAuth: () => ({
-      init: initMock,
-      accessToken: ref('test-token'),
-      tenantId: ref('test-tenant'),
+      consumeFragment: consumeFragmentMock,
+      loadFromStorage: loadFromStorageMock,
+      clearAuth: clearAuthMock,
+      token: ref('test-token'),
+      orgId: ref('test-org'),
       isLoading: ref(false),
     }),
   }
@@ -29,12 +33,18 @@ vi.mock('#app/nuxt', async (importOriginal) => {
   }
 })
 
+vi.mock('#app/composables/router', () => ({
+  navigateTo: vi.fn(),
+}))
+
 import { useAppInit } from '~/composables/useAppInit'
 
 describe('useAppInit', () => {
   beforeEach(() => {
     initApiMock.mockReset()
-    initMock.mockReset().mockResolvedValue(undefined)
+    consumeFragmentMock.mockReset()
+    loadFromStorageMock.mockReset()
+    clearAuthMock.mockReset()
   })
 
   it('returns apiBase and stagingTenantId from config', () => {
@@ -43,7 +53,7 @@ describe('useAppInit', () => {
     expect(stagingTenantId).toBe('stg-tenant')
   })
 
-  it('setup calls initApi with correct args and init', async () => {
+  it('setup calls initApi with correct args, consumeFragment, and loadFromStorage', async () => {
     const { setup } = useAppInit()
     await setup()
 
@@ -52,14 +62,16 @@ describe('useAppInit', () => {
       expect.any(Function),
       undefined,
       expect.any(Function),
+      expect.any(Function),
     )
-    expect(initMock).toHaveBeenCalled()
+    expect(consumeFragmentMock).toHaveBeenCalled()
+    expect(loadFromStorageMock).toHaveBeenCalled()
 
     // Exercise the arrow function getters
     const tokenGetter = initApiMock.mock.calls[0][1]
-    const tenantGetter = initApiMock.mock.calls[0][3]
+    const orgIdGetter = initApiMock.mock.calls[0][3]
     expect(tokenGetter()).toBe('test-token')
-    expect(tenantGetter()).toBe('test-tenant')
+    expect(orgIdGetter()).toBe('test-org')
   })
 
   it('returns isLoading ref', () => {

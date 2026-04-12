@@ -29,16 +29,19 @@ import type {
 let apiBase = ''
 let getAccessToken: (() => string | null) | null = null
 let getTenantId: (() => string | null) | null = null
+let onUnauthorized: (() => void) | null = null
 
 export function initApi(
   baseUrl: string,
   tokenGetter?: () => string | null,
   _refresher?: () => Promise<void>,
   tenantIdGetter?: () => string | null,
+  unauthorizedHandler?: () => void,
 ) {
   apiBase = baseUrl.replace(/\/$/, '')
   getAccessToken = tokenGetter || null
   getTenantId = tenantIdGetter || null
+  onUnauthorized = unauthorizedHandler || null
 }
 
 function buildAuthHeaders(): Record<string, string> {
@@ -77,6 +80,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
   const res = await fetch(`${apiBase}${path}`, { ...options, headers })
 
+  if (res.status === 401) {
+    onUnauthorized?.()
+    throw new Error('Unauthorized')
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`API エラー (${res.status}): ${body || res.statusText}`)

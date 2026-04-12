@@ -2,11 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { allStubs } from '../helpers/nuxt-stubs'
 
-const loginMock = vi.fn()
-vi.mock('~/composables/useAuth', () => ({ useAuth: () => ({ loginWithGoogleRedirect: loginMock }) }))
+const redirectToLoginMock = vi.fn()
+vi.mock('~/composables/useAuth', () => ({ useAuth: () => ({ redirectToLogin: redirectToLoginMock }) }))
 vi.mock('#app/composables/router', () => ({ definePageMeta: vi.fn() }))
 vi.mock('#app/nuxt', () => ({
-  useRuntimeConfig: () => ({ public: { authWorkerUrl: '' } }),
+  useRuntimeConfig: () => ({ public: {} }),
   useNuxtApp: () => ({}),
 }))
 
@@ -18,9 +18,9 @@ describe('login page', () => {
     expect(wrapper.text()).toContain('トラブル管理')
   })
 
-  it('calls loginWithGoogleRedirect on click', async () => {
+  it('calls redirectToLogin on click', async () => {
     const wrapper = mount(LoginPage, { global: { stubs: allStubs } })
     await wrapper.find('button').trigger('click')
-    expect(loginMock).toHaveBeenCalled()
+    expect(redirectToLoginMock).toHaveBeenCalledWith({ provider: 'google', callbackPath: '/auth/callback' })
   })
 })

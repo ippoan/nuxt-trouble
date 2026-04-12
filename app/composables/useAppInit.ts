@@ -2,18 +2,23 @@ import { initApi } from '~/utils/api'
 
 export function useAppInit() {
   const config = useRuntimeConfig()
-  const { init, accessToken, tenantId, isLoading } = useAuth()
+  const { consumeFragment, loadFromStorage, token, orgId, isLoading, clearAuth } = useAuth()
   const apiBase = config.public.apiBase as string
   const stagingTenantId = (config.public.stagingTenantId as string) || ''
 
   async function setup() {
     initApi(
       apiBase,
-      () => accessToken.value,
+      () => token.value,
       undefined,
-      () => tenantId.value,
+      () => orgId.value,
+      () => {
+        clearAuth()
+        navigateTo('/login')
+      },
     )
-    await init()
+    consumeFragment()
+    loadFromStorage()
   }
 
   return { apiBase, stagingTenantId, isLoading, setup }

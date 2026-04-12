@@ -3,13 +3,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import { allStubs } from '../helpers/nuxt-stubs'
 
-const logoutMock = vi.fn()
+const clearAuthMock = vi.fn()
 const navigateToMock = vi.fn()
 
 vi.mock('~/composables/useAuth', () => ({
   useAuth: () => ({
-    user: ref({ name: 'テストユーザー', email: 'test@example.com' }),
-    logout: logoutMock,
+    username: ref('テストユーザー'),
+    clearAuth: clearAuthMock,
   }),
 }))
 
@@ -21,7 +21,7 @@ vi.mock('#app/composables/router', () => ({
 import DefaultLayout from '~/layouts/default.vue'
 
 describe('default layout', () => {
-  beforeEach(() => { logoutMock.mockReset(); navigateToMock.mockReset() })
+  beforeEach(() => { clearAuthMock.mockReset(); navigateToMock.mockReset() })
 
   it('renders navigation and user name', () => {
     const wrapper = mount(DefaultLayout, { global: { stubs: allStubs }, slots: { default: '<p>content</p>' } })
@@ -35,7 +35,7 @@ describe('default layout', () => {
     const buttons = wrapper.findAll('button')
     await buttons[buttons.length - 1].trigger('click')
     await flushPromises()
-    expect(logoutMock).toHaveBeenCalled()
+    expect(clearAuthMock).toHaveBeenCalled()
     expect(navigateToMock).toHaveBeenCalledWith('/login')
   })
 })
