@@ -10,7 +10,7 @@ const props = defineProps<{
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const chartRef = ref<HTMLElement | null>(null)
-const viewMode = ref<'Day' | 'Week' | 'Month'>('Day')
+const viewMode = ref<'Day' | 'Week' | 'Month'>('Week')
 let ganttInstance: any = null
 
 async function loadTasks() {
@@ -50,12 +50,14 @@ async function renderGantt() {
 
   const ganttTasks = tasks.value.map(task => {
     const start = toDateStr(task.created_at)
-    const end = task.due_date ? toDateStr(task.due_date) : addDays(start, 1)
+    const minDays = 3
+    const rawEnd = task.due_date ? toDateStr(task.due_date) : addDays(start, minDays)
+    const end = rawEnd <= start ? addDays(start, minDays) : rawEnd
     return {
       id: task.id,
       name: task.title,
       start,
-      end: end <= start ? addDays(start, 1) : end,
+      end,
       progress: statusProgress(task.status),
       custom_class: `status-${task.status}`,
     }
@@ -139,6 +141,12 @@ watch(() => props.ticketId, async () => {
 .status-done .bar-progress,
 .status-done .bar {
   fill: #10B981 !important;
+}
+
+/* Ensure bar labels are visible */
+.gantt .bar-label {
+  fill: #fff !important;
+  font-size: 12px;
 }
 
 /* Dark mode adjustments */
