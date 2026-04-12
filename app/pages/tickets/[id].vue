@@ -70,6 +70,7 @@ async function handleCancelSchedule(id: string) {
 // --- Task suggestion ---
 const suggestedTransition = ref<{ toStateId: string; message: string } | null>(null)
 const ganttKey = ref(0)
+const showGantt = ref(false)
 
 function handleTransitionSuggestion(toStateId: string, message: string) {
   suggestedTransition.value = { toStateId, message }
@@ -169,14 +170,23 @@ onMounted(() => {
           @suggest-transition="handleTransitionSuggestion"
           @tasks-changed="ganttKey++"
         />
+        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <UButton icon="i-lucide-gantt-chart" size="xs" variant="outline" @click="showGantt = true; ganttKey++">
+            ガントチャート
+          </UButton>
+        </div>
       </UCard>
 
-      <!-- Gantt Chart -->
-      <UCard>
-        <ClientOnly>
-          <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
-        </ClientOnly>
-      </UCard>
+      <!-- Gantt Chart Dialog -->
+      <UModal v-model:open="showGantt">
+        <template #content>
+          <div class="p-6 min-w-[80vw]">
+            <ClientOnly>
+              <TicketGanttChart :key="ganttKey" :ticket-id="ticketId" />
+            </ClientOnly>
+          </div>
+        </template>
+      </UModal>
 
       <!-- Task suggestion banner -->
       <div
