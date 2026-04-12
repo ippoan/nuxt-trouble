@@ -213,6 +213,7 @@ export interface TroubleTask {
   next_action: string
   next_action_by: string | null
   next_action_due: string | null
+  occurred_at: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -228,6 +229,7 @@ export interface CreateTroubleTask {
   next_action?: string
   next_action_by?: string | null
   next_action_due?: string | null
+  occurred_at?: string | null
 }
 
 export interface UpdateTroubleTask {
@@ -242,6 +244,7 @@ export interface UpdateTroubleTask {
   next_action?: string
   next_action_by?: string | null
   next_action_due?: string | null
+  occurred_at?: string | null
 }
 
 export interface TroubleTaskActivity {
