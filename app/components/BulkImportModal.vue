@@ -147,9 +147,9 @@ async function copyDebug() {
 </script>
 
 <template>
-  <UModal v-model:open="open" :ui="{ content: 'max-w-5xl' }">
+  <UModal v-model:open="open" :ui="{ content: 'max-w-6xl max-h-[90vh]' }">
     <template #content>
-      <div class="p-6 space-y-4">
+      <div class="p-6 space-y-4 overflow-y-auto max-h-[85vh]">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-bold">
             <template v-if="step === 1">一括登録 - 貼り付け</template>
@@ -258,17 +258,22 @@ async function copyDebug() {
               {{ selectedCount }} / {{ totalCount }} 件を登録します。チェックを外すと除外できます。
             </p>
 
-            <div
+            <details
               v-if="previewData.some(r => r.warnings.length > 0)"
-              class="p-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-lg text-xs space-y-1"
+              class="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 rounded-lg text-xs"
             >
-              <template v-for="(row, idx) in previewData" :key="idx">
-                <p v-for="w in row.warnings" :key="w">{{ w }}</p>
-              </template>
-            </div>
+              <summary class="p-2 cursor-pointer font-medium">
+                {{ previewData.reduce((n, r) => n + r.warnings.length, 0) }} 件の警告
+              </summary>
+              <div class="px-3 pb-2 space-y-0.5 max-h-32 overflow-y-auto">
+                <template v-for="(row, idx) in previewData" :key="idx">
+                  <p v-for="w in row.warnings" :key="w">{{ w }}</p>
+                </template>
+              </div>
+            </details>
 
-            <div class="overflow-x-auto max-h-96">
-              <table class="w-full text-xs">
+            <div class="overflow-auto max-h-[50vh]">
+              <table class="text-xs whitespace-nowrap">
                 <thead class="sticky top-0 bg-white dark:bg-gray-900">
                   <tr class="border-b border-gray-200 dark:border-gray-700">
                     <th class="py-2 px-1 w-8">
