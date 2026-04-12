@@ -2,34 +2,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockIsAuthenticated = { value: false }
 const mockIsLoading = { value: false }
+const mockStagingTenantId = { value: '' }
+const navigateToMock = vi.fn((path: string) => ({ __navigateTo: path }))
 
 vi.mock('@ippoan/auth-client', () => ({
   authMiddleware: (options: { publicPaths?: string[]; loginPath?: string }) => {
-    const { useRuntimeConfig, navigateTo } = require('#app/nuxt')
     const publicPaths = options?.publicPaths || ['/login']
     const loginPath = options?.loginPath || '/login'
 
     return (to: { path: string }) => {
-      const config = useRuntimeConfig()
-      if (config.public.stagingTenantId) return
+      if (mockStagingTenantId.value) return
       if (publicPaths.some((p: string) => to.path.startsWith(p))) return
 
       if (mockIsLoading.value) return
       if (!mockIsAuthenticated.value) {
-        return navigateTo(loginPath)
+        return navigateToMock(loginPath)
       }
     }
   },
 }))
 
-vi.mock('#app/composables/router', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>()
-  return {
-    ...actual,
-    navigateTo: vi.fn((path: string) => ({ __navigateTo: path })),
-    defineNuxtRouteMiddleware: (fn: Function) => fn,
-  }
-})
+vi.mock('#app/composables/router', () => ({
+  navigateTo: (...args: unknown[]) => navigateToMock(...(args as [string])),
+  defineNuxtRouteMiddleware: (fn: Function) => fn,
+}))
 
 vi.mock('#app/nuxt', () => ({
   useRuntimeConfig: () => ({ public: { stagingTenantId: '' } }),
@@ -37,14 +33,12 @@ vi.mock('#app/nuxt', () => ({
 }))
 
 import middleware from '~/middleware/auth.global'
-import { navigateTo } from '#app/composables/router'
-
-const navigateToMock = vi.mocked(navigateTo)
 
 describe('auth.global middleware', () => {
   beforeEach(() => {
     mockIsAuthenticated.value = false
     mockIsLoading.value = false
+    mockStagingTenantId.value = ''
     navigateToMock.mockClear()
   })
 
