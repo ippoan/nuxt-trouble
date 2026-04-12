@@ -11,12 +11,21 @@ vi.mock('~/utils/api', () => ({
   ),
   downloadFile: vi.fn().mockResolvedValue(undefined),
   deleteFile: vi.fn().mockResolvedValue(undefined),
+  getFileBlobUrl: vi.fn().mockResolvedValue('blob:mock-url'),
 }))
 
 const stubs = {
   UButton: {
     template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
     props: ['label', 'icon', 'variant', 'color', 'size', 'loading', 'disabled'],
+  },
+  UModal: {
+    template: '<div v-if="open"><slot name="content" /></div>',
+    props: ['open'],
+  },
+  UIcon: {
+    template: '<span />',
+    props: ['name'],
   },
 }
 
