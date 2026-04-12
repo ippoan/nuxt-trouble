@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTask, TroubleWorkflowState } from '~/types'
-import { TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, createTask, updateTask, deleteTask } from '~/utils/api'
+import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask } from '~/utils/api'
 
 const props = defineProps<{
   ticketId: string
@@ -15,9 +15,22 @@ const emit = defineEmits<{
 
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
-const newTaskType = ref(TASK_TYPES[0]!.value)
+const taskTypes = ref<string[]>([])
+const newTaskType = ref('')
 const newTaskTitle = ref('')
 const adding = ref(false)
+
+async function fetchTaskTypes() {
+  try {
+    const types = await getTaskTypes()
+    taskTypes.value = types.map(t => t.name)
+  } catch {
+    taskTypes.value = [...DEFAULT_TASK_TYPES]
+  }
+  if (taskTypes.value.length > 0 && !newTaskType.value) {
+    newTaskType.value = taskTypes.value[0]!
+  }
+}
 
 const groupedTasks = computed(() => {
   const groups: Record<string, TroubleTask[]> = {}
@@ -35,7 +48,7 @@ const completionCount = computed(() => {
 })
 
 function taskTypeLabel(value: string): string {
-  return TASK_TYPES.find(t => t.value === value)?.label || value
+  return value || 'その他'
 }
 
 async function loadTasks() {
@@ -108,7 +121,10 @@ async function handleDeleteTask(taskId: string) {
   }
 }
 
-onMounted(loadTasks)
+onMounted(() => {
+  fetchTaskTypes()
+  loadTasks()
+})
 </script>
 
 <template>
@@ -153,7 +169,7 @@ onMounted(loadTasks)
       <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <USelect
           v-model="newTaskType"
-          :items="TASK_TYPES"
+          :items="taskTypes"
           size="sm"
           class="w-32"
         />

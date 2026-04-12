@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember } from '~/types'
-import { TICKET_CATEGORIES, NOTIFICATION_EVENT_TYPES } from '~/types'
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember, TroubleTaskType } from '~/types'
+import { TICKET_CATEGORIES, DEFAULT_TASK_TYPES, NOTIFICATION_EVENT_TYPES } from '~/types'
 import {
   getCategories, createCategory, deleteCategory, updateCategorySortOrder,
   getOffices, createOffice, deleteOffice, updateOfficeSortOrder,
   getProgressStatuses, createProgressStatus, deleteProgressStatus, updateProgressStatusSortOrder,
+  getTaskTypes, createTaskType, deleteTaskType, updateTaskTypeSortOrder,
   getNotificationPrefs, upsertNotificationPref, deleteNotificationPref, getLineworksMembers,
 } from '~/utils/api'
 
@@ -13,6 +14,7 @@ const activeTab = ref('categories')
 
 const tabs = [
   { label: 'カテゴリ', value: 'categories' },
+  { label: 'タスクタイプ', value: 'taskTypes' },
   { label: '営業所', value: 'offices' },
   { label: '進捗状況', value: 'progress' },
   { label: 'ワークフロー', value: 'workflow' },
@@ -59,6 +61,49 @@ async function handleReorderCategory(id: string, sortOrder: number) {
     if (idx >= 0) categories.value[idx] = updated
   } catch (e) {
     console.error('カテゴリ順序変更エラー:', e)
+  }
+}
+
+// Task Types
+const taskTypes = ref<TroubleTaskType[]>([])
+const taskTypesLoading = ref(false)
+
+async function fetchTaskTypes() {
+  taskTypesLoading.value = true
+  try {
+    taskTypes.value = await getTaskTypes()
+  } catch (e) {
+    console.error('タスクタイプ取得エラー:', e)
+  } finally {
+    taskTypesLoading.value = false
+  }
+}
+
+async function handleCreateTaskType(name: string) {
+  try {
+    const created = await createTaskType({ name })
+    taskTypes.value = [...taskTypes.value, created]
+  } catch (e) {
+    console.error('タスクタイプ作成エラー:', e)
+  }
+}
+
+async function handleDeleteTaskType(id: string) {
+  try {
+    await deleteTaskType(id)
+    taskTypes.value = taskTypes.value.filter(t => t.id !== id)
+  } catch (e) {
+    console.error('タスクタイプ削除エラー:', e)
+  }
+}
+
+async function handleReorderTaskType(id: string, sortOrder: number) {
+  try {
+    const updated = await updateTaskTypeSortOrder(id, sortOrder)
+    const idx = taskTypes.value.findIndex(t => t.id === id)
+    if (idx >= 0) taskTypes.value[idx] = updated
+  } catch (e) {
+    console.error('タスクタイプ順序変更エラー:', e)
   }
 }
 
@@ -243,6 +288,7 @@ const notifMemberOptions = computed(() =>
 
 onMounted(() => {
   fetchCategories()
+  fetchTaskTypes()
   fetchOffices()
   fetchProgressStatuses()
   fetchNotifications()
@@ -277,6 +323,17 @@ onMounted(() => {
         @create="handleCreateCategory"
         @delete="handleDeleteCategory"
         @reorder="handleReorderCategory"
+      />
+
+      <MasterDataManager
+        v-if="activeTab === 'taskTypes'"
+        title="タスクタイプ管理"
+        :items="taskTypes"
+        :builtin-items="DEFAULT_TASK_TYPES as unknown as string[]"
+        :loading="taskTypesLoading"
+        @create="handleCreateTaskType"
+        @delete="handleDeleteTaskType"
+        @reorder="handleReorderTaskType"
       />
 
       <MasterDataManager

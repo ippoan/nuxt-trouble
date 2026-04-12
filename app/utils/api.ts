@@ -30,6 +30,7 @@ import type {
   TroubleTaskActivity,
   CreateTroubleTaskActivity,
   TroubleActivityFile,
+  TroubleTaskType,
 } from '~/types'
 
 let apiBase = ''
@@ -367,6 +368,30 @@ export async function getTicketSchedules(ticketId: string): Promise<TroubleSched
 
 export async function cancelSchedule(id: string): Promise<void> {
   await request<void>(`/api/trouble/schedules/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+// --- Task Types ---
+
+export async function getTaskTypes(): Promise<TroubleTaskType[]> {
+  return request<TroubleTaskType[]>('/api/trouble/task-types')
+}
+
+export async function createTaskType(data: { name: string; sort_order?: number }): Promise<TroubleTaskType> {
+  return request<TroubleTaskType>('/api/trouble/task-types', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteTaskType(id: string): Promise<void> {
+  await request<void>(`/api/trouble/task-types/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateTaskTypeSortOrder(id: string, sortOrder: number): Promise<TroubleTaskType> {
+  return request<TroubleTaskType>(`/api/trouble/task-types/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sort_order: sortOrder }),
+  })
 }
 
 // --- Tasks ---
