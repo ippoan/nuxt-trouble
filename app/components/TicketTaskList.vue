@@ -260,14 +260,14 @@ onMounted(() => {
               <div class="flex flex-col gap-0.5 pt-1">
                 <UButton
                   icon="i-lucide-chevron-up"
-                  size="2xs"
+                  size="xs"
                   variant="ghost"
                   :disabled="idx === 0"
                   @click="handleMoveUp(groupTasks, idx)"
                 />
                 <UButton
                   icon="i-lucide-chevron-down"
-                  size="2xs"
+                  size="xs"
                   variant="ghost"
                   :disabled="idx === groupTasks.length - 1"
                   @click="handleMoveDown(groupTasks, idx)"
@@ -320,7 +320,7 @@ onMounted(() => {
           <USelect v-model="row.assigned_to" :items="employeeItems" value-key="value" size="xs" />
           <UButton
             icon="i-lucide-x"
-            size="2xs"
+            size="xs"
             variant="ghost"
             color="neutral"
             :disabled="newRows.length <= 1"
