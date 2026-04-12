@@ -268,18 +268,23 @@ onMounted(() => {
 
       <!-- Add task form (single row) -->
       <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
+        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
+          <span class="text-[10px] text-gray-400">発生日</span>
           <span class="text-[10px] text-gray-400">種別</span>
           <span class="text-[10px] text-gray-400">タイトル</span>
           <span class="text-[10px] text-gray-400">内容</span>
           <span class="text-[10px] text-gray-400">次のアクション</span>
           <span class="text-[10px] text-gray-400">期限</span>
-          <span class="text-[10px] text-gray-400">発生日</span>
           <span class="text-[10px] text-gray-400">対応者</span>
           <span />
         </div>
 
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+          <input
+            v-model="newTask.occurred_at"
+            type="date"
+            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input
             v-model="newTask.title"
@@ -299,11 +304,6 @@ onMounted(() => {
           />
           <input
             v-model="newTask.due_date"
-            type="date"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <input
-            v-model="newTask.occurred_at"
             type="date"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
