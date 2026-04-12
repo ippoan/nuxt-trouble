@@ -261,19 +261,29 @@ export interface TroubleActivityFile {
   created_at: string
 }
 
-export const TASK_TYPES: { value: string; label: string }[] = [
-  { value: 'investigation', label: '調査' },
-  { value: 'repair', label: '修理' },
-  { value: 'negotiation', label: '交渉' },
-  { value: 'documentation', label: '書類作成' },
-  { value: 'insurance', label: '保険対応' },
-  { value: 'other', label: 'その他' },
-]
+export interface TroubleTaskType {
+  id: string
+  tenant_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
 
-export const TASK_STATUS_LABELS: Record<string, string> = {
-  open: '未着手',
-  in_progress: '対応中',
-  done: '完了',
+export const DEFAULT_TASK_TYPES = [
+  'レッカー対応',
+  '修理手配',
+  '保険対応',
+  '示談交渉',
+  '処分決定',
+  '再発防止策',
+  '現場確認',
+  'その他',
+] as const
+
+export const TASK_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  open: { label: '未着手', color: '#9CA3AF' },
+  in_progress: { label: '進行中', color: '#3B82F6' },
+  done: { label: '完了', color: '#10B981' },
 }
 
 export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [

@@ -32,9 +32,9 @@ const statusColor = computed(() => {
 })
 
 const statusOptions = [
-  { label: TASK_STATUS_LABELS.open, value: 'open' },
-  { label: TASK_STATUS_LABELS.in_progress, value: 'in_progress' },
-  { label: TASK_STATUS_LABELS.done, value: 'done' },
+  { label: TASK_STATUS_LABELS['open']!.label, value: 'open' },
+  { label: TASK_STATUS_LABELS['in_progress']!.label, value: 'in_progress' },
+  { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
 ]
 
 const selectedStatus = ref(props.task.status)
@@ -149,7 +149,7 @@ function formatDate(dateStr: string): string {
         variant="subtle"
         size="xs"
       >
-        {{ TASK_STATUS_LABELS[task.status as keyof typeof TASK_STATUS_LABELS] || task.status }}
+        {{ TASK_STATUS_LABELS[task.status]?.label || task.status }}
       </UBadge>
       <USelect
         v-model="selectedStatus"
