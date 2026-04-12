@@ -38,17 +38,49 @@ function reset() {
   importResults.value = null
 }
 
+// Debug
+const showDebug = ref(false)
+const debugInfo = ref('')
+
 function handleParse() {
   const parsed = parseTsv(rawText.value)
   if (parsed.rows.length === 0) return
   rows.value = parsed.rows
   columns.value = buildColumnMappings(parsed.headers, parsed.rows[0] ?? [])
+
+  // Build debug info
+  const lines = [
+    `=== TSV Parse Result ===`,
+    `Headers (${parsed.headers.length}): ${JSON.stringify(parsed.headers)}`,
+    `Rows: ${parsed.rows.length}`,
+    ``,
+    `=== Column Mappings ===`,
+    ...columns.value.map((c, i) => `[${i}] "${c.excelHeader}" → ${c.apiField} (sample: "${c.sampleValue}")`),
+    ``,
+    `=== Raw Rows (first 3) ===`,
+    ...parsed.rows.slice(0, 3).map((r, i) => `Row ${i}: ${JSON.stringify(r)}`),
+  ]
+  debugInfo.value = lines.join('\n')
+  console.log(debugInfo.value)
+
   step.value = 2
 }
 
 function handlePreview() {
   const results = rowsToTickets(rows.value, columns.value)
   previewData.value = results.map(r => ({ ...r, selected: true }))
+
+  // Debug: log converted tickets
+  const lines = [
+    `=== Converted Tickets (first 3) ===`,
+    ...results.slice(0, 3).map((r, i) => [
+      `Ticket ${i}: ${JSON.stringify(r.ticket, null, 2)}`,
+      r.warnings.length > 0 ? `  Warnings: ${r.warnings.join(', ')}` : '',
+    ].filter(Boolean).join('\n')),
+  ]
+  debugInfo.value += '\n\n' + lines.join('\n')
+  console.log(lines.join('\n'))
+
   step.value = 3
 }
 
@@ -170,6 +202,12 @@ const mappedFields = computed(() =>
               </tbody>
             </table>
           </div>
+          <!-- Debug toggle -->
+          <details class="text-xs">
+            <summary class="cursor-pointer text-gray-400 hover:text-gray-600">Debug</summary>
+            <pre class="mt-2 p-2 bg-gray-900 text-green-400 rounded overflow-auto max-h-48 text-[10px]">{{ debugInfo }}</pre>
+          </details>
+
           <div class="flex justify-between">
             <UButton label="戻る" variant="outline" @click="step = 1" />
             <UButton label="プレビュー" @click="handlePreview" />
@@ -272,6 +310,12 @@ const mappedFields = computed(() =>
                 {{ importProgress }} / {{ selectedCount }} 件処理中...
               </p>
             </div>
+
+            <!-- Debug toggle -->
+            <details class="text-xs">
+              <summary class="cursor-pointer text-gray-400 hover:text-gray-600">Debug</summary>
+              <pre class="mt-2 p-2 bg-gray-900 text-green-400 rounded overflow-auto max-h-48 text-[10px]">{{ debugInfo }}</pre>
+            </details>
 
             <div class="flex justify-between">
               <UButton label="戻る" variant="outline" :disabled="importing" @click="step = 2" />
