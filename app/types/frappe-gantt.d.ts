@@ -13,11 +13,15 @@ declare module 'frappe-gantt' {
     view_mode?: 'Quarter Day' | 'Half Day' | 'Day' | 'Week' | 'Month' | 'Year'
     date_format?: string
     language?: string
-    readonly?: boolean
+    bar_height?: number
+    bar_corner_radius?: number
+    padding?: number
+    arrow_curve?: number
     on_click?: (task: GanttTask) => void
     on_date_change?: (task: GanttTask, start: Date, end: Date) => void
     on_progress_change?: (task: GanttTask, progress: number) => void
     on_view_change?: (mode: string) => void
+    [key: string]: unknown
   }
 
   export default class Gantt {
