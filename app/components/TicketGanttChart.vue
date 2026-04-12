@@ -123,12 +123,23 @@ watch(() => props.ticketId, async () => {
       </span>
     </div>
 
-    <div ref="chartRef" class="gantt-container overflow-x-auto" />
+    <div ref="chartRef" class="gantt-wrapper" />
   </div>
 </template>
 
 <style>
-.gantt-container .gantt {
+/* Override frappe-gantt container height to fill parent */
+.gantt-wrapper .gantt-container {
+  height: auto !important;
+  min-height: 200px;
+}
+
+/* Ensure popup is not clipped by overflow */
+.gantt-wrapper .gantt-container .popup-wrapper {
+  z-index: 9999;
+}
+
+.gantt-wrapper .gantt {
   background: transparent;
 }
 
