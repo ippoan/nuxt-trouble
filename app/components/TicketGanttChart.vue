@@ -103,7 +103,6 @@ watch(() => props.ticketId, async () => {
 <template>
   <div v-if="!loading && tasks.length > 0">
     <div class="flex items-center justify-between mb-3">
-      <h3 class="text-base font-semibold">ガントチャート</h3>
       <div class="flex gap-1">
         <UButton
           v-for="mode in (['Day', 'Week', 'Month'] as const)"
