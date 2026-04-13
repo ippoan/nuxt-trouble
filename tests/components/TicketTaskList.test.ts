@@ -36,6 +36,12 @@ const stubs = {
   UIcon: { template: '<span />', props: ['name'] },
   UBadge: { template: '<span><slot /></span>', props: ['variant', 'size'] },
   USelect: { template: '<select />', props: ['modelValue', 'items', 'size', 'valueKey'] },
+  UInput: {
+    template: '<input :type="type" :placeholder="placeholder" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @keydown="$emit(\'keydown\', $event)" />',
+    props: ['modelValue', 'type', 'placeholder', 'size', 'list'],
+    emits: ['update:modelValue', 'keydown'],
+  },
+  UFormField: { template: '<div><slot /></div>', props: ['label'] },
   TicketTaskCard: { template: '<div class="task-card">{{ task.title }}</div>', props: ['task'] },
 }
 
