@@ -30,6 +30,7 @@ const newTask = reactive({
   due_date: '',
   occurred_at: '',
   assigned_name: '',
+  next_action_by_name: '',
 })
 
 function resetForm() {
@@ -40,6 +41,7 @@ function resetForm() {
   newTask.due_date = ''
   newTask.occurred_at = ''
   newTask.assigned_name = ''
+  newTask.next_action_by_name = ''
   addError.value = false
 }
 
@@ -117,7 +119,7 @@ async function handleAddTask() {
       due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
       occurred_at: newTask.occurred_at ? new Date(newTask.occurred_at).toISOString() : null,
       assigned_to: matchedEmployee?.id || null,
-      next_action_by: name || null,
+      next_action_by: newTask.next_action_by_name.trim() || null,
     })
     resetForm()
     await loadTasks()
@@ -304,6 +306,8 @@ onMounted(() => {
 
 // Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
 const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
+// Form grid: task_type / date / title / description / assignee / add-btn
+const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
 </script>
 
 <template>
@@ -421,11 +425,10 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
         </div>
       </template>
 
-      <!-- Add task form (same 9-col grid) -->
+      <!-- Add task form -->
       <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700" :class="addError ? 'ring-1 ring-red-400 rounded' : ''">
-        <!-- Form Row 1 -->
-        <div :class="['grid gap-1 px-1 items-center', GRID]">
-          <span />
+        <!-- Form Row 1: task_type / date / title / description / assignee / (empty) -->
+        <div :class="['grid gap-1 px-1 items-center', FORM_GRID]">
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">日時</span>
@@ -433,14 +436,11 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           </div>
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <span />
-          <span />
-          <span />
+          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="担当者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
         </div>
-        <!-- Form Row 2 -->
-        <div :class="['grid gap-1 mt-1 px-1 items-center', GRID]">
-          <span />
+        <!-- Form Row 2: (empty) / due_date / next_action / detail / next_action_by / add-btn -->
+        <div :class="['grid gap-1 mt-1 px-1 items-center', FORM_GRID]">
           <span />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">期限</span>
@@ -448,9 +448,7 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           </div>
           <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <input v-model="newTask.next_action_detail" placeholder="詳細" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <span />
-          <span />
+          <input v-model="newTask.next_action_by_name" list="task-employee-list" placeholder="次の対応者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTask.title.trim()" @click="handleAddTask" />
         </div>
         <datalist id="task-employee-list">
