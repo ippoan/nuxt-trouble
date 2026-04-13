@@ -413,7 +413,10 @@ const ROW2 = 'grid-cols-[2.5rem_1fr_7rem_8rem]'
       <div class="mt-2" :style="addError ? 'outline: 1px solid #f87171; border-radius: 4px;' : ''">
         <div :class="['grid gap-1 items-center', ROW1]">
           <span />
-          <input v-model="newTask.occurred_at" type="date" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <div class="flex items-center gap-1 min-w-0">
+            <span class="text-[10px] text-gray-500 shrink-0">日時</span>
+            <input v-model="newTask.occurred_at" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
@@ -424,7 +427,10 @@ const ROW2 = 'grid-cols-[2.5rem_1fr_7rem_8rem]'
         <div :class="['grid gap-1 mt-1 items-center', ROW2]">
           <span />
           <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.due_date" type="date" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <div class="flex items-center gap-1 min-w-0">
+            <span class="text-[10px] text-gray-500 shrink-0">期限</span>
+            <input v-model="newTask.due_date" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
           <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
         </div>
         <datalist id="task-employee-list">
