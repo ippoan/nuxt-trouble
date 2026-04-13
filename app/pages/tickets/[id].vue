@@ -232,11 +232,6 @@ onMounted(() => {
         />
       </UCard>
 
-      <!-- Comments -->
-      <UCard>
-        <TicketComments :ticket-id="ticketId" />
-      </UCard>
-
       <!-- Files -->
       <UCard>
         <TicketFiles :ticket-id="ticketId" />
