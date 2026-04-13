@@ -299,12 +299,8 @@ onMounted(() => {
   loadTasks().then(() => loadAllFileCounts())
 })
 
-// Row 1: reorder / occurred_at / task_type / title / description / status / file / delete
-const ROW1 = 'grid-cols-[2.5rem_7rem_6rem_1fr_1fr_6rem_2.5rem_2.5rem]'
-// Row 2: spacer / next_action / due_date / next_action_by
-const ROW2 = 'grid-cols-[2.5rem_1fr_7rem_8rem]'
-// Add form Row 2: spacer / next_action / due_date / next_action_by / add button
-const ROW2_FORM = 'grid-cols-[2.5rem_1fr_7rem_8rem_2.5rem]'
+// Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
+const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
 </script>
 
 <template>
@@ -316,6 +312,7 @@ const ROW2_FORM = 'grid-cols-[2.5rem_1fr_7rem_8rem_2.5rem]'
           {{ completionCount.done }}/{{ completionCount.total }} 完了
         </UBadge>
       </div>
+      <slot name="actions" />
     </div>
 
     <div v-if="loading" class="flex justify-center py-4">
@@ -328,56 +325,70 @@ const ROW2_FORM = 'grid-cols-[2.5rem_1fr_7rem_8rem_2.5rem]'
       </div>
 
       <!-- Table header -->
-      <div v-if="tasks.length > 0" :class="['grid gap-1 py-1.5 px-1 rounded-t-lg bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700', ROW1]">
+      <div v-if="tasks.length > 0" :class="['grid gap-1 py-1.5 px-1 rounded-t-lg bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700', GRID]">
         <span />
-        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">発生日</span>
         <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">種別</span>
+        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">発生日</span>
         <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">タイトル</span>
         <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">内容</span>
+        <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">対応者</span>
         <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">状態</span>
         <span />
         <span />
       </div>
 
-      <!-- Task rows (2 rows per task) -->
+      <!-- Task rows (2 rows per task, same 9-col grid) -->
       <template v-for="(task, idx) in tasks" :key="task.id">
-        <!-- Row 1 -->
-        <div :data-task-id="task.id" :class="['grid gap-1 pt-2 pb-0.5 px-1 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', ROW1]">
+        <!-- Row 1: reorder / task_type / occurred_at / title / description / next_action_by / status / file / delete -->
+        <div :data-task-id="task.id" :class="['grid gap-1 pt-2 pb-0.5 px-1 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
           <div class="flex flex-col items-center">
             <button class="text-gray-400 hover:text-gray-200 disabled:opacity-20 transition-colors" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
             <button class="text-gray-400 hover:text-gray-200 disabled:opacity-20 transition-colors" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3" /></button>
           </div>
-          <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
+          <!-- task_type -->
           <USelect v-if="isEditing(task.id, 'task_type')" :model-value="editingValue" :items="taskTypes" size="xs" class="min-w-0" @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')" />
           <span v-else class="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 truncate cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/60 transition-colors" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
+          <!-- occurred_at -->
+          <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
+          <!-- title -->
           <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400 transition-colors" @click="startEdit(task, 'title')">{{ task.title }}</span>
+          <!-- description -->
           <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
+          <!-- next_action_by (対応者) -->
+          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
+          <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
+          <!-- file -->
           <button class="relative flex items-center justify-center" @click="toggleFilePanel(task.id)">
             <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200 transition-colors" />
             <span v-if="taskFileCounts[task.id]" class="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{{ taskFileCounts[task.id] }}</span>
           </button>
+          <!-- delete -->
           <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
         </div>
 
-        <!-- Row 2 -->
-        <div :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', ROW2]">
+        <!-- Row 2: _ / _ / due_date / next_action (col-span-2) / _ / _ / _ / _ -->
+        <div :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
           <span />
-          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action')">
-            <span class="text-[10px] text-gray-500 dark:text-gray-500 mr-1">次:</span>{{ task.next_action || '-' }}
-          </span>
+          <span />
+          <!-- due_date (aligned under occurred_at) -->
           <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'due_date')">
-            <span class="text-[10px] text-gray-500 dark:text-gray-500 mr-1">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
+            <span class="text-[10px] text-gray-500 mr-1">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
           </span>
-          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
-            <span class="text-[10px] text-gray-500 dark:text-gray-500 mr-1">対応者:</span>{{ task.next_action_by || '-' }}
+          <!-- next_action (col-span-2, aligned under title+description) -->
+          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="col-span-2 min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="col-span-2 text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action')">
+            <span class="text-[10px] text-gray-500 mr-1">次:</span>{{ task.next_action || '-' }}
           </span>
+          <span />
+          <span />
+          <span />
+          <span />
         </div>
 
         <!-- File panel -->
@@ -400,29 +411,35 @@ const ROW2_FORM = 'grid-cols-[2.5rem_1fr_7rem_8rem_2.5rem]'
         </div>
       </template>
 
-      <!-- Add task form -->
+      <!-- Add task form (same 9-col grid) -->
       <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700" :class="addError ? 'ring-1 ring-red-400 rounded' : ''">
-        <div :class="['grid gap-1 px-1 items-center', ROW1]">
+        <!-- Form Row 1 -->
+        <div :class="['grid gap-1 px-1 items-center', GRID]">
           <span />
+          <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">日時</span>
             <input v-model="newTask.occurred_at" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
-          <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
           <span />
           <span />
         </div>
-        <div :class="['grid gap-1 mt-1 px-1 items-center', ROW2_FORM]">
+        <!-- Form Row 2 -->
+        <div :class="['grid gap-1 mt-1 px-1 items-center', GRID]">
           <span />
-          <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <span />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">期限</span>
             <input v-model="newTask.due_date" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
-          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <input v-model="newTask.next_action" placeholder="次のアクション" class="col-span-2 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <span />
+          <span />
+          <span />
           <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTask.title.trim()" @click="handleAddTask" />
         </div>
         <datalist id="task-employee-list">
