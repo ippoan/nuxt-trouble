@@ -63,11 +63,8 @@ async function handleUpload(event: Event) {
   if (!file) return
   uploading.value = true
   try {
-    const uploaded = await uploadFile(props.ticketId, file)
-    files.value.push(uploaded)
-    if (isImage(uploaded.content_type)) {
-      loadThumbnail(uploaded.id)
-    }
+    await uploadFile(props.ticketId, file)
+    await fetchFiles()
   } catch (e) {
     console.error('アップロードエラー:', e)
   } finally {
@@ -107,7 +104,7 @@ async function handleDelete(id: string) {
       URL.revokeObjectURL(thumbnailUrls.value[id])
       delete thumbnailUrls.value[id]
     }
-    files.value = files.value.filter(f => f.id !== id)
+    await fetchFiles()
   } catch (e) {
     console.error('ファイル削除エラー:', e)
   }
