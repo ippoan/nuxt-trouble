@@ -247,32 +247,6 @@ export interface UpdateTroubleTask {
   occurred_at?: string | null
 }
 
-export interface TroubleTaskActivity {
-  id: string
-  tenant_id: string
-  task_id: string
-  body: string
-  occurred_at: string
-  created_by: string | null
-  created_at: string
-}
-
-export interface CreateTroubleTaskActivity {
-  body: string
-  occurred_at?: string | null
-}
-
-export interface TroubleActivityFile {
-  id: string
-  tenant_id: string
-  activity_id: string
-  filename: string
-  content_type: string
-  size_bytes: number
-  storage_key: string
-  created_at: string
-}
-
 export interface TroubleTaskType {
   id: string
   tenant_id: string
