@@ -152,13 +152,87 @@ const statusOptions = [
   { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
 ]
 
+// --- Inline edit ---
+const editingId = ref<string | null>(null)
+const editingField = ref<string | null>(null)
+const editingValue = ref('')
+
+function startEdit(task: TroubleTask, field: string) {
+  editingId.value = task.id
+  editingField.value = field
+  const val = (task as any)[field]
+  if (field === 'occurred_at' || field === 'due_date') {
+    editingValue.value = val?.substring(0, 10) || ''
+  } else {
+    editingValue.value = val || ''
+  }
+}
+
+async function saveEdit(taskId: string, field: string) {
+  editingId.value = null
+  const original = tasks.value.find(t => t.id === taskId)
+  if (!original) return
+  const oldVal = (field === 'occurred_at' || field === 'due_date')
+    ? ((original as any)[field]?.substring(0, 10) || '')
+    : ((original as any)[field] || '')
+  if (editingValue.value === oldVal) return
+  const payload: Record<string, any> = {}
+  if (field === 'occurred_at' || field === 'due_date') {
+    payload[field] = editingValue.value ? new Date(editingValue.value).toISOString() : null
+  } else {
+    payload[field] = editingValue.value || null
+  }
+  try {
+    await updateTask(taskId, payload)
+    await loadTasks()
+    emit('tasksChanged')
+  } catch (e) {
+    console.error('Failed to update task:', e)
+  }
+}
+
+function isEditing(taskId: string, field: string) {
+  return editingId.value === taskId && editingField.value === field
+}
+
+// --- Reorder ---
+async function handleMoveUp(index: number) {
+  if (index <= 0) return
+  const current = tasks.value[index]!
+  const prev = tasks.value[index - 1]!
+  try {
+    await Promise.all([
+      updateTask(current.id, { sort_order: prev.sort_order }),
+      updateTask(prev.id, { sort_order: current.sort_order }),
+    ])
+    await loadTasks()
+  } catch (e) {
+    console.error('Failed to reorder tasks:', e)
+  }
+}
+
+async function handleMoveDown(index: number) {
+  if (index >= tasks.value.length - 1) return
+  const current = tasks.value[index]!
+  const next = tasks.value[index + 1]!
+  try {
+    await Promise.all([
+      updateTask(current.id, { sort_order: next.sort_order }),
+      updateTask(next.id, { sort_order: current.sort_order }),
+    ])
+    await loadTasks()
+  } catch (e) {
+    console.error('Failed to reorder tasks:', e)
+  }
+}
+
 onMounted(() => {
   fetchTaskTypes()
   fetchEmployees()
   loadTasks()
 })
 
-const COLS = 'grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
+const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
 </script>
 
 <template>
@@ -179,6 +253,7 @@ const COLS = 'grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
     <template v-else>
       <!-- Header -->
       <div :class="['grid gap-1 mb-1 px-0.5', COLS]">
+        <span />
         <span class="text-[10px] text-gray-400">発生日</span>
         <span class="text-[10px] text-gray-400">種別</span>
         <span class="text-[10px] text-gray-400">タイトル</span>
@@ -196,17 +271,36 @@ const COLS = 'grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
       </div>
 
       <div
-        v-for="task in tasks"
+        v-for="(task, idx) in tasks"
         :key="task.id"
         :class="['grid gap-1 py-1 border-b border-gray-800 items-center', COLS]"
       >
-        <span class="text-xs text-gray-400 truncate">{{ task.occurred_at?.substring(0, 10) || '' }}</span>
+        <!-- Reorder -->
+        <div class="flex flex-col items-center">
+          <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
+          <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3" /></button>
+        </div>
+        <!-- occurred_at -->
+        <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
+        <!-- task_type -->
         <span class="text-xs text-gray-400 truncate">{{ task.task_type }}</span>
-        <span class="text-xs font-medium truncate">{{ task.title }}</span>
-        <span class="text-xs text-gray-400 truncate">{{ task.description }}</span>
-        <span class="text-xs text-gray-400 truncate">{{ task.next_action }}</span>
-        <span class="text-xs text-gray-400 truncate">{{ task.due_date?.substring(0, 10) || '' }}</span>
-        <span class="text-xs text-gray-400 truncate">{{ task.next_action_by || '' }}</span>
+        <!-- title -->
+        <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+        <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
+        <!-- description -->
+        <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
+        <!-- next_action -->
+        <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action')">{{ task.next_action || '-' }}</span>
+        <!-- due_date -->
+        <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'due_date')">{{ task.due_date?.substring(0, 10) || '-' }}</span>
+        <!-- next_action_by -->
+        <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
+        <!-- status -->
         <USelect
           :model-value="task.status"
           :items="statusOptions"
@@ -220,6 +314,7 @@ const COLS = 'grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
       <!-- Add task form row -->
       <div class="mt-2">
         <div :class="['grid gap-1', COLS]" :style="addError ? 'outline: 1px solid #f87171; border-radius: 4px;' : ''">
+          <span />
           <input
             v-model="newTask.occurred_at"
             type="date"
