@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { TroubleTask, TroubleWorkflowState, Employee } from '~/types'
+import type { TroubleTask, TroubleWorkflowState, Employee, TroubleFile } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees } from '~/utils/api'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile } from '~/utils/api'
 
 const props = defineProps<{
   ticketId: string
@@ -72,6 +72,7 @@ async function loadTasks() {
   try {
     tasks.value = await getTasks(props.ticketId)
     checkSuggestions()
+    loadAllFileCounts()
   } catch (e) {
     console.error('Failed to load tasks:', e)
   } finally {
@@ -226,13 +227,79 @@ async function handleMoveDown(index: number) {
   }
 }
 
+// --- File attachments ---
+const expandedFileTaskId = ref<string | null>(null)
+const taskFiles = ref<TroubleFile[]>([])
+const taskFileCounts = ref<Record<string, number>>({})
+const fileUploading = ref(false)
+
+async function loadFileCount(taskId: string) {
+  try {
+    const files = await getTaskFiles(taskId)
+    taskFileCounts.value[taskId] = files.length
+  } catch {
+    taskFileCounts.value[taskId] = 0
+  }
+}
+
+async function loadAllFileCounts() {
+  await Promise.all(tasks.value.map(t => loadFileCount(t.id)))
+}
+
+async function toggleFilePanel(taskId: string) {
+  if (expandedFileTaskId.value === taskId) {
+    expandedFileTaskId.value = null
+    return
+  }
+  expandedFileTaskId.value = taskId
+  try {
+    taskFiles.value = await getTaskFiles(taskId)
+  } catch {
+    taskFiles.value = []
+  }
+}
+
+async function handleFileUpload(taskId: string, event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  fileUploading.value = true
+  try {
+    await uploadTaskFile(taskId, file)
+    taskFiles.value = await getTaskFiles(taskId)
+    taskFileCounts.value[taskId] = taskFiles.value.length
+  } catch (e) {
+    console.error('Failed to upload file:', e)
+  } finally {
+    fileUploading.value = false
+    input.value = ''
+  }
+}
+
+async function handleFileDelete(taskId: string, fileId: string) {
+  try {
+    await deleteTaskFile(fileId)
+    taskFiles.value = await getTaskFiles(taskId)
+    taskFileCounts.value[taskId] = taskFiles.value.length
+  } catch (e) {
+    console.error('Failed to delete file:', e)
+  }
+}
+
+function formatFileSize(bytes: number | bigint): string {
+  const n = Number(bytes)
+  if (n < 1024) return `${n}B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)}KB`
+  return `${(n / 1024 / 1024).toFixed(1)}MB`
+}
+
 onMounted(() => {
   fetchTaskTypes()
   fetchEmployees()
-  loadTasks()
+  loadTasks().then(() => loadAllFileCounts())
 })
 
-const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
+const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem_2.5rem]'
 </script>
 
 <template>
@@ -263,6 +330,7 @@ const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]
         <span class="text-[10px] text-gray-400">対応者</span>
         <span class="text-[10px] text-gray-400">状態</span>
         <span />
+        <span />
       </div>
 
       <!-- Task rows -->
@@ -270,54 +338,75 @@ const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]
         状況管理項目はありません
       </div>
 
-      <div
-        v-for="(task, idx) in tasks"
-        :key="task.id"
-        :class="['grid gap-1 py-1 border-b border-gray-800 items-center', COLS]"
-      >
-        <!-- Reorder -->
-        <div class="flex flex-col items-center">
-          <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
-          <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3" /></button>
+      <template v-for="(task, idx) in tasks" :key="task.id">
+        <div :class="['grid gap-1 py-1 border-b border-gray-800 items-center', COLS]">
+          <!-- Reorder -->
+          <div class="flex flex-col items-center">
+            <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
+            <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3" /></button>
+          </div>
+          <!-- occurred_at -->
+          <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
+          <!-- task_type -->
+          <USelect
+            v-if="isEditing(task.id, 'task_type')"
+            :model-value="editingValue"
+            :items="taskTypes"
+            size="xs"
+            class="min-w-0"
+            @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')"
+          />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
+          <!-- title -->
+          <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
+          <!-- description -->
+          <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
+          <!-- next_action -->
+          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action')">{{ task.next_action || '-' }}</span>
+          <!-- due_date -->
+          <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'due_date')">{{ task.due_date?.substring(0, 10) || '-' }}</span>
+          <!-- next_action_by -->
+          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
+          <!-- status -->
+          <USelect
+            :model-value="task.status"
+            :items="statusOptions"
+            size="xs"
+            class="min-w-0"
+            @update:model-value="handleStatusChange(task.id, $event)"
+          />
+          <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
+          <button class="relative flex items-center justify-center" @click="toggleFilePanel(task.id)">
+            <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200" />
+            <span v-if="taskFileCounts[task.id]" class="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{{ taskFileCounts[task.id] }}</span>
+          </button>
         </div>
-        <!-- occurred_at -->
-        <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
-        <!-- task_type -->
-        <USelect
-          v-if="isEditing(task.id, 'task_type')"
-          :model-value="editingValue"
-          :items="taskTypes"
-          size="xs"
-          class="min-w-0"
-          @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')"
-        />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
-        <!-- title -->
-        <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-        <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
-        <!-- description -->
-        <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
-        <!-- next_action -->
-        <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action')">{{ task.next_action || '-' }}</span>
-        <!-- due_date -->
-        <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'due_date')">{{ task.due_date?.substring(0, 10) || '-' }}</span>
-        <!-- next_action_by -->
-        <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
-        <!-- status -->
-        <USelect
-          :model-value="task.status"
-          :items="statusOptions"
-          size="xs"
-          class="min-w-0"
-          @update:model-value="handleStatusChange(task.id, $event)"
-        />
-        <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
-      </div>
+
+        <!-- File panel (expanded) -->
+        <div v-if="expandedFileTaskId === task.id" class="bg-gray-900 border border-gray-700 rounded p-3 mb-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-gray-300">添付ファイル</span>
+            <label class="cursor-pointer">
+              <UButton icon="i-lucide-upload" size="xs" variant="outline" :loading="fileUploading" as="span">追加</UButton>
+              <input type="file" class="hidden" @change="handleFileUpload(task.id, $event)" />
+            </label>
+          </div>
+          <div v-if="taskFiles.length === 0" class="text-xs text-gray-500">ファイルなし</div>
+          <div v-for="f in taskFiles" :key="f.id" class="flex items-center justify-between py-1 border-b border-gray-800 last:border-0">
+            <button class="text-xs text-blue-400 hover:underline truncate" @click="downloadTaskFile(f.id)">{{ f.filename }}</button>
+            <div class="flex items-center gap-2 shrink-0 ml-2">
+              <span class="text-[10px] text-gray-500">{{ formatFileSize(f.size_bytes) }}</span>
+              <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleFileDelete(task.id, f.id)" />
+            </div>
+          </div>
+        </div>
+      </template>
 
       <!-- Add task form row -->
       <div class="mt-2">
@@ -367,6 +456,7 @@ const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]
             :disabled="!newTask.title.trim()"
             @click="handleAddTask"
           />
+          <span />
         </div>
       </div>
     </template>
