@@ -7,16 +7,24 @@ vi.mock('~/utils/api', () => ({
     { id: 't1', tenant_id: 't1', from_state_id: 's1', to_state_id: 's2', label: null, created_at: '2026-01-01' },
   ]),
   transitionTicket: vi.fn().mockResolvedValue(undefined),
+  getStatusHistory: vi.fn().mockResolvedValue([]),
 }))
 
 const stubs = {
-  UFormField: { template: '<div><slot /></div>', props: ['label'] },
+  UBadge: {
+    template: '<span @click="$emit(\'click\')"><slot /></span>',
+    props: ['style', 'variant'],
+  },
+  UModal: {
+    template: '<div v-if="open"><slot name="content" /></div>',
+    props: ['open'],
+  },
   USelect: { template: '<select />', props: ['modelValue', 'items', 'placeholder'] },
-  UTextarea: { template: '<textarea />', props: ['modelValue', 'placeholder', 'rows'] },
   UButton: {
     template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
-    props: ['label', 'icon', 'loading', 'disabled'],
+    props: ['label', 'icon', 'loading', 'disabled', 'variant', 'color'],
   },
+  UIcon: { template: '<i />', props: ['name', 'class'] },
 }
 
 const workflowStates = [
@@ -25,30 +33,39 @@ const workflowStates = [
 ]
 
 describe('TicketStatusTransition', () => {
-  it('renders heading', async () => {
+  it('renders current status as badge', async () => {
     const wrapper = mount(TicketStatusTransition, {
       props: { ticketId: 'ticket-1', currentStatusId: 's1', workflowStates },
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('ステータス変更')
+    expect(wrapper.text()).toContain('新規')
   })
 
-  it('shows no transitions when currentStatusId has no outgoing transitions', async () => {
+  it('shows chevron when transitions are available', async () => {
+    const wrapper = mount(TicketStatusTransition, {
+      props: { ticketId: 'ticket-1', currentStatusId: 's1', workflowStates },
+      global: { stubs },
+    })
+    await flushPromises()
+    expect(wrapper.find('i').exists()).toBe(true)
+  })
+
+  it('does not show chevron when no transitions available', async () => {
     const wrapper = mount(TicketStatusTransition, {
       props: { ticketId: 'ticket-1', currentStatusId: 's2', workflowStates },
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('遷移可能なステータスがありません')
+    expect(wrapper.find('i').exists()).toBe(false)
   })
 
-  it('shows no transitions when currentStatusId is null', async () => {
+  it('does not render badge when currentStatusId is null', async () => {
     const wrapper = mount(TicketStatusTransition, {
       props: { ticketId: 'ticket-1', currentStatusId: null, workflowStates },
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('遷移可能なステータスがありません')
+    expect(wrapper.findComponent({ name: 'UBadge' }).exists()).toBe(false)
   })
 })

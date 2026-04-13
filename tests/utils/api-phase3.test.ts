@@ -28,9 +28,6 @@ import {
   deleteWorkflowState,
   createWorkflowTransition,
   deleteWorkflowTransition,
-  getComments,
-  createComment,
-  deleteComment,
   getStatusHistory,
   transitionTicket,
   getFiles,
@@ -296,65 +293,6 @@ describe('Trouble API Phase 3', () => {
       assertMock(() => {
         const [url, opts] = mockFetch.mock.calls[0]
         expect(url).toBe(`${API_BASE}/api/trouble/workflow/transitions/t1`)
-        expect(opts.method).toBe('DELETE')
-      })
-    })
-  })
-
-  // --- Comments ---
-  describe('getComments', () => {
-    it('fetches comments for a ticket', async () => {
-      if (isLive) {
-        const ticket = await createTicket({ category: '貨物事故' })
-        const comments = await getComments(ticket.id)
-        expect(Array.isArray(comments)).toBe(true)
-        await deleteTicket(ticket.id)
-        return
-      }
-      const mockData = [{ id: 'cm1', body: 'テストコメント' }]
-      await verifyApi(() => getComments('ticket-1'), mockData)
-      assertMock(() => {
-        expectMock(mockFetch).toHaveBeenCalledWith(
-          `${API_BASE}/api/trouble/tickets/ticket-1/comments`,
-          expect.objectContaining({ headers: expect.any(Object) }),
-        )
-      })
-    })
-  })
-
-  describe('createComment', () => {
-    it('creates a comment', async () => {
-      if (isLive) {
-        const ticket = await createTicket({ category: '貨物事故' })
-        const comment = await createComment(ticket.id, 'テストコメント')
-        expect(comment.body).toBe('テストコメント')
-        await deleteTicket(ticket.id)
-        return
-      }
-      const mockData = { id: 'cm1', body: 'テストコメント' }
-      await verifyApi(() => createComment('ticket-1', 'テストコメント'), mockData)
-      assertMock(() => {
-        const [url, opts] = mockFetch.mock.calls[0]
-        expect(url).toBe(`${API_BASE}/api/trouble/tickets/ticket-1/comments`)
-        expect(opts.method).toBe('POST')
-        expect(JSON.parse(opts.body)).toEqual({ body: 'テストコメント' })
-      })
-    })
-  })
-
-  describe('deleteComment', () => {
-    it('deletes a comment', async () => {
-      if (isLive) {
-        const ticket = await createTicket({ category: '貨物事故' })
-        const comment = await createComment(ticket.id, 'to-delete')
-        await deleteComment(comment.id)
-        await deleteTicket(ticket.id)
-        return
-      }
-      await verifyApi(() => deleteComment('cm1'), {}, { expect204: true })
-      assertMock(() => {
-        const [url, opts] = mockFetch.mock.calls[0]
-        expect(url).toBe(`${API_BASE}/api/trouble/comments/cm1`)
         expect(opts.method).toBe('DELETE')
       })
     })

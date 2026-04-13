@@ -6,7 +6,6 @@ import type {
   TroubleTicketsResponse,
   TroubleWorkflowState,
   TroubleWorkflowTransition,
-  TroubleComment,
   TroubleStatusHistory,
   TroubleFile,
   TroubleCategory,
@@ -256,23 +255,6 @@ export async function createWorkflowTransition(data: CreateWorkflowTransition): 
 
 export async function deleteWorkflowTransition(id: string): Promise<void> {
   await request<void>(`/api/trouble/workflow/transitions/${encodeURIComponent(id)}`, { method: 'DELETE' })
-}
-
-// --- Comments ---
-
-export async function getComments(ticketId: string): Promise<TroubleComment[]> {
-  return request<TroubleComment[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/comments`)
-}
-
-export async function createComment(ticketId: string, body: string): Promise<TroubleComment> {
-  return request<TroubleComment>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/comments`, {
-    method: 'POST',
-    body: JSON.stringify({ body }),
-  })
-}
-
-export async function deleteComment(commentId: string): Promise<void> {
-  await request<void>(`/api/trouble/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE' })
 }
 
 // --- Status History ---
