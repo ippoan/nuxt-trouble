@@ -211,6 +211,7 @@ export interface TroubleTask {
   completed_at: string | null
   sort_order: number
   next_action: string
+  next_action_detail: string
   next_action_by: string | null
   next_action_due: string | null
   occurred_at: string | null
@@ -227,6 +228,7 @@ export interface CreateTroubleTask {
   due_date?: string | null
   sort_order?: number | null
   next_action?: string
+  next_action_detail?: string
   next_action_by?: string | null
   next_action_due?: string | null
   occurred_at?: string | null
@@ -242,6 +244,7 @@ export interface UpdateTroubleTask {
   completed_at?: string | null
   sort_order?: number | null
   next_action?: string
+  next_action_detail?: string
   next_action_by?: string | null
   next_action_due?: string | null
   occurred_at?: string | null

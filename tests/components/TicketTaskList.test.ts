@@ -6,7 +6,7 @@ const sampleTask = {
   id: 'task-1', tenant_id: 't1', ticket_id: 'ticket-1', task_type: 'レッカー対応',
   title: 'テストタスク', description: '', status: 'open', assigned_to: null,
   due_date: null, completed_at: null, sort_order: 0, next_action: '',
-  next_action_by: null, next_action_due: null, created_by: null,
+  next_action_detail: '', next_action_by: null, next_action_due: null, created_by: null,
   created_at: '2026-04-12T00:00:00Z', updated_at: '2026-04-12T00:00:00Z',
 }
 
