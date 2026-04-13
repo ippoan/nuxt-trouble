@@ -26,9 +26,6 @@ import type {
   TroubleTask,
   CreateTroubleTask,
   UpdateTroubleTask,
-  TroubleTaskActivity,
-  CreateTroubleTaskActivity,
-  TroubleActivityFile,
   TroubleTaskType,
 } from '~/types'
 
@@ -400,48 +397,24 @@ export async function deleteTask(taskId: string): Promise<void> {
   await request<void>(`/api/trouble/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' })
 }
 
-// --- Task Activities ---
+// --- Task Files ---
 
-export async function getActivities(taskId: string): Promise<TroubleTaskActivity[]> {
-  return request<TroubleTaskActivity[]>(`/api/trouble/tasks/${encodeURIComponent(taskId)}/activities`)
+export async function getTaskFiles(taskId: string): Promise<TroubleFile[]> {
+  return request<TroubleFile[]>(`/api/trouble/tasks/${encodeURIComponent(taskId)}/files`)
 }
 
-export async function createActivity(taskId: string, data: CreateTroubleTaskActivity): Promise<TroubleTaskActivity> {
-  return request<TroubleTaskActivity>(`/api/trouble/tasks/${encodeURIComponent(taskId)}/activities`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function updateActivity(activityId: string, data: { body?: string; occurred_at?: string | null }): Promise<TroubleTaskActivity> {
-  return request<TroubleTaskActivity>(`/api/trouble/activities/${encodeURIComponent(activityId)}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function deleteActivity(activityId: string): Promise<void> {
-  await request<void>(`/api/trouble/activities/${encodeURIComponent(activityId)}`, { method: 'DELETE' })
-}
-
-// --- Activity Files ---
-
-export async function getActivityFiles(activityId: string): Promise<TroubleActivityFile[]> {
-  return request<TroubleActivityFile[]>(`/api/trouble/activities/${encodeURIComponent(activityId)}/files`)
-}
-
-export async function uploadActivityFile(activityId: string, file: File): Promise<TroubleActivityFile> {
+export async function uploadTaskFile(taskId: string, file: File): Promise<TroubleFile> {
   const formData = new FormData()
   formData.append('file', file)
-  return request<TroubleActivityFile>(`/api/trouble/activities/${encodeURIComponent(activityId)}/files`, {
+  return request<TroubleFile>(`/api/trouble/tasks/${encodeURIComponent(taskId)}/files`, {
     method: 'POST',
     body: formData,
   })
 }
 
-export async function downloadActivityFile(fileId: string): Promise<void> {
+export async function downloadTaskFile(fileId: string): Promise<void> {
   const headers = buildAuthHeaders()
-  const res = await fetch(`${apiBase}/api/trouble/activity-files/${encodeURIComponent(fileId)}/download`, { headers })
+  const res = await fetch(`${apiBase}/api/trouble/task-files/${encodeURIComponent(fileId)}/download`, { headers })
   if (!res.ok) throw new Error(`ダウンロード失敗: ${res.status}`)
   const blob = await res.blob()
   const disposition = res.headers.get('Content-Disposition')
@@ -454,6 +427,6 @@ export async function downloadActivityFile(fileId: string): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
-export async function deleteActivityFile(fileId: string): Promise<void> {
-  await request<void>(`/api/trouble/activity-files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
+export async function deleteTaskFile(fileId: string): Promise<void> {
+  await request<void>(`/api/trouble/task-files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
 }
