@@ -433,7 +433,7 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           </div>
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <span />
           <span />
           <span />
           <span />
@@ -448,7 +448,7 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           </div>
           <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <input v-model="newTask.next_action_detail" placeholder="詳細" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <span />
+          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
           <span />
           <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTask.title.trim()" @click="handleAddTask" />
