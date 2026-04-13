@@ -14,8 +14,6 @@ const emit = defineEmits<{
   tasksChanged: []
 }>()
 
-const UNSET = '__unset__'
-
 const tasks = ref<TroubleTask[]>([])
 const loading = ref(false)
 const taskTypes = ref<string[]>([])
@@ -30,7 +28,6 @@ const newTask = reactive({
   next_action: '',
   due_date: '',
   occurred_at: '',
-  assigned_to: UNSET,
   assigned_name: '',
 })
 
@@ -40,13 +37,11 @@ function resetForm() {
   newTask.next_action = ''
   newTask.due_date = ''
   newTask.occurred_at = ''
-  newTask.assigned_to = UNSET
   newTask.assigned_name = ''
   addError.value = false
 }
 
 const employeeItems = computed(() => [
-  { label: '未設定', value: UNSET },
   ...employees.value.map(e => ({ label: e.name, value: e.id })),
 ])
 
@@ -128,7 +123,8 @@ async function handleAddTask() {
   addError.value = false
 
   try {
-    const assignedTo = (newTask.assigned_to && newTask.assigned_to !== UNSET) ? newTask.assigned_to : null
+    const name = newTask.assigned_name.trim()
+    const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
     await createTask(props.ticketId, {
       task_type: newTask.task_type,
       title: newTask.title.trim(),
@@ -136,8 +132,8 @@ async function handleAddTask() {
       next_action: newTask.next_action.trim() || undefined,
       due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
       occurred_at: newTask.occurred_at ? new Date(newTask.occurred_at).toISOString() : null,
-      assigned_to: assignedTo,
-      next_action_by: assignedTo ? undefined : (newTask.assigned_name.trim() || undefined),
+      assigned_to: matchedEmployee?.id || null,
+      next_action_by: name || null,
     })
     resetForm()
     await loadTasks()
@@ -268,18 +264,23 @@ onMounted(() => {
 
       <!-- Add task form (single row) -->
       <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
+        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
+          <span class="text-[10px] text-gray-400">発生日</span>
           <span class="text-[10px] text-gray-400">種別</span>
           <span class="text-[10px] text-gray-400">タイトル</span>
           <span class="text-[10px] text-gray-400">内容</span>
           <span class="text-[10px] text-gray-400">次のアクション</span>
           <span class="text-[10px] text-gray-400">期限</span>
-          <span class="text-[10px] text-gray-400">発生日</span>
           <span class="text-[10px] text-gray-400">対応者</span>
           <span />
         </div>
 
-        <div class="grid grid-cols-[5rem_1fr_1fr_1fr_6.5rem_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+          <input
+            v-model="newTask.occurred_at"
+            type="date"
+            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <input
             v-model="newTask.title"
@@ -303,17 +304,14 @@ onMounted(() => {
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <input
-            v-model="newTask.occurred_at"
-            type="date"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <USelect v-if="employees.length > 0" v-model="newTask.assigned_to" :items="employeeItems" value-key="value" size="xs" class="min-w-0" />
-          <input
-            v-else
             v-model="newTask.assigned_name"
+            list="task-employee-list"
             placeholder="対応者名"
             class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
+          <datalist id="task-employee-list">
+            <option v-for="e in employees" :key="e.id" :value="e.name" />
+          </datalist>
           <UButton
             icon="i-lucide-plus"
             size="xs"
