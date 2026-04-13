@@ -177,12 +177,13 @@ onMounted(() => {
           :current-status-id="ticket.status_id"
           @suggest-transition="handleTransitionSuggestion"
           @tasks-changed="ganttKey++"
-        />
-        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <UButton icon="i-lucide-gantt-chart" size="xs" variant="outline" @click="showGantt = true; ganttKey++">
-            ガントチャート
-          </UButton>
-        </div>
+        >
+          <template #actions>
+            <UButton icon="i-lucide-gantt-chart" size="xs" variant="outline" @click="showGantt = true; ganttKey++">
+              ガントチャート
+            </UButton>
+          </template>
+        </TicketTaskList>
       </UCard>
 
       <!-- Gantt Chart Dialog -->
