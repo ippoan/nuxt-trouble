@@ -299,12 +299,11 @@ onMounted(() => {
   loadTasks().then(() => loadAllFileCounts())
 })
 
-const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem_2.5rem]'
 </script>
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-2">
+    <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
         <h3 class="text-base font-semibold">状況管理</h3>
         <UBadge v-if="tasks.length > 0" variant="subtle" size="xs">
@@ -318,145 +317,196 @@ const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem_
     </div>
 
     <template v-else>
-      <!-- Header -->
-      <div :class="['grid gap-1 mb-1 px-0.5', COLS]">
-        <span />
-        <span class="text-[10px] text-gray-400">発生日</span>
-        <span class="text-[10px] text-gray-400">種別</span>
-        <span class="text-[10px] text-gray-400">タイトル</span>
-        <span class="text-[10px] text-gray-400">内容</span>
-        <span class="text-[10px] text-gray-400">次のアクション</span>
-        <span class="text-[10px] text-gray-400">期限</span>
-        <span class="text-[10px] text-gray-400">対応者</span>
-        <span class="text-[10px] text-gray-400">状態</span>
-        <span />
-        <span />
-      </div>
-
-      <!-- Task rows -->
       <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
         状況管理項目はありません
       </div>
 
-      <template v-for="(task, idx) in tasks" :key="task.id">
-        <div :class="['grid gap-1 py-1 border-b border-gray-800 items-center', COLS]">
-          <!-- Reorder -->
-          <div class="flex flex-col items-center">
-            <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
-            <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3" /></button>
+      <!-- Task cards -->
+      <div class="space-y-3">
+        <div
+          v-for="(task, idx) in tasks"
+          :key="task.id"
+          :data-task-id="task.id"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg"
+        >
+          <!-- Card header -->
+          <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex items-center gap-3">
+              <!-- Reorder -->
+              <div class="flex flex-col">
+                <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3.5" /></button>
+                <button class="text-gray-500 hover:text-gray-300 disabled:opacity-30" :disabled="idx === tasks.length - 1" @click="handleMoveDown(idx)"><UIcon name="i-lucide-chevron-down" class="size-3.5" /></button>
+              </div>
+              <!-- task_type -->
+              <USelect
+                v-if="isEditing(task.id, 'task_type')"
+                :model-value="editingValue"
+                :items="taskTypes"
+                size="xs"
+                @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')"
+              />
+              <UBadge v-else variant="subtle" size="xs" class="cursor-pointer" @click="startEdit(task, 'task_type')">
+                {{ task.task_type }}
+              </UBadge>
+              <!-- occurred_at -->
+              <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="text-xs border border-blue-500 rounded px-1.5 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
+              <span v-else class="text-xs text-gray-400 cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <!-- status -->
+              <USelect
+                :model-value="task.status"
+                :items="statusOptions"
+                size="xs"
+                class="w-24"
+                @update:model-value="handleStatusChange(task.id, $event)"
+              />
+              <!-- file -->
+              <button class="relative flex items-center justify-center p-1" @click="toggleFilePanel(task.id)">
+                <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200" />
+                <span v-if="taskFileCounts[task.id]" class="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{{ taskFileCounts[task.id] }}</span>
+              </button>
+              <!-- delete -->
+              <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
+            </div>
           </div>
-          <!-- occurred_at -->
-          <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
-          <!-- task_type -->
-          <USelect
-            v-if="isEditing(task.id, 'task_type')"
-            :model-value="editingValue"
-            :items="taskTypes"
-            size="xs"
-            class="min-w-0"
-            @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')"
-          />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
-          <!-- title -->
-          <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
-          <!-- description -->
-          <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
-          <!-- next_action -->
-          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action')">{{ task.next_action || '-' }}</span>
-          <!-- due_date -->
-          <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'due_date')">{{ task.due_date?.substring(0, 10) || '-' }}</span>
-          <!-- next_action_by -->
-          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
-          <!-- status -->
-          <USelect
-            :model-value="task.status"
-            :items="statusOptions"
-            size="xs"
-            class="min-w-0"
-            @update:model-value="handleStatusChange(task.id, $event)"
-          />
-          <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
-          <button class="relative flex items-center justify-center" @click="toggleFilePanel(task.id)">
-            <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200" />
-            <span v-if="taskFileCounts[task.id]" class="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">{{ taskFileCounts[task.id] }}</span>
-          </button>
-        </div>
 
-        <!-- File panel (expanded) -->
-        <div v-if="expandedFileTaskId === task.id" class="bg-gray-900 border border-gray-700 rounded p-3 mb-1">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-medium text-gray-300">添付ファイル</span>
-            <label class="cursor-pointer">
-              <UButton icon="i-lucide-upload" size="xs" variant="outline" :loading="fileUploading" as="span">追加</UButton>
-              <input type="file" class="hidden" @change="handleFileUpload(task.id, $event)" />
-            </label>
+          <!-- Card body -->
+          <div class="px-4 py-3">
+            <dl class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+              <!-- title -->
+              <div class="space-y-1">
+                <dt class="text-[11px] text-gray-500 dark:text-gray-400">タイトル</dt>
+                <dd>
+                  <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="w-full text-sm border border-blue-500 rounded px-2 py-1 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+                  <span v-else class="text-sm font-medium cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
+                </dd>
+              </div>
+              <!-- description -->
+              <div class="space-y-1">
+                <dt class="text-[11px] text-gray-500 dark:text-gray-400">内容</dt>
+                <dd>
+                  <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="w-full text-sm border border-blue-500 rounded px-2 py-1 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+                  <span v-else class="text-sm text-gray-400 cursor-pointer hover:text-gray-200" @click="startEdit(task, 'description')">{{ task.description || '-' }}</span>
+                </dd>
+              </div>
+              <!-- next_action -->
+              <div class="space-y-1">
+                <dt class="text-[11px] text-gray-500 dark:text-gray-400">次のアクション</dt>
+                <dd>
+                  <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="w-full text-sm border border-blue-500 rounded px-2 py-1 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+                  <span v-else class="text-sm text-gray-400 cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action')">{{ task.next_action || '-' }}</span>
+                </dd>
+              </div>
+              <!-- due_date -->
+              <div class="space-y-1">
+                <dt class="text-[11px] text-gray-500 dark:text-gray-400">期限</dt>
+                <dd>
+                  <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="text-sm border border-blue-500 rounded px-2 py-1 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
+                  <span v-else class="text-sm text-gray-400 cursor-pointer hover:text-gray-200" @click="startEdit(task, 'due_date')">{{ task.due_date?.substring(0, 10) || '-' }}</span>
+                </dd>
+              </div>
+              <!-- next_action_by -->
+              <div class="space-y-1">
+                <dt class="text-[11px] text-gray-500 dark:text-gray-400">対応者</dt>
+                <dd>
+                  <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="w-full text-sm border border-blue-500 rounded px-2 py-1 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+                  <span v-else class="text-sm text-gray-400 cursor-pointer hover:text-gray-200" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div v-if="taskFiles.length === 0" class="text-xs text-gray-500">ファイルなし</div>
-          <div v-for="f in taskFiles" :key="f.id" class="flex items-center justify-between py-1 border-b border-gray-800 last:border-0">
-            <button class="text-xs text-blue-400 hover:underline truncate" @click="downloadTaskFile(f.id)">{{ f.filename }}</button>
-            <div class="flex items-center gap-2 shrink-0 ml-2">
-              <span class="text-[10px] text-gray-500">{{ formatFileSize(f.size_bytes) }}</span>
-              <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleFileDelete(task.id, f.id)" />
+
+          <!-- File panel (expanded) -->
+          <div v-if="expandedFileTaskId === task.id" class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded-b-lg">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-medium text-gray-500 dark:text-gray-300">添付ファイル</span>
+              <label class="cursor-pointer">
+                <UButton icon="i-lucide-upload" size="xs" variant="outline" :loading="fileUploading" as="span">追加</UButton>
+                <input type="file" class="hidden" @change="handleFileUpload(task.id, $event)" />
+              </label>
+            </div>
+            <div v-if="taskFiles.length === 0" class="text-xs text-gray-500">ファイルなし</div>
+            <div v-for="f in taskFiles" :key="f.id" class="flex items-center justify-between py-1 border-b border-gray-200 dark:border-gray-800 last:border-0">
+              <button class="text-xs text-blue-400 hover:underline truncate" @click="downloadTaskFile(f.id)">{{ f.filename }}</button>
+              <div class="flex items-center gap-2 shrink-0 ml-2">
+                <span class="text-[10px] text-gray-500">{{ formatFileSize(f.size_bytes) }}</span>
+                <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleFileDelete(task.id, f.id)" />
+              </div>
             </div>
           </div>
         </div>
-      </template>
 
-      <!-- Add task form row -->
-      <div class="mt-2">
-        <div :class="['grid gap-1', COLS]" :style="addError ? 'outline: 1px solid #f87171; border-radius: 4px;' : ''">
-          <span />
-          <input
-            v-model="newTask.occurred_at"
-            type="date"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
-          <input
-            v-model="newTask.title"
-            placeholder="タイトル"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-            @keydown.enter="handleAddTask"
-          />
-          <input
-            v-model="newTask.description"
-            placeholder="内容"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <input
-            v-model="newTask.next_action"
-            placeholder="次のアクション"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <input
-            v-model="newTask.due_date"
-            type="date"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <input
-            v-model="newTask.assigned_name"
-            list="task-employee-list"
-            placeholder="対応者名"
-            class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+        <!-- Add task form card -->
+        <div
+          class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4"
+          :class="addError ? 'border-red-400 dark:border-red-500' : ''"
+        >
+          <div class="flex items-center gap-3 mb-3">
+            <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" />
+            <input
+              v-model="newTask.occurred_at"
+              type="date"
+              class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">タイトル</label>
+              <input
+                v-model="newTask.title"
+                placeholder="タイトル"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                @keydown.enter="handleAddTask"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">内容</label>
+              <input
+                v-model="newTask.description"
+                placeholder="内容"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">次のアクション</label>
+              <input
+                v-model="newTask.next_action"
+                placeholder="次のアクション"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">期限</label>
+              <input
+                v-model="newTask.due_date"
+                type="date"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">対応者</label>
+              <input
+                v-model="newTask.assigned_name"
+                list="task-employee-list"
+                placeholder="対応者名"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
           <datalist id="task-employee-list">
             <option v-for="e in employees" :key="e.id" :value="e.name" />
           </datalist>
-          <span />
-          <UButton
-            icon="i-lucide-plus"
-            size="xs"
-            :loading="adding"
-            :disabled="!newTask.title.trim()"
-            @click="handleAddTask"
-          />
-          <span />
+          <div class="flex justify-end mt-3">
+            <UButton
+              icon="i-lucide-plus"
+              label="追加"
+              size="xs"
+              :loading="adding"
+              :disabled="!newTask.title.trim()"
+              @click="handleAddTask"
+            />
+          </div>
         </div>
       </div>
     </template>
