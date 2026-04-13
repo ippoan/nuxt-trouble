@@ -64,22 +64,22 @@ onMounted(fetchTransitions)
       遷移可能なステータスがありません
     </div>
 
-    <div v-else class="space-y-3">
-      <UFormField label="遷移先">
-        <USelect
-          v-model="selectedStateId"
-          :items="allowedStates"
-          placeholder="ステータスを選択"
-        />
-      </UFormField>
-
-      <UFormField label="コメント (任意)">
-        <UTextarea v-model="comment" placeholder="遷移理由など" :rows="2" />
-      </UFormField>
-
+    <div v-else class="flex items-center gap-2">
+      <USelect
+        v-model="selectedStateId"
+        :items="allowedStates"
+        placeholder="ステータスを選択"
+        size="sm"
+      />
+      <input
+        v-model="comment"
+        placeholder="コメント (任意)"
+        class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 flex-1"
+      />
       <UButton
-        label="ステータスを変更"
+        label="変更"
         icon="i-lucide-arrow-right"
+        size="sm"
         :loading="submitting"
         :disabled="!selectedStateId"
         @click="handleTransition"
