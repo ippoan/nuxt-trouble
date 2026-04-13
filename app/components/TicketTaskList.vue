@@ -345,22 +345,22 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <!-- occurred_at -->
           <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'occurred_at')">
-            <span class="text-[10px] text-gray-500 mr-1">発生:</span>{{ task.occurred_at?.substring(0, 10) || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">発生:</span>{{ task.occurred_at?.substring(0, 10) || '-' }}
           </span>
           <!-- title -->
           <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400 transition-colors" @click="startEdit(task, 'title')">
-            <span class="text-[10px] text-gray-500 mr-1">題名:</span>{{ task.title }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">題名:</span>{{ task.title }}
           </span>
           <!-- description -->
           <input v-if="isEditing(task.id, 'description')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'description')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'description')">
-            <span class="text-[10px] text-gray-500 mr-1">内容:</span>{{ task.description || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">内容:</span>{{ task.description || '-' }}
           </span>
           <!-- next_action_by (対応者) -->
           <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
-            <span class="text-[10px] text-gray-500 mr-1">担当:</span>{{ task.next_action_by || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">担当:</span>{{ task.next_action_by || '-' }}
           </span>
           <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
@@ -380,22 +380,22 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <!-- due_date (aligned under occurred_at) -->
           <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'due_date')">
-            <span class="text-[10px] text-gray-500 mr-1">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
           </span>
           <!-- next_action (aligned under title) -->
           <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action')">
-            <span class="text-[10px] text-gray-500 mr-1">次:</span>{{ task.next_action || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">次:</span>{{ task.next_action || '-' }}
           </span>
           <!-- next_action_detail (aligned under description) -->
           <input v-if="isEditing(task.id, 'next_action_detail')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_detail')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_detail')">
-            <span class="text-[10px] text-gray-500 mr-1">詳細:</span>{{ task.next_action_detail || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">詳細:</span>{{ task.next_action_detail || '-' }}
           </span>
           <!-- next_action_by (aligned under 対応者) -->
           <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
-            <span class="text-[10px] text-gray-500 mr-1">次担当:</span>{{ task.next_action_by || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 text-right mr-0.5">次担当:</span>{{ task.next_action_by || '-' }}
           </span>
           <span />
           <span />
