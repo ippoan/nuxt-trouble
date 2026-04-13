@@ -26,6 +26,7 @@ const newTask = reactive({
   title: '',
   description: '',
   next_action: '',
+  next_action_detail: '',
   due_date: '',
   occurred_at: '',
   assigned_name: '',
@@ -35,6 +36,7 @@ function resetForm() {
   newTask.title = ''
   newTask.description = ''
   newTask.next_action = ''
+  newTask.next_action_detail = ''
   newTask.due_date = ''
   newTask.occurred_at = ''
   newTask.assigned_name = ''
@@ -111,6 +113,7 @@ async function handleAddTask() {
       title: newTask.title.trim(),
       description: newTask.description.trim() || undefined,
       next_action: newTask.next_action.trim() || undefined,
+      next_action_detail: newTask.next_action_detail.trim() || undefined,
       due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
       occurred_at: newTask.occurred_at ? new Date(newTask.occurred_at).toISOString() : null,
       assigned_to: matchedEmployee?.id || null,
@@ -371,7 +374,7 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
         </div>
 
-        <!-- Row 2: _ / _ / due_date / next_action (col-span-2) / _ / _ / _ / _ -->
+        <!-- Row 2: _ / _ / due_date / next_action / next_action_detail / _ / _ / _ / _ -->
         <div :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
           <span />
           <span />
@@ -380,10 +383,15 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'due_date')">
             <span class="text-[10px] text-gray-500 mr-1">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
           </span>
-          <!-- next_action (col-span-2, aligned under title+description) -->
-          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="col-span-2 min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="col-span-2 text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action')">
+          <!-- next_action (aligned under title) -->
+          <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action')">
             <span class="text-[10px] text-gray-500 mr-1">次:</span>{{ task.next_action || '-' }}
+          </span>
+          <!-- next_action_detail (aligned under description) -->
+          <input v-if="isEditing(task.id, 'next_action_detail')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_detail')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_detail')">
+            <span class="text-[10px] text-gray-500 mr-1">詳細:</span>{{ task.next_action_detail || '-' }}
           </span>
           <span />
           <span />
@@ -436,7 +444,8 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
             <span class="text-[10px] text-gray-500 shrink-0">期限</span>
             <input v-model="newTask.due_date" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           </div>
-          <input v-model="newTask.next_action" placeholder="次のアクション" class="col-span-2 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <input v-model="newTask.next_action_detail" placeholder="詳細" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
           <span />
           <span />
