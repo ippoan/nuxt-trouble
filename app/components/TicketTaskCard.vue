@@ -213,6 +213,7 @@ onMounted(loadActivities)
   <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 space-y-1.5">
     <!-- Row 1: title + status + delete -->
     <div class="flex items-center gap-2">
+      <span v-if="task.occurred_at" class="text-[10px] text-gray-400 shrink-0">{{ task.occurred_at.substring(0, 10) }}</span>
       <span class="text-sm font-medium flex-1 truncate">{{ task.title }}</span>
       <USelect
         v-model="selectedStatus"
@@ -223,6 +224,9 @@ onMounted(loadActivities)
       />
       <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="emit('delete', task.id)" />
     </div>
+
+    <!-- Description -->
+    <p v-if="task.description" class="text-xs text-gray-400 pl-1">{{ task.description }}</p>
 
     <!-- Activity timeline (existing records — displayed ABOVE input) -->
     <div v-if="loadingActivities" class="text-xs text-gray-500 pl-2">読み込み中...</div>
