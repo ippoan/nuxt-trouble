@@ -7,7 +7,7 @@ const ticketId = route.params.id as string
 
 const {
   ticket, workflowStates, editing, saving, error,
-  showDeleteModal, form, statusLabel, fields,
+  showDeleteModal, form, fields,
   displayValue, startEdit, handleSave, handleDelete, load,
 } = useTicketDetail(ticketId)
 
@@ -130,13 +130,13 @@ onMounted(() => {
           <UButton icon="i-lucide-arrow-left" variant="ghost" to="/tickets" />
           <h2 class="text-xl font-bold">No.{{ ticket.ticket_no }}</h2>
           <TicketCategoryBadge :category="ticket.category" />
-          <UBadge
-            v-if="statusLabel"
-            :style="{ backgroundColor: statusLabel.color + '20', color: statusLabel.color }"
-            variant="subtle"
-          >
-            {{ statusLabel.label }}
-          </UBadge>
+          <TicketStatusTransition
+            v-if="ticket.status_id"
+            :ticket-id="ticketId"
+            :current-status-id="ticket.status_id"
+            :workflow-states="workflowStates"
+            @transitioned="load"
+          />
         </div>
         <div class="flex gap-2">
           <template v-if="!editing">
@@ -213,24 +213,6 @@ onMounted(() => {
           <UButton label="閉じる" size="xs" variant="outline" @click="suggestedTransition = null" />
         </div>
       </div>
-
-      <!-- Status Transition -->
-      <UCard v-if="ticket.status_id">
-        <TicketStatusTransition
-          :ticket-id="ticketId"
-          :current-status-id="ticket.status_id"
-          :workflow-states="workflowStates"
-          @transitioned="load"
-        />
-      </UCard>
-
-      <!-- Status History -->
-      <UCard>
-        <TicketStatusHistory
-          :ticket-id="ticketId"
-          :workflow-states="workflowStates"
-        />
-      </UCard>
 
       <!-- Files -->
       <UCard>
