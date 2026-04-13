@@ -26,6 +26,12 @@ vi.mock('~/utils/api', () => ({
   updateTask: (...args: any[]) => mockUpdateTask(...args),
   deleteTask: (...args: any[]) => mockDeleteTask(...args),
   getEmployees: (...args: any[]) => mockGetEmployees(...args),
+  getTaskFiles: vi.fn().mockResolvedValue([]),
+  uploadTaskFile: vi.fn().mockResolvedValue({}),
+  downloadTaskFile: vi.fn().mockResolvedValue(undefined),
+  deleteTaskFile: vi.fn().mockResolvedValue(undefined),
+  restoreTaskFile: vi.fn().mockResolvedValue(undefined),
+  getTrashFiles: vi.fn().mockResolvedValue([]),
 }))
 
 const stubs = {
@@ -42,6 +48,7 @@ const stubs = {
     emits: ['update:modelValue', 'keydown'],
   },
   UFormField: { template: '<div><slot /></div>', props: ['label'] },
+  UModal: { template: '<div v-if="open"><slot name="content" /></div>', props: ['open'] },
   TicketTaskCard: { template: '<div class="task-card">{{ task.title }}</div>', props: ['task'] },
 }
 
