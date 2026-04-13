@@ -284,7 +284,15 @@ const COLS = 'grid-cols-[2.5rem_6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]
         <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
         <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'occurred_at')">{{ task.occurred_at?.substring(0, 10) || '-' }}</span>
         <!-- task_type -->
-        <span class="text-xs text-gray-400 truncate">{{ task.task_type }}</span>
+        <USelect
+          v-if="isEditing(task.id, 'task_type')"
+          :model-value="editingValue"
+          :items="taskTypes"
+          size="xs"
+          class="min-w-0"
+          @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')"
+        />
+        <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
         <!-- title -->
         <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
         <span v-else class="text-xs font-medium truncate cursor-pointer hover:text-blue-400" @click="startEdit(task, 'title')">{{ task.title }}</span>
