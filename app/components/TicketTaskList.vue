@@ -443,60 +443,27 @@ onMounted(() => {
           :class="addError ? 'border-red-400 dark:border-red-500' : ''"
         >
           <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">種別</label>
+            <UFormField label="種別">
               <USelect v-model="newTask.task_type" :items="taskTypes" size="sm" />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">発生日</label>
-              <input
-                v-model="newTask.occurred_at"
-                type="date"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">タイトル</label>
-              <input
-                v-model="newTask.title"
-                placeholder="タイトル"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-                @keydown.enter="handleAddTask"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">内容</label>
-              <input
-                v-model="newTask.description"
-                placeholder="内容"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">次のアクション</label>
-              <input
-                v-model="newTask.next_action"
-                placeholder="次のアクション"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">期限</label>
-              <input
-                v-model="newTask.due_date"
-                type="date"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[11px] text-gray-500 dark:text-gray-400">対応者</label>
-              <input
-                v-model="newTask.assigned_name"
-                list="task-employee-list"
-                placeholder="対応者名"
-                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+            </UFormField>
+            <UFormField label="発生日">
+              <UInput v-model="newTask.occurred_at" type="date" size="sm" />
+            </UFormField>
+            <UFormField label="タイトル">
+              <UInput v-model="newTask.title" placeholder="タイトル" size="sm" @keydown.enter="handleAddTask" />
+            </UFormField>
+            <UFormField label="内容">
+              <UInput v-model="newTask.description" placeholder="内容" size="sm" />
+            </UFormField>
+            <UFormField label="次のアクション">
+              <UInput v-model="newTask.next_action" placeholder="次のアクション" size="sm" />
+            </UFormField>
+            <UFormField label="期限">
+              <UInput v-model="newTask.due_date" type="date" size="sm" />
+            </UFormField>
+            <UFormField label="対応者">
+              <UInput v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者名" size="sm" />
+            </UFormField>
           </div>
           <datalist id="task-employee-list">
             <option v-for="e in employees" :key="e.id" :value="e.name" />
