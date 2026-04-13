@@ -374,7 +374,7 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
         </div>
 
-        <!-- Row 2: _ / _ / due_date / next_action / next_action_detail / _ / _ / _ / _ -->
+        <!-- Row 2: _ / _ / due_date / next_action / next_action_detail / next_action_by / _ / _ / _ -->
         <div :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
           <span />
           <span />
@@ -393,7 +393,9 @@ const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_detail')">
             <span class="text-[10px] text-gray-500 mr-1">詳細:</span>{{ task.next_action_detail || '-' }}
           </span>
-          <span />
+          <!-- next_action_by (aligned under 対応者) -->
+          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">{{ task.next_action_by || '-' }}</span>
           <span />
           <span />
           <span />
