@@ -442,15 +442,19 @@ onMounted(() => {
           class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4"
           :class="addError ? 'border-red-400 dark:border-red-500' : ''"
         >
-          <div class="flex items-center gap-3 mb-3">
-            <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" />
-            <input
-              v-model="newTask.occurred_at"
-              type="date"
-              class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
           <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">種別</label>
+              <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[11px] text-gray-500 dark:text-gray-400">発生日</label>
+              <input
+                v-model="newTask.occurred_at"
+                type="date"
+                class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
             <div class="space-y-1">
               <label class="text-[11px] text-gray-500 dark:text-gray-400">タイトル</label>
               <input
