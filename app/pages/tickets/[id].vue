@@ -114,7 +114,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-3xl space-y-6">
+  <div class="space-y-6">
     <div v-if="!ticket && !error" class="flex justify-center py-12">
       <UIcon name="i-lucide-loader-circle" class="animate-spin size-8 text-gray-400" />
     </div>
