@@ -445,7 +445,7 @@ onMounted(() => {
           <div class="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
             <div class="space-y-1">
               <label class="text-[11px] text-gray-500 dark:text-gray-400">種別</label>
-              <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" />
+              <USelect v-model="newTask.task_type" :items="taskTypes" size="sm" />
             </div>
             <div class="space-y-1">
               <label class="text-[11px] text-gray-500 dark:text-gray-400">発生日</label>
