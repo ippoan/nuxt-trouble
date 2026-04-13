@@ -48,7 +48,7 @@ describe('TicketStatusTransition', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.findComponent({ name: 'UIcon' }).exists()).toBe(true)
+    expect(wrapper.find('i').exists()).toBe(true)
   })
 
   it('does not show chevron when no transitions available', async () => {
@@ -57,7 +57,7 @@ describe('TicketStatusTransition', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.findComponent({ name: 'UIcon' }).exists()).toBe(false)
+    expect(wrapper.find('i').exists()).toBe(false)
   })
 
   it('does not render badge when currentStatusId is null', async () => {
