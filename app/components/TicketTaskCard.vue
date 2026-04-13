@@ -97,9 +97,10 @@ async function saveDueDate() {
 
 <template>
   <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 space-y-1.5">
-    <!-- Row 1: occurred_at + title + status + delete -->
+    <!-- Row 1: occurred_at + task_type + title + status + delete -->
     <div class="flex items-center gap-2">
       <span v-if="task.occurred_at" class="text-[10px] text-gray-400 shrink-0">{{ task.occurred_at.substring(0, 10) }}</span>
+      <span v-if="task.task_type" class="text-[10px] bg-gray-700 text-gray-300 rounded px-1 shrink-0">{{ task.task_type }}</span>
       <span class="text-sm font-medium flex-1 truncate">{{ task.title }}</span>
       <USelect
         v-model="selectedStatus"

@@ -41,10 +41,6 @@ function resetForm() {
   addError.value = false
 }
 
-const employeeItems = computed(() => [
-  ...employees.value.map(e => ({ label: e.name, value: e.id })),
-])
-
 async function fetchEmployees() {
   try {
     employees.value = await getEmployees()
@@ -65,24 +61,11 @@ async function fetchTaskTypes() {
   }
 }
 
-const groupedTasks = computed(() => {
-  const groups: Record<string, TroubleTask[]> = {}
-  for (const task of tasks.value) {
-    if (!groups[task.task_type]) groups[task.task_type] = []
-    groups[task.task_type]!.push(task)
-  }
-  return groups
-})
-
 const completionCount = computed(() => {
   const total = tasks.value.length
   const done = tasks.value.filter(t => t.status === 'done').length
   return { total, done }
 })
-
-function taskTypeLabel(value: string): string {
-  return value || 'その他'
-}
 
 async function loadTasks() {
   loading.value = true
@@ -98,10 +81,8 @@ async function loadTasks() {
 
 function checkSuggestions() {
   if (tasks.value.length === 0) return
-
   const allDone = tasks.value.every(t => t.status === 'done')
   const anyInProgress = tasks.value.some(t => t.status === 'in_progress')
-
   if (allDone) {
     const terminalState = props.workflowStates.find(s => s.is_terminal)
     if (terminalState && props.currentStatusId !== terminalState.id) {
@@ -121,7 +102,6 @@ async function handleAddTask() {
   if (!newTask.title.trim()) return
   adding.value = true
   addError.value = false
-
   try {
     const name = newTask.assigned_name.trim()
     const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
@@ -166,47 +146,24 @@ async function handleDeleteTask(taskId: string) {
   }
 }
 
-// --- Reorder ---
-async function handleMoveUp(groupTasks: TroubleTask[], index: number) {
-  if (index <= 0) return
-  const current = groupTasks[index]!
-  const prev = groupTasks[index - 1]!
-  try {
-    await Promise.all([
-      updateTask(current.id, { sort_order: prev.sort_order }),
-      updateTask(prev.id, { sort_order: current.sort_order }),
-    ])
-    await loadTasks()
-  } catch (e) {
-    console.error('Failed to reorder tasks:', e)
-  }
-}
-
-async function handleMoveDown(groupTasks: TroubleTask[], index: number) {
-  if (index >= groupTasks.length - 1) return
-  const current = groupTasks[index]!
-  const next = groupTasks[index + 1]!
-  try {
-    await Promise.all([
-      updateTask(current.id, { sort_order: next.sort_order }),
-      updateTask(next.id, { sort_order: current.sort_order }),
-    ])
-    await loadTasks()
-  } catch (e) {
-    console.error('Failed to reorder tasks:', e)
-  }
-}
+const statusOptions = [
+  { label: TASK_STATUS_LABELS['open']!.label, value: 'open' },
+  { label: TASK_STATUS_LABELS['in_progress']!.label, value: 'in_progress' },
+  { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
+]
 
 onMounted(() => {
   fetchTaskTypes()
   fetchEmployees()
   loadTasks()
 })
+
+const COLS = 'grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_6rem_5rem_2.5rem]'
 </script>
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2">
         <h3 class="text-base font-semibold">状況管理</h3>
         <UBadge v-if="tasks.length > 0" variant="subtle" size="xs">
@@ -220,62 +177,49 @@ onMounted(() => {
     </div>
 
     <template v-else>
-      <!-- Grouped task list -->
+      <!-- Header -->
+      <div :class="['grid gap-1 mb-1 px-0.5', COLS]">
+        <span class="text-[10px] text-gray-400">発生日</span>
+        <span class="text-[10px] text-gray-400">種別</span>
+        <span class="text-[10px] text-gray-400">タイトル</span>
+        <span class="text-[10px] text-gray-400">内容</span>
+        <span class="text-[10px] text-gray-400">次のアクション</span>
+        <span class="text-[10px] text-gray-400">期限</span>
+        <span class="text-[10px] text-gray-400">対応者</span>
+        <span class="text-[10px] text-gray-400">状態</span>
+        <span />
+      </div>
+
+      <!-- Task rows -->
       <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
         状況管理項目はありません
       </div>
 
-      <div v-else class="space-y-4">
-        <div v-for="(groupTasks, type) in groupedTasks" :key="type">
-          <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase">
-            {{ taskTypeLabel(type) }}
-          </h4>
-          <div class="space-y-2">
-            <div v-for="(task, idx) in groupTasks" :key="task.id" class="flex items-start gap-1">
-              <!-- Reorder buttons -->
-              <div class="flex flex-col gap-0.5 pt-1">
-                <UButton
-                  icon="i-lucide-chevron-up"
-                  size="xs"
-                  variant="ghost"
-                  :disabled="idx === 0"
-                  @click="handleMoveUp(groupTasks, idx)"
-                />
-                <UButton
-                  icon="i-lucide-chevron-down"
-                  size="xs"
-                  variant="ghost"
-                  :disabled="idx === groupTasks.length - 1"
-                  @click="handleMoveDown(groupTasks, idx)"
-                />
-              </div>
-              <div class="flex-1" :data-task-id="task.id">
-                <TicketTaskCard
-                  :task="task"
-                  @status-change="handleStatusChange"
-                  @delete="handleDeleteTask"
-                  @updated="loadTasks"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div
+        v-for="task in tasks"
+        :key="task.id"
+        :class="['grid gap-1 py-1 border-b border-gray-800 items-center', COLS]"
+      >
+        <span class="text-xs text-gray-400 truncate">{{ task.occurred_at?.substring(0, 10) || '' }}</span>
+        <span class="text-xs text-gray-400 truncate">{{ task.task_type }}</span>
+        <span class="text-xs font-medium truncate">{{ task.title }}</span>
+        <span class="text-xs text-gray-400 truncate">{{ task.description }}</span>
+        <span class="text-xs text-gray-400 truncate">{{ task.next_action }}</span>
+        <span class="text-xs text-gray-400 truncate">{{ task.due_date?.substring(0, 10) || '' }}</span>
+        <span class="text-xs text-gray-400 truncate">{{ task.next_action_by || '' }}</span>
+        <USelect
+          :model-value="task.status"
+          :items="statusOptions"
+          size="xs"
+          class="min-w-0"
+          @update:model-value="handleStatusChange(task.id, $event)"
+        />
+        <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleDeleteTask(task.id)" />
       </div>
 
-      <!-- Add task form (single row) -->
-      <div class="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3">
-        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1 mb-1 px-0.5">
-          <span class="text-[10px] text-gray-400">発生日</span>
-          <span class="text-[10px] text-gray-400">種別</span>
-          <span class="text-[10px] text-gray-400">タイトル</span>
-          <span class="text-[10px] text-gray-400">内容</span>
-          <span class="text-[10px] text-gray-400">次のアクション</span>
-          <span class="text-[10px] text-gray-400">期限</span>
-          <span class="text-[10px] text-gray-400">対応者</span>
-          <span />
-        </div>
-
-        <div class="grid grid-cols-[6.5rem_5rem_1fr_1fr_1fr_6.5rem_7rem_2.5rem] gap-1" :class="{ 'ring-1 ring-red-400 rounded': addError }">
+      <!-- Add task form row -->
+      <div class="mt-2">
+        <div :class="['grid gap-1', COLS]" :style="addError ? 'outline: 1px solid #f87171; border-radius: 4px;' : ''">
           <input
             v-model="newTask.occurred_at"
             type="date"
@@ -312,6 +256,7 @@ onMounted(() => {
           <datalist id="task-employee-list">
             <option v-for="e in employees" :key="e.id" :value="e.name" />
           </datalist>
+          <span />
           <UButton
             icon="i-lucide-plus"
             size="xs"
