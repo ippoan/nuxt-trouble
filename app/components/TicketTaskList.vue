@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTask, TroubleWorkflowState, Employee, TroubleFile } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile } from '~/utils/api'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile } from '~/utils/api'
 
 const props = defineProps<{
   ticketId: string
@@ -281,13 +281,49 @@ async function handleFileUpload(taskId: string, event: Event) {
   }
 }
 
-async function handleFileDelete(taskId: string, fileId: string) {
+const deleteConfirm = reactive({ show: false, taskId: '', fileId: '', filename: '' })
+const showTrash = ref(false)
+const trashFiles = ref<TroubleFile[]>([])
+
+function confirmFileDelete(taskId: string, fileId: string, filename: string) {
+  deleteConfirm.show = true
+  deleteConfirm.taskId = taskId
+  deleteConfirm.fileId = fileId
+  deleteConfirm.filename = filename
+}
+
+async function executeFileDelete() {
+  const { taskId, fileId } = deleteConfirm
+  deleteConfirm.show = false
   try {
     await deleteTaskFile(fileId)
     taskFiles.value = await getTaskFiles(taskId)
     taskFileCounts.value[taskId] = taskFiles.value.length
   } catch (e) {
     console.error('Failed to delete file:', e)
+  }
+}
+
+async function loadTrash() {
+  if (!props.ticketId) return
+  try {
+    trashFiles.value = await (await import('~/utils/api')).getTrashFiles(props.ticketId)
+  } catch (e) {
+    console.error('Failed to load trash:', e)
+    trashFiles.value = []
+  }
+}
+
+async function handleRestore(fileId: string) {
+  try {
+    await restoreTaskFile(fileId)
+    await loadTrash()
+    await loadAllFileCounts()
+    if (expandedFileTaskId.value) {
+      taskFiles.value = await getTaskFiles(expandedFileTaskId.value)
+    }
+  } catch (e) {
+    console.error('Failed to restore file:', e)
   }
 }
 
@@ -416,7 +452,7 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
             <button class="text-xs text-blue-400 hover:underline truncate" @click="downloadTaskFile(f.id)">{{ f.filename }}</button>
             <div class="flex items-center gap-2 shrink-0 ml-2">
               <span class="text-[10px] text-gray-500">{{ formatFileSize(f.size_bytes) }}</span>
-              <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="handleFileDelete(task.id, f.id)" />
+              <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click="confirmFileDelete(task.id, f.id, f.filename)" />
             </div>
           </div>
         </div>
@@ -452,6 +488,43 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <option v-for="e in employees" :key="e.id" :value="e.name" />
         </datalist>
       </div>
+      <!-- Trash toggle -->
+      <div class="mt-2 flex justify-end">
+        <button class="text-[10px] text-gray-400 hover:text-gray-200 flex items-center gap-1" @click="showTrash = !showTrash; if (showTrash) loadTrash()">
+          <UIcon name="i-lucide-trash" class="size-3" />
+          {{ showTrash ? 'ゴミ箱を閉じる' : 'ゴミ箱を表示' }}
+        </button>
+      </div>
+
+      <!-- Trash panel -->
+      <div v-if="showTrash" class="mt-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded p-3">
+        <div class="text-xs font-medium text-gray-500 dark:text-gray-300 mb-2">ゴミ箱（30日間保持）</div>
+        <div v-if="trashFiles.length === 0" class="text-xs text-gray-400">削除済みファイルはありません</div>
+        <div v-for="f in trashFiles" :key="f.id" class="flex items-center justify-between py-1 border-b border-gray-200 dark:border-gray-800 last:border-0">
+          <span class="text-xs text-gray-400 truncate">{{ f.filename }}</span>
+          <div class="flex items-center gap-2 shrink-0 ml-2">
+            <span class="text-[10px] text-gray-500">{{ formatFileSize(f.size_bytes) }}</span>
+            <span class="text-[10px] text-gray-500">{{ f.deleted_at?.substring(0, 10) }}</span>
+            <UButton icon="i-lucide-undo-2" variant="ghost" size="xs" @click="handleRestore(f.id)">復元</UButton>
+          </div>
+        </div>
+      </div>
     </template>
+
+    <!-- Delete confirmation modal -->
+    <UModal v-model:open="deleteConfirm.show">
+      <template #content>
+        <div class="p-6 space-y-4">
+          <h3 class="text-lg font-bold">ファイルを削除しますか？</h3>
+          <p class="text-sm text-gray-500">
+            「{{ deleteConfirm.filename }}」を削除します。30日以内であればゴミ箱から復元できます。
+          </p>
+          <div class="flex justify-end gap-2">
+            <UButton label="キャンセル" variant="outline" @click="deleteConfirm.show = false" />
+            <UButton label="削除" color="error" @click="executeFileDelete" />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

@@ -311,6 +311,14 @@ export async function deleteFile(fileId: string): Promise<void> {
   await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
 }
 
+export async function restoreFile(fileId: string): Promise<void> {
+  await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}/restore`, { method: 'POST' })
+}
+
+export async function getTrashFiles(ticketId: string): Promise<TroubleFile[]> {
+  return request<TroubleFile[]>(`/api/trouble/tickets/${encodeURIComponent(ticketId)}/files/trash`)
+}
+
 // --- Notification Prefs ---
 
 export async function getNotificationPrefs(): Promise<TroubleNotificationPref[]> {
@@ -429,4 +437,8 @@ export async function downloadTaskFile(fileId: string): Promise<void> {
 
 export async function deleteTaskFile(fileId: string): Promise<void> {
   await request<void>(`/api/trouble/task-files/${encodeURIComponent(fileId)}`, { method: 'DELETE' })
+}
+
+export async function restoreTaskFile(fileId: string): Promise<void> {
+  await request<void>(`/api/trouble/files/${encodeURIComponent(fileId)}/restore`, { method: 'POST' })
 }
