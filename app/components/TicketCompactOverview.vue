@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import type { TroubleTicket, TroubleWorkflowState } from '~/types'
+import { updateTicket } from '~/utils/api'
 
 const props = defineProps<{
   ticket: TroubleTicket
   workflowStates: TroubleWorkflowState[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'updated'): void
 }>()
 
 const expanded = ref(false)
@@ -11,6 +16,7 @@ const expanded = ref(false)
 const {
   load: loadCarInspections,
   lookupByRegistration: lookupCarInspection,
+  registrationOptions: carInspectionRegistrations,
 } = useCarInspections()
 
 onMounted(() => {
@@ -20,6 +26,24 @@ onMounted(() => {
 const carInspectionMatch = computed(() =>
   lookupCarInspection(props.ticket.registration_number),
 )
+
+const savingRegistration = ref(false)
+
+async function saveRegistration(event: Event) {
+  const target = event.target as HTMLInputElement
+  const value = target.value.trim()
+  if (!value) return
+  savingRegistration.value = true
+  try {
+    await updateTicket(props.ticket.id, { registration_number: value })
+    emit('updated')
+  } catch (e) {
+    console.error('登録番号の保存に失敗:', e)
+    target.value = ''
+  } finally {
+    savingRegistration.value = false
+  }
+}
 
 function formatExpiry(v: string): string {
   if (!v) return '-'
@@ -134,6 +158,29 @@ function displayValue(key: string): string {
       <template v-else>
         登録番号 {{ ticket.registration_number }} — 車検証マスタに登録なし
       </template>
+    </div>
+    <!-- 登録番号未入力: インライン入力 -->
+    <div
+      v-else
+      class="mt-2 flex items-center gap-2 text-xs"
+    >
+      <span class="text-gray-500">登録番号:</span>
+      <input
+        type="text"
+        list="overview-car-inspection-registrations"
+        placeholder="登録番号を入力"
+        class="flex-1 max-w-xs rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-2 py-1 focus:border-solid focus:border-blue-500 focus:outline-none"
+        :disabled="savingRegistration"
+        @keydown.enter.prevent="saveRegistration($event)"
+        @blur="saveRegistration($event)"
+      >
+      <datalist id="overview-car-inspection-registrations">
+        <option
+          v-for="reg in carInspectionRegistrations"
+          :key="reg"
+          :value="reg"
+        />
+      </datalist>
     </div>
 
     <!-- Toggle -->
