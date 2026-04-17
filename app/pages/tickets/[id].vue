@@ -166,7 +166,11 @@ onMounted(() => {
       </UCard>
 
       <UCard v-else>
-        <TicketCompactOverview :ticket="ticket" :workflow-states="workflowStates" />
+        <TicketCompactOverview
+          :ticket="ticket"
+          :workflow-states="workflowStates"
+          @updated="load"
+        />
       </UCard>
 
       <!-- Tasks -->

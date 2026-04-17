@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { updateTicket } from '~/utils/api'
+
 const {
   filter, selectedStatuses, loading,
   deleteTarget, showDeleteModal, stateMap, totalPages,
@@ -26,6 +28,24 @@ function handleBulkImportDone() {
 function formatExpiry(v: string): string {
   if (!v) return '-'
   return v.length > 10 ? v.substring(0, 10) : v
+}
+
+const savingRegistration = ref<string | null>(null)
+
+async function saveRegistration(ticketId: string, event: Event) {
+  const target = event.target as HTMLInputElement
+  const value = target.value.trim()
+  if (!value) return
+  savingRegistration.value = ticketId
+  try {
+    await updateTicket(ticketId, { registration_number: value })
+    await fetchTickets()
+  } catch (e) {
+    console.error('登録番号の保存に失敗:', e)
+    target.value = ''
+  } finally {
+    savingRegistration.value = null
+  }
 }
 
 onMounted(() => {
@@ -185,7 +205,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               <td class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.department || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.person_name || '-' }}</td>
-              <td class="py-2 px-2">
+              <td class="py-2 px-2" @click.stop>
                 <template v-if="ticket.registration_number">
                   <span>{{ ticket.registration_number }}</span>
                   <UIcon
@@ -195,7 +215,16 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                     :title="(() => { const s = lookupCarInspection(ticket.registration_number)!; return `所有者: ${s.ownerName || '-'}\n車種: ${s.carName || '-'}\n型式: ${s.model || '-'}\n車検満了日: ${formatExpiry(s.validPeriodExpirdate)}` })()"
                   />
                 </template>
-                <span v-else>-</span>
+                <input
+                  v-else
+                  type="text"
+                  list="car-inspection-registrations"
+                  placeholder="登録番号を入力"
+                  class="w-28 rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-1.5 py-0.5 text-xs focus:border-solid focus:border-blue-500 focus:outline-none"
+                  :disabled="savingRegistration === ticket.id"
+                  @keydown.enter.prevent="saveRegistration(ticket.id, $event)"
+                  @blur="saveRegistration(ticket.id, $event)"
+                >
               </td>
               <td class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
               <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.location || '-' }}</td>
