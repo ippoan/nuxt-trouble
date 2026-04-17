@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
 import { TICKET_CATEGORIES } from '~/types'
+import { toHalfWidth } from '~/utils/normalize'
 
 const model = defineModel<Record<string, unknown>>({ required: true })
 
@@ -164,7 +165,7 @@ function updateEmployee(employeeId: string) {
           <UInput
             :model-value="(model.vehicle_number as string) || ''"
             placeholder="車両番号"
-            @update:model-value="update('vehicle_number', $event)"
+            @update:model-value="(v: string | number) => update('vehicle_number', toHalfWidth(String(v ?? '')))"
           />
         </UFormField>
 
@@ -173,7 +174,7 @@ function updateEmployee(employeeId: string) {
             :model-value="(model.registration_number as string) || ''"
             placeholder="登録番号 (車検証と照合)"
             list="ticket-form-registrations"
-            @update:model-value="update('registration_number', $event)"
+            @update:model-value="(v: string | number) => update('registration_number', toHalfWidth(String(v ?? '')))"
           />
           <datalist id="ticket-form-registrations">
             <option

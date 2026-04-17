@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTicket, TroubleWorkflowState } from '~/types'
 import { updateTicket } from '~/utils/api'
+import { toHalfWidth } from '~/utils/normalize'
 
 const props = defineProps<{
   ticket: TroubleTicket
@@ -172,6 +173,7 @@ function displayValue(key: string): string {
         placeholder="登録番号を入力"
         class="flex-1 max-w-xs rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-2 py-1 focus:border-solid focus:border-blue-500 focus:outline-none"
         :disabled="savingRegistration"
+        @input="(e: Event) => { const el = e.target as HTMLInputElement; const v = toHalfWidth(el.value); if (el.value !== v) el.value = v }"
         @keydown.enter.prevent="saveRegistration($event)"
         @change="saveRegistration($event)"
       >
