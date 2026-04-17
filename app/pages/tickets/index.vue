@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { updateTicket } from '~/utils/api'
+import { toHalfWidth } from '~/utils/normalize'
 import type { TroubleTicket } from '~/types'
 
 const {
@@ -83,7 +84,13 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     <!-- Filters: single row -->
     <div class="flex flex-wrap items-end gap-2">
       <USelect v-model="filter.category" :items="categoryOptions" placeholder="カテゴリ" size="sm" class="w-32" />
-      <UInput v-model="filter.q" placeholder="検索" size="sm" class="w-28" />
+      <UInput
+        :model-value="filter.q"
+        placeholder="検索"
+        size="sm"
+        class="w-28"
+        @update:model-value="(v: string | number) => { filter.q = toHalfWidth(String(v ?? '')) }"
+      />
       <UInput v-model="filter.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="filter.company_name" placeholder="会社名" size="sm" class="w-28" />
       <USelect v-model="filter.office_name" :items="officeOptions" placeholder="営業所(全て)" size="sm" class="w-28" :disabled="officeOptions.length === 0" />
@@ -145,11 +152,12 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
         <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" class="w-24" />
         <UInput
-          v-model="newTicket.registration_number"
+          :model-value="newTicket.registration_number"
           placeholder="登録番号"
           size="sm"
           class="w-24"
           list="car-inspection-registrations"
+          @update:model-value="(v: string | number) => { newTicket.registration_number = toHalfWidth(String(v ?? '')) }"
         />
         <UInput v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
         <UInput v-model="newTicket.description" placeholder="内容" size="sm" class="w-32" />
@@ -232,6 +240,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                   placeholder="登録番号を入力"
                   class="w-28 rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-1.5 py-0.5 text-xs focus:border-solid focus:border-blue-500 focus:outline-none"
                   :disabled="savingRegistrationIds.has(ticket.id)"
+                  @input="(e: Event) => { const el = e.target as HTMLInputElement; const v = toHalfWidth(el.value); if (el.value !== v) el.value = v }"
                   @keydown.enter.prevent="saveRegistration(ticket.id, $event)"
                   @change="saveRegistration(ticket.id, $event)"
                 >
