@@ -22,6 +22,7 @@ export interface CreateTroubleTicket {
   person_name?: string | null
   person_id?: string | null
   vehicle_number?: string | null
+  registration_number?: string | null
   location?: string | null
   description?: string | null
   assigned_to?: string | null
@@ -45,6 +46,7 @@ export interface UpdateTroubleTicket {
   person_name?: string | null
   person_id?: string | null
   vehicle_number?: string | null
+  registration_number?: string | null
   location?: string | null
   description?: string | null
   assigned_to?: string | null
@@ -273,6 +275,17 @@ export const TASK_STATUS_LABELS: Record<string, { label: string; color: string }
   open: { label: '未着手', color: '#9CA3AF' },
   in_progress: { label: '進行中', color: '#3B82F6' },
   done: { label: '完了', color: '#10B981' },
+}
+
+// --- Car Inspection (車検証) ---
+// rust-alc-api の /api/car-inspections/current は PascalCase の生JSONを返す。
+// 画面で表示するフィールドだけを抽出した簡易型。
+export interface CarInspectionSummary {
+  registrationNumber: string
+  ownerName: string
+  carName: string
+  model: string
+  validPeriodExpirdate: string
 }
 
 export const NOTIFICATION_EVENT_TYPES: { value: string; label: string }[] = [

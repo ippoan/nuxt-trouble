@@ -11,10 +11,21 @@ const {
   formatDate, navigateToTicket,
 } = useTicketList()
 
+const {
+  load: loadCarInspections,
+  lookupByRegistration: lookupCarInspection,
+  registrationOptions: carInspectionRegistrations,
+} = useCarInspections()
+
 const showBulkImport = ref(false)
 
 function handleBulkImportDone() {
   fetchTickets()
+}
+
+function formatExpiry(v: string): string {
+  if (!v) return '-'
+  return v.length > 10 ? v.substring(0, 10) : v
 }
 
 onMounted(() => {
@@ -22,6 +33,7 @@ onMounted(() => {
   fetchTickets()
   fetchWorkflowStates()
   fetchMasterData()
+  loadCarInspections()
 })
 
 watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
@@ -102,7 +114,13 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
         <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" class="w-24" />
-        <UInput v-model="newTicket.registration_number" placeholder="登録番号" size="sm" class="w-24" />
+        <UInput
+          v-model="newTicket.registration_number"
+          placeholder="登録番号"
+          size="sm"
+          class="w-24"
+          list="car-inspection-registrations"
+        />
         <UInput v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
         <UInput v-model="newTicket.description" placeholder="内容" size="sm" class="w-32" />
         <USelect v-model="newTicket.progress_notes" :items="progressOptions" placeholder="進捗状況" size="sm" class="w-24" :disabled="progressOptions.length === 0" />
@@ -167,7 +185,18 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               <td class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.department || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.person_name || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.registration_number || '-' }}</td>
+              <td class="py-2 px-2">
+                <template v-if="ticket.registration_number">
+                  <span>{{ ticket.registration_number }}</span>
+                  <UIcon
+                    v-if="lookupCarInspection(ticket.registration_number)"
+                    name="i-lucide-info"
+                    class="ml-1 inline size-3.5 text-blue-500 align-middle"
+                    :title="(() => { const s = lookupCarInspection(ticket.registration_number)!; return `所有者: ${s.ownerName || '-'}\n車種: ${s.carName || '-'}\n型式: ${s.model || '-'}\n車検満了日: ${formatExpiry(s.validPeriodExpirdate)}` })()"
+                  />
+                </template>
+                <span v-else>-</span>
+              </td>
               <td class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
               <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.location || '-' }}</td>
               <td class="py-2 px-2 max-w-[200px] truncate">{{ ticket.description || '-' }}</td>
@@ -206,6 +235,15 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UPagination v-model="filter.page" :total="total" :items-per-page="filter.per_page || 20" />
       </div>
     </UCard>
+
+    <!-- Car inspection registrations for autocomplete (shared datalist) -->
+    <datalist id="car-inspection-registrations">
+      <option
+        v-for="reg in carInspectionRegistrations"
+        :key="reg"
+        :value="reg"
+      />
+    </datalist>
 
     <!-- Bulk import modal -->
     <BulkImportModal v-model:open="showBulkImport" @done="handleBulkImportDone" />

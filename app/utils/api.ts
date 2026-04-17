@@ -226,6 +226,16 @@ export async function getEmployees(): Promise<Employee[]> {
   return request<Employee[]>('/api/employees')
 }
 
+// --- Car Inspection (車検証) ---
+
+export interface CarInspectionListResponse {
+  carInspections: Array<Record<string, unknown>>
+}
+
+export async function getCarInspectionsCurrent(): Promise<CarInspectionListResponse> {
+  return request<CarInspectionListResponse>('/api/car-inspections/current')
+}
+
 // --- Workflow Management ---
 
 export async function getWorkflowTransitions(): Promise<TroubleWorkflowTransition[]> {

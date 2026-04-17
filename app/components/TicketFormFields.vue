@@ -12,6 +12,26 @@ const props = defineProps<{
   employees?: Employee[]
 }>()
 
+const {
+  load: loadCarInspections,
+  lookupByRegistration: lookupCarInspection,
+  registrationOptions: carInspectionRegistrations,
+} = useCarInspections()
+
+onMounted(() => {
+  loadCarInspections()
+})
+
+const carInspectionMatch = computed(() => {
+  const reg = model.value.registration_number as string | undefined
+  return reg ? lookupCarInspection(reg) : undefined
+})
+
+function formatExpiry(v: string): string {
+  if (!v) return '-'
+  return v.length > 10 ? v.substring(0, 10) : v
+}
+
 const categoryOptions = computed(() => {
   if (props.categories && props.categories.length > 0) {
     const dbNames = new Set(props.categories.map(c => c.name))
@@ -148,6 +168,22 @@ function updateEmployee(employeeId: string) {
           />
         </UFormField>
 
+        <UFormField label="登録番号">
+          <UInput
+            :model-value="(model.registration_number as string) || ''"
+            placeholder="登録番号 (車検証と照合)"
+            list="ticket-form-registrations"
+            @update:model-value="update('registration_number', $event)"
+          />
+          <datalist id="ticket-form-registrations">
+            <option
+              v-for="reg in carInspectionRegistrations"
+              :key="reg"
+              :value="reg"
+            />
+          </datalist>
+        </UFormField>
+
         <UFormField label="場所">
           <UInput
             :model-value="(model.location as string) || ''"
@@ -155,6 +191,30 @@ function updateEmployee(employeeId: string) {
             @update:model-value="update('location', $event)"
           />
         </UFormField>
+      </div>
+
+      <!-- 車検証マスタ一致情報 -->
+      <div
+        v-if="model.registration_number"
+        class="rounded-md border p-3 text-xs"
+        :class="carInspectionMatch
+          ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
+          : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900'"
+      >
+        <template v-if="carInspectionMatch">
+          <div class="font-semibold text-blue-700 dark:text-blue-300 mb-1">
+            車検証マスタ: {{ carInspectionMatch.registrationNumber }}
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div><span class="text-gray-500">所有者: </span>{{ carInspectionMatch.ownerName || '-' }}</div>
+            <div><span class="text-gray-500">車種: </span>{{ carInspectionMatch.carName || '-' }}</div>
+            <div><span class="text-gray-500">型式: </span>{{ carInspectionMatch.model || '-' }}</div>
+            <div><span class="text-gray-500">車検満了日: </span>{{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}</div>
+          </div>
+        </template>
+        <template v-else>
+          車検証マスタに登録なし（入力値はそのまま保存されます）
+        </template>
       </div>
     </fieldset>
 
