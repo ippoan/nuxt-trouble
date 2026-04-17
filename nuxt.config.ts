@@ -15,6 +15,12 @@ export default defineNuxtConfig({
     preset: 'cloudflare_module',
   },
 
+  vite: {
+    server: {
+      allowedHosts: ['nuxt-trouble.dev.ippoan.org'],
+    },
+  },
+
   modules: [
     '@nuxt/ui',
   ],
