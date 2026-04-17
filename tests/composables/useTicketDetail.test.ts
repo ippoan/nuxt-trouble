@@ -229,6 +229,6 @@ describe('useTicketDetail', () => {
   })
 
   it('exposes fields array', () => {
-    expect(useTicketDetail('x').fields.length).toBe(15)
+    expect(useTicketDetail('x').fields.length).toBe(16)
   })
 })
