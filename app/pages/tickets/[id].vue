@@ -169,7 +169,7 @@ onMounted(() => {
         <TicketCompactOverview
           :ticket="ticket"
           :workflow-states="workflowStates"
-          @updated="load"
+          @updated="ticket = $event"
         />
       </UCard>
 
