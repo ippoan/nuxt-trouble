@@ -8,7 +8,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'updated'): void
+  (e: 'updated', ticket: TroubleTicket): void
 }>()
 
 const expanded = ref(false)
@@ -33,10 +33,11 @@ async function saveRegistration(event: Event) {
   const target = event.target as HTMLInputElement
   const value = target.value.trim()
   if (!value) return
+  if (savingRegistration.value) return
   savingRegistration.value = true
   try {
-    await updateTicket(props.ticket.id, { registration_number: value })
-    emit('updated')
+    const updated = await updateTicket(props.ticket.id, { registration_number: value })
+    emit('updated', updated)
   } catch (e) {
     console.error('登録番号の保存に失敗:', e)
     target.value = ''
@@ -172,7 +173,7 @@ function displayValue(key: string): string {
         class="flex-1 max-w-xs rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-2 py-1 focus:border-solid focus:border-blue-500 focus:outline-none"
         :disabled="savingRegistration"
         @keydown.enter.prevent="saveRegistration($event)"
-        @blur="saveRegistration($event)"
+        @change="saveRegistration($event)"
       >
       <datalist id="overview-car-inspection-registrations">
         <option

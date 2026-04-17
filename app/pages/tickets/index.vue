@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { updateTicket } from '~/utils/api'
+import type { TroubleTicket } from '~/types'
 
 const {
-  filter, selectedStatuses, loading,
+  filter, selectedStatuses, tickets, loading,
   deleteTarget, showDeleteModal, stateMap, totalPages,
   categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
   showInlineCreate, creating, newTicket, workflowStates, total,
@@ -30,21 +31,30 @@ function formatExpiry(v: string): string {
   return v.length > 10 ? v.substring(0, 10) : v
 }
 
-const savingRegistration = ref<string | null>(null)
+// 保存中チケットID set（Enter + blur 重複発火を防ぐため in-flight 判定も兼ねる）
+const savingRegistrationIds = reactive(new Set<string>())
 
 async function saveRegistration(ticketId: string, event: Event) {
   const target = event.target as HTMLInputElement
   const value = target.value.trim()
   if (!value) return
-  savingRegistration.value = ticketId
+  // 二重発火防止
+  if (savingRegistrationIds.has(ticketId)) return
+  savingRegistrationIds.add(ticketId)
   try {
-    await updateTicket(ticketId, { registration_number: value })
-    await fetchTickets()
+    const updated = await updateTicket(ticketId, { registration_number: value })
+    // 再フェッチせず該当行のみローカル更新 → フォーカス・スクロール位置を保つ
+    const list = tickets.value.slice()
+    const idx = list.findIndex((t: TroubleTicket) => t.id === ticketId)
+    if (idx >= 0) {
+      list[idx] = updated
+      tickets.value = list
+    }
   } catch (e) {
     console.error('登録番号の保存に失敗:', e)
     target.value = ''
   } finally {
-    savingRegistration.value = null
+    savingRegistrationIds.delete(ticketId)
   }
 }
 
@@ -221,9 +231,9 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                   list="car-inspection-registrations"
                   placeholder="登録番号を入力"
                   class="w-28 rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-1.5 py-0.5 text-xs focus:border-solid focus:border-blue-500 focus:outline-none"
-                  :disabled="savingRegistration === ticket.id"
+                  :disabled="savingRegistrationIds.has(ticket.id)"
                   @keydown.enter.prevent="saveRegistration(ticket.id, $event)"
-                  @blur="saveRegistration(ticket.id, $event)"
+                  @change="saveRegistration(ticket.id, $event)"
                 >
               </td>
               <td class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
