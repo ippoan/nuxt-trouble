@@ -19,6 +19,11 @@ export default defineNuxtConfig({
     server: {
       allowedHosts: ['nuxt-trouble.dev.ippoan.org'],
     },
+    optimizeDeps: {
+      // @ippoan/auth-client は .ts ソースで公開されており Vite の dep pre-bundle で
+      // `#imports` の解決がバグって invalid JS になる。exclude で SSR/ESM 経路に委ねる。
+      exclude: ['@ippoan/auth-client'],
+    },
   },
 
   modules: [
