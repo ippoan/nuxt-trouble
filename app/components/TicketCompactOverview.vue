@@ -8,6 +8,24 @@ const props = defineProps<{
 
 const expanded = ref(false)
 
+const {
+  load: loadCarInspections,
+  lookupByRegistration: lookupCarInspection,
+} = useCarInspections()
+
+onMounted(() => {
+  loadCarInspections()
+})
+
+const carInspectionMatch = computed(() =>
+  lookupCarInspection(props.ticket.registration_number),
+)
+
+function formatExpiry(v: string): string {
+  if (!v) return '-'
+  return v.length > 10 ? v.substring(0, 10) : v
+}
+
 const locationLine = computed(() => {
   const parts = [props.ticket.company_name, props.ticket.office_name].filter(Boolean)
   const loc = props.ticket.location
@@ -50,6 +68,7 @@ const fields: Array<{ label: string; key: string }> = [
   { label: '部署名', key: 'department' },
   { label: '氏名', key: 'person_name' },
   { label: '車両番号', key: 'vehicle_number' },
+  { label: '登録番号', key: 'registration_number' },
   { label: '場所', key: 'location' },
   { label: '損害額', key: 'damage_amount' },
   { label: '補償額', key: 'compensation_amount' },
@@ -91,6 +110,30 @@ function displayValue(key: string): string {
     <!-- Line 4: counterparty -->
     <div v-if="counterpartyLine" class="text-sm text-gray-600 dark:text-gray-400">
       {{ counterpartyLine }}
+    </div>
+
+    <!-- 車検証情報 (登録番号がマスタに一致) -->
+    <div
+      v-if="ticket.registration_number"
+      class="mt-2 rounded-md border p-2 text-xs"
+      :class="carInspectionMatch
+        ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
+        : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900'"
+    >
+      <template v-if="carInspectionMatch">
+        <div class="font-semibold text-blue-700 dark:text-blue-300">
+          登録番号 {{ carInspectionMatch.registrationNumber }}
+        </div>
+        <div class="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+          <span><span class="text-gray-500">所有者: </span>{{ carInspectionMatch.ownerName || '-' }}</span>
+          <span><span class="text-gray-500">車種: </span>{{ carInspectionMatch.carName || '-' }}</span>
+          <span><span class="text-gray-500">型式: </span>{{ carInspectionMatch.model || '-' }}</span>
+          <span><span class="text-gray-500">車検満了日: </span>{{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}</span>
+        </div>
+      </template>
+      <template v-else>
+        登録番号 {{ ticket.registration_number }} — 車検証マスタに登録なし
+      </template>
     </div>
 
     <!-- Toggle -->
