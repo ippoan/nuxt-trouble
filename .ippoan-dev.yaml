@@ -1,0 +1,5 @@
+# dev-proxy metadata. Source of truth for https://<name>-dev.ippoan.org.
+# Changes here propagate to ippoan/dev-proxy via the sync workflow.
+name: nuxt-trouble
+port: 3017
+cmd: "PORT=$PORT HOST=0.0.0.0 npm run dev"
