@@ -22,6 +22,3 @@ jobs:
       integration_env: 'API_BASE_URL=http://localhost:18080'
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  dev-proxy:
-    uses: ippoan/ci-workflows/.github/workflows/dev-proxy-validate.yml@main
