@@ -1,5 +1,5 @@
-# dev-proxy metadata. Source of truth for https://<name>-dev.ippoan.org.
-# Changes here propagate to ippoan/dev-proxy via the sync workflow.
+# dev-proxy metadata. Must mirror the entry for ippoan/nuxt-trouble in
+# ippoan/dev-proxy/registry.json. Mismatches fail ci/Dev Proxy Validate.
 name: nuxt-trouble
 port: 3017
 cmd: "PORT=$PORT HOST=0.0.0.0 npm run dev"
