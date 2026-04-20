@@ -38,12 +38,14 @@ const savingRegistrationIds = reactive(new Set<string>())
 async function saveRegistration(ticketId: string, event: Event) {
   const target = event.target as HTMLInputElement
   const value = target.value.trim()
-  if (!value) return
   // 二重発火防止
   if (savingRegistrationIds.has(ticketId)) return
+  // 値が変わっていなければ何もしない（空→空含む）
+  const current = tickets.value.find((t: TroubleTicket) => t.id === ticketId)?.registration_number || ''
+  if (value === current) return
   savingRegistrationIds.add(ticketId)
   try {
-    const updated = await updateTicket(ticketId, { registration_number: value })
+    const updated = await updateTicket(ticketId, { registration_number: value || null })
     // 再フェッチせず該当行のみローカル更新 → フォーカス・スクロール位置を保つ
     const list = tickets.value.slice()
     const idx = list.findIndex((t: TroubleTicket) => t.id === ticketId)
@@ -53,7 +55,7 @@ async function saveRegistration(ticketId: string, event: Event) {
     }
   } catch (e) {
     console.error('登録番号の保存に失敗:', e)
-    target.value = ''
+    target.value = current
   } finally {
     savingRegistrationIds.delete(ticketId)
   }
