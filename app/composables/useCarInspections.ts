@@ -1,4 +1,5 @@
 import { getCarInspectionsCurrent } from '~/utils/api'
+import { toHalfWidth } from '~/utils/normalize'
 import type { CarInspectionSummary } from '~/types'
 
 function normalizeKey(s: string | null | undefined): string {
@@ -10,9 +11,10 @@ function normalizeKey(s: string | null | undefined): string {
 }
 
 function toSummary(raw: Record<string, unknown>): CarInspectionSummary | null {
-  const reg = (raw.EntryNoCarNo as string | undefined)
+  const rawReg = (raw.EntryNoCarNo as string | undefined)
     || (raw.CarNo as string | undefined)
     || ''
+  const reg = toHalfWidth(rawReg)
   if (!reg) return null
   return {
     registrationNumber: reg,
