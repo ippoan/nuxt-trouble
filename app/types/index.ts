@@ -21,7 +21,6 @@ export interface CreateTroubleTicket {
   department?: string | null
   person_name?: string | null
   person_id?: string | null
-  vehicle_number?: string | null
   registration_number?: string | null
   location?: string | null
   description?: string | null
@@ -45,7 +44,6 @@ export interface UpdateTroubleTicket {
   department?: string | null
   person_name?: string | null
   person_id?: string | null
-  vehicle_number?: string | null
   registration_number?: string | null
   location?: string | null
   description?: string | null

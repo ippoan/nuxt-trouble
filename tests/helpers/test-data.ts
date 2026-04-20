@@ -8,7 +8,7 @@ export function makeTroubleTicket(overrides: Partial<TroubleTicket> = {}): Troub
     occurred_at: null, occurred_date: '2026-01-15',
     company_name: 'テスト会社', office_name: 'テスト営業所',
     department: 'テスト部署', person_name: 'テスト太郎', person_id: null,
-    vehicle_number: '品川 100 あ 1234', location: '東京都',
+    registration_number: '品川 100 あ 1234', location: '東京都',
     description: 'テスト説明', status_id: 'state-1', assigned_to: null,
     progress_notes: '', allowance: '',
     damage_amount: '10000', compensation_amount: '5000',

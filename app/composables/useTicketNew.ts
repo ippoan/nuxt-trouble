@@ -15,7 +15,7 @@ export function useTicketNew() {
     office_name: '',
     department: '',
     person_name: '',
-    vehicle_number: '',
+    registration_number: '',
     location: '',
     damage_amount: null,
     compensation_amount: null,

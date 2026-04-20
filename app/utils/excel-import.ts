@@ -10,7 +10,6 @@ export const API_FIELD_OPTIONS: { value: string; label: string }[] = [
   { value: 'department', label: '部署 (department)' },
   { value: 'person_name', label: '氏名 (person_name)' },
   { value: 'registration_number', label: '登録番号 (registration_number)' },
-  { value: 'vehicle_number', label: '車両番号 (vehicle_number)' },
   { value: 'location', label: '場所 (location)' },
   { value: 'description', label: '内容 (description)' },
   { value: 'progress_notes', label: '進捗状況 (progress_notes)' },
