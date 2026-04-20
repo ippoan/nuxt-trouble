@@ -54,7 +54,7 @@ function handleLogout() {
       <div class="p-4 border-t border-gray-200 dark:border-gray-800">
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs text-gray-500 dark:text-gray-400">ダークモード</span>
-          <UToggle v-model="isDark" size="xs" />
+          <USwitch v-model="isDark" size="xs" />
         </div>
         <div class="text-sm text-gray-600 dark:text-gray-400 truncate mb-2">
           {{ username }}
