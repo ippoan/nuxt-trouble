@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { setupApi, teardownApi, restoreNativeApis } from '../helpers/api-test-env'
+import { setupApi, teardownApi, isLive, restoreNativeApis } from '../helpers/api-test-env'
 
 const getCarInspectionsCurrentMock = vi.fn()
 
@@ -11,17 +11,17 @@ vi.mock('~/utils/api', async (importOriginal) => {
   }
 })
 
-import { useCarInspections } from '~/composables/useCarInspections'
-
 describe('useCarInspections', () => {
   beforeEach(async () => {
     restoreNativeApis()
     await setupApi()
     getCarInspectionsCurrentMock.mockReset()
+    // singleton state is module-local; reset modules so each test starts fresh
+    vi.resetModules()
   })
   afterEach(() => teardownApi())
 
-  it('normalizes full-width registration numbers to half-width in options and lookup', async () => {
+  it.skipIf(isLive)('normalizes full-width registration numbers to half-width in options and lookup', async () => {
     getCarInspectionsCurrentMock.mockResolvedValue({
       carInspections: [
         { EntryNoCarNo: '３８８１', OwnerName: 'オーナー1', CarName: '車名1', Model: 'モデル1', ValidPeriodExpirdate: '2027-01-01' },
@@ -29,6 +29,7 @@ describe('useCarInspections', () => {
       ],
     })
 
+    const { useCarInspections } = await import('~/composables/useCarInspections')
     const ci = useCarInspections()
     await ci.load()
 
