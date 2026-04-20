@@ -224,26 +224,23 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               <td class="py-2 px-2">{{ ticket.department || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.person_name || '-' }}</td>
               <td class="py-2 px-2" @click.stop>
-                <template v-if="ticket.registration_number">
-                  <span>{{ ticket.registration_number }}</span>
-                  <UIcon
-                    v-if="lookupCarInspection(ticket.registration_number)"
-                    name="i-lucide-info"
-                    class="ml-1 inline size-3.5 text-blue-500 align-middle"
-                    :title="(() => { const s = lookupCarInspection(ticket.registration_number)!; return `所有者: ${s.ownerName || '-'}\n車種: ${s.carName || '-'}\n型式: ${s.model || '-'}\n車検満了日: ${formatExpiry(s.validPeriodExpirdate)}` })()"
-                  />
-                </template>
                 <input
-                  v-else
                   type="text"
                   list="car-inspection-registrations"
                   placeholder="登録番号を入力"
                   class="w-28 rounded border border-dashed border-gray-300 dark:border-gray-600 bg-transparent px-1.5 py-0.5 text-xs focus:border-solid focus:border-blue-500 focus:outline-none"
+                  :value="ticket.registration_number || ''"
                   :disabled="savingRegistrationIds.has(ticket.id)"
                   @input="(e: Event) => { const el = e.target as HTMLInputElement; const v = toHalfWidth(el.value); if (el.value !== v) el.value = v }"
                   @keydown.enter.prevent="saveRegistration(ticket.id, $event)"
                   @change="saveRegistration(ticket.id, $event)"
                 >
+                <UIcon
+                  v-if="ticket.registration_number && lookupCarInspection(ticket.registration_number)"
+                  name="i-lucide-info"
+                  class="ml-1 inline size-3.5 text-blue-500 align-middle"
+                  :title="(() => { const s = lookupCarInspection(ticket.registration_number)!; return `所有者: ${s.ownerName || '-'}\n車種: ${s.carName || '-'}\n型式: ${s.model || '-'}\n車検満了日: ${formatExpiry(s.validPeriodExpirdate)}` })()"
+                />
               </td>
               <td class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
               <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.location || '-' }}</td>
