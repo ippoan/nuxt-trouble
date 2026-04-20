@@ -93,7 +93,6 @@ const fields: Array<{ label: string; key: string }> = [
   { label: '営業所名', key: 'office_name' },
   { label: '部署名', key: 'department' },
   { label: '氏名', key: 'person_name' },
-  { label: '車両番号', key: 'vehicle_number' },
   { label: '登録番号', key: 'registration_number' },
   { label: '場所', key: 'location' },
   { label: '損害額', key: 'damage_amount' },

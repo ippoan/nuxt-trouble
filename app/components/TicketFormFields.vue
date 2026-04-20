@@ -161,14 +161,6 @@ function updateEmployee(employeeId: string) {
       <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">車両・場所</legend>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="車両番号">
-          <UInput
-            :model-value="(model.vehicle_number as string) || ''"
-            placeholder="車両番号"
-            @update:model-value="(v: string | number) => update('vehicle_number', toHalfWidth(String(v ?? '')))"
-          />
-        </UFormField>
-
         <UFormField label="登録番号">
           <UInput
             :model-value="(model.registration_number as string) || ''"
