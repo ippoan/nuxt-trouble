@@ -3,6 +3,7 @@ node_modules/
 .output/
 dist/
 coverage/
+.wrangler/
 *.log
 .DS_Store
 worker-configuration.d.ts
