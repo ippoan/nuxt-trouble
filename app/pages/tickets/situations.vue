@@ -37,8 +37,12 @@ const ticketsByState = computed(() => {
 })
 
 const unassignedTickets = computed<TroubleTicket[]>(() => {
-  const validIds = new Set(workflowStates.value.map(s => s.id))
-  return tickets.value.filter(t => !t.status_id || !validIds.has(t.status_id))
+  const validIds = new Set<string>(workflowStates.value.map(s => s.id))
+  const list: TroubleTicket[] = []
+  for (const t of tickets.value) {
+    if (!t.status_id || !validIds.has(t.status_id)) list.push(t)
+  }
+  return list
 })
 
 function navigateToTicket(id: string) {
