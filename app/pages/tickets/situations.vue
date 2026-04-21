@@ -23,26 +23,29 @@ async function load() {
   }
 }
 
-const ticketsByState = computed(() => {
-  const map: Record<string, TroubleTicket[]> = {}
+// vue-tsc TS2589 (deep instantiation) fires on `.push(TroubleTicket)` because
+// ts-rs generated TroubleTicket has JsonValue (recursive). Grouping via plain
+// `unknown[]` sidesteps the deep inference, then we cast back at the boundary.
+const ticketsByState = computed<Record<string, TroubleTicket[]>>(() => {
+  const raw: Record<string, unknown[]> = {}
   for (const state of workflowStates.value) {
-    map[state.id] = []
+    raw[state.id] = []
   }
   for (const t of tickets.value) {
-    if (!t.status_id) continue
-    const bucket = map[t.status_id]
-    if (bucket) bucket.push(t)
+    const sid = t.status_id
+    if (!sid) continue
+    raw[sid]?.push(t)
   }
-  return map
+  return raw as Record<string, TroubleTicket[]>
 })
 
 const unassignedTickets = computed<TroubleTicket[]>(() => {
   const validIds = new Set<string>(workflowStates.value.map(s => s.id))
-  const list: TroubleTicket[] = []
+  const list: unknown[] = []
   for (const t of tickets.value) {
     if (!t.status_id || !validIds.has(t.status_id)) list.push(t)
   }
-  return list
+  return list as TroubleTicket[]
 })
 
 function navigateToTicket(id: string) {

@@ -31,9 +31,14 @@ const waitingStatus = computed(() =>
   progressStatuses.value.find(s => s.name === '待機') ?? null,
 )
 
-const waitingTickets = computed(() => {
+const waitingTickets = computed<TroubleTicket[]>(() => {
   if (!waitingStatus.value) return []
-  return tickets.value.filter(t => t.progress_notes === waitingStatus.value!.name)
+  const target = waitingStatus.value.name
+  const out: unknown[] = []
+  for (const t of tickets.value) {
+    if (t.progress_notes === target) out.push(t)
+  }
+  return out as TroubleTicket[]
 })
 
 const stateMap = computed(() => {
