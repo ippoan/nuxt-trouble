@@ -415,6 +415,40 @@ export async function deleteTask(taskId: string): Promise<void> {
   await request<void>(`/api/trouble/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' })
 }
 
+// --- Cross-ticket Tasks (状況管理) ---
+
+export interface ListTasksQuery {
+  ticket_id?: string
+  status?: 'open' | 'in_progress' | 'done'
+  task_type?: string
+  assigned_to?: string
+  q?: string
+  due_from?: string
+  due_to?: string
+  occurred_from?: string
+  occurred_to?: string
+  sort_by?: 'created_at' | 'occurred_at' | 'due_date' | 'next_action_due' | 'status'
+  sort_desc?: boolean
+  page?: number
+  per_page?: number
+}
+
+export interface ListTasksResponse {
+  items: TroubleTask[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export async function listAllTasks(q: ListTasksQuery = {}): Promise<ListTasksResponse> {
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(q)) {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v))
+  }
+  const qs = params.toString()
+  return request<ListTasksResponse>(`/api/trouble/tasks${qs ? `?${qs}` : ''}`)
+}
+
 // --- Task Files ---
 
 export async function getTaskFiles(taskId: string): Promise<TroubleFile[]> {

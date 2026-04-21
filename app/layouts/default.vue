@@ -16,8 +16,11 @@ const isDark = computed({
   },
 })
 
-const navigation = [
+const navigation: { label: string; icon: string; to: string; target?: string }[] = [
   { label: 'チケット一覧', icon: 'i-lucide-list', to: '/tickets' },
+  { label: 'ステータス管理', icon: 'i-lucide-kanban', to: '/tickets/situations', target: '_blank' },
+  { label: '待機一覧', icon: 'i-lucide-clock', to: '/tickets/waiting', target: '_blank' },
+  { label: '状況管理', icon: 'i-lucide-list-checks', to: '/tasks', target: '_blank' },
   { label: '設定', icon: 'i-lucide-settings', to: '/settings' },
 ]
 
@@ -40,8 +43,10 @@ function handleLogout() {
           v-for="item in navigation"
           :key="item.to"
           :to="item.to"
+          :target="item.target"
+          :rel="item.target ? 'noopener' : undefined"
           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-          :class="route.path.startsWith(item.to)
+          :class="!item.target && route.path.startsWith(item.to)
             ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-medium'
             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'"
         >
