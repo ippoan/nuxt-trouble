@@ -4,17 +4,21 @@ import { allStubs } from '../helpers/nuxt-stubs'
 import type { TroubleTask } from '~/types'
 
 const pushMock = vi.fn()
+const routeQuery = { value: {} as Record<string, string> }
 vi.mock('#app/composables/router', () => ({
   useRouter: () => ({ push: pushMock }),
+  useRoute: () => ({ query: routeQuery.value }),
 }))
 
 const listAllTasksMock = vi.fn()
 const getTaskTypesMock = vi.fn()
 const getEmployeesMock = vi.fn()
+const getTaskStatusesMock = vi.fn()
 vi.mock('~/utils/api', () => ({
   listAllTasks: (...args: unknown[]) => listAllTasksMock(...args),
   getTaskTypes: (...args: unknown[]) => getTaskTypesMock(...args),
   getEmployees: (...args: unknown[]) => getEmployeesMock(...args),
+  getTaskStatuses: (...args: unknown[]) => getTaskStatusesMock(...args),
 }))
 
 import TasksPage from '~/pages/tasks.vue'
@@ -39,9 +43,12 @@ describe('tasks page', () => {
     listAllTasksMock.mockReset()
     getTaskTypesMock.mockReset()
     getEmployeesMock.mockReset()
+    getTaskStatusesMock.mockReset()
+    routeQuery.value = {}
     listAllTasksMock.mockResolvedValue({ items: [], total: 0, page: 1, per_page: 50 })
     getTaskTypesMock.mockResolvedValue([])
     getEmployeesMock.mockResolvedValue([])
+    getTaskStatusesMock.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -265,6 +272,36 @@ describe('tasks page', () => {
 
     expect(wrapper.text()).toContain('emp-unknown')
     expect(wrapper.text()).toContain('山田太郎')
+  })
+
+  it('reads ?status= from route and presets statusFilter', async () => {
+    routeQuery.value = { status: 'waiting' }
+    const wrapper = mount(TasksPage, { global: { stubs: allStubs } })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as { statusFilter: string }
+    expect(vm.statusFilter).toBe('waiting')
+    // last listAllTasks call should include status=waiting
+    const calls = listAllTasksMock.mock.calls
+    const lastCall = calls[calls.length - 1]
+    expect(lastCall[0]).toMatchObject({ status: 'waiting' })
+  })
+
+  it('status filter uses fetched task statuses when available', async () => {
+    // Reset modules so useTaskStatuses singleton is fresh
+    vi.resetModules()
+    getTaskStatusesMock.mockResolvedValue([
+      { id: '1', tenant_id: 't', key: 'custom_foo', name: 'カスタム', color: '#fff', sort_order: 10, is_done: false, created_at: '', updated_at: '' },
+    ])
+    const mod = await import('~/pages/tasks.vue')
+    const FreshTasksPage = mod.default
+    const wrapper = mount(FreshTasksPage, { global: { stubs: allStubs } })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as { STATUS_OPTIONS: Array<{ label: string; value: string }> }
+    const opts = vm.STATUS_OPTIONS
+    const hasCustom = opts.some(o => o.value === 'custom_foo' && o.label === 'カスタム')
+    expect(hasCustom).toBe(true)
   })
 
   it('error message falls back to string when thrown value is not Error', async () => {

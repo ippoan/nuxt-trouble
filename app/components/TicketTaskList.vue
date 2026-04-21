@@ -2,6 +2,9 @@
 import type { TroubleTask, TroubleWorkflowState, Employee, TroubleFile } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
 import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile } from '~/utils/api'
+import { useTaskStatuses } from '~/composables/useTaskStatuses'
+
+const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
 
 const props = defineProps<{
   ticketId: string
@@ -65,9 +68,16 @@ async function fetchTaskTypes() {
   }
 }
 
+function isTaskDone(status: string): boolean {
+  if (taskStatusesLoaded.value) {
+    return taskStatusByKey(status)?.is_done === true
+  }
+  return status === 'done'
+}
+
 const completionCount = computed(() => {
   const total = tasks.value.length
-  const done = tasks.value.filter(t => t.status === 'done').length
+  const done = tasks.value.filter(t => isTaskDone(t.status)).length
   return { total, done }
 })
 
@@ -86,7 +96,7 @@ async function loadTasks() {
 
 function checkSuggestions() {
   if (tasks.value.length === 0) return
-  const allDone = tasks.value.every(t => t.status === 'done')
+  const allDone = tasks.value.every(t => isTaskDone(t.status))
   const anyInProgress = tasks.value.some(t => t.status === 'in_progress')
   if (allDone) {
     const terminalState = props.workflowStates.find(s => s.is_terminal)
@@ -152,11 +162,12 @@ async function handleDeleteTask(taskId: string) {
   }
 }
 
-const statusOptions = [
-  { label: TASK_STATUS_LABELS['open']!.label, value: 'open' },
-  { label: TASK_STATUS_LABELS['in_progress']!.label, value: 'in_progress' },
-  { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
-]
+const statusOptions = computed<{ label: string; value: string }[]>(() => {
+  if (taskStatusesLoaded.value && taskStatusList.value.length > 0) {
+    return taskStatusList.value.map(s => ({ label: s.name, value: s.key }))
+  }
+  return Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ label: v.label, value: key }))
+})
 
 // --- Inline edit ---
 const editingId = ref<string | null>(null)
@@ -337,6 +348,7 @@ function formatFileSize(bytes: number | bigint): string {
 onMounted(() => {
   fetchTaskTypes()
   fetchEmployees()
+  loadTaskStatuses()
   loadTasks().then(() => loadAllFileCounts())
 })
 

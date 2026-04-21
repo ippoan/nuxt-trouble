@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember, TroubleTaskType } from '~/types'
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember, TroubleTaskType, TroubleTaskStatus } from '~/types'
 import { TICKET_CATEGORIES, DEFAULT_TASK_TYPES, NOTIFICATION_EVENT_TYPES } from '~/types'
 import {
   getCategories, createCategory, deleteCategory, updateCategorySortOrder,
   getOffices, createOffice, deleteOffice, updateOfficeSortOrder,
   getProgressStatuses, createProgressStatus, deleteProgressStatus, updateProgressStatusSortOrder,
   getTaskTypes, createTaskType, deleteTaskType, updateTaskTypeSortOrder,
+  getTaskStatuses, createTaskStatus, deleteTaskStatus, updateTaskStatusSortOrder,
   getNotificationPrefs, upsertNotificationPref, deleteNotificationPref, getLineworksMembers,
 } from '~/utils/api'
 
@@ -15,6 +16,7 @@ const activeTab = ref('categories')
 const tabs = [
   { label: 'カテゴリ', value: 'categories' },
   { label: '状況管理タイプ', value: 'taskTypes' },
+  { label: '状況ステータス', value: 'taskStatuses' },
   { label: '営業所', value: 'offices' },
   { label: '進捗状況', value: 'progress' },
   { label: 'ワークフロー', value: 'workflow' },
@@ -104,6 +106,49 @@ async function handleReorderTaskType(id: string, sortOrder: number) {
     if (idx >= 0) taskTypes.value[idx] = updated
   } catch (e) {
     console.error('タスクタイプ順序変更エラー:', e)
+  }
+}
+
+// Task Statuses (dynamic master)
+const taskStatuses = ref<TroubleTaskStatus[]>([])
+const taskStatusesLoading = ref(false)
+
+async function fetchTaskStatuses() {
+  taskStatusesLoading.value = true
+  try {
+    taskStatuses.value = await getTaskStatuses()
+  } catch (e) {
+    console.error('状況ステータス取得エラー:', e)
+  } finally {
+    taskStatusesLoading.value = false
+  }
+}
+
+async function handleCreateTaskStatus(name: string) {
+  try {
+    const created = await createTaskStatus({ name, sort_order: (taskStatuses.value.length + 1) * 10 })
+    taskStatuses.value = [...taskStatuses.value, created]
+  } catch (e) {
+    console.error('状況ステータス作成エラー:', e)
+  }
+}
+
+async function handleDeleteTaskStatus(id: string) {
+  try {
+    await deleteTaskStatus(id)
+    taskStatuses.value = taskStatuses.value.filter(t => t.id !== id)
+  } catch (e) {
+    console.error('状況ステータス削除エラー:', e)
+  }
+}
+
+async function handleReorderTaskStatus(id: string, sortOrder: number) {
+  try {
+    const updated = await updateTaskStatusSortOrder(id, sortOrder)
+    const idx = taskStatuses.value.findIndex(t => t.id === id)
+    if (idx >= 0) taskStatuses.value[idx] = updated
+  } catch (e) {
+    console.error('状況ステータス順序変更エラー:', e)
   }
 }
 
@@ -289,6 +334,7 @@ const notifMemberOptions = computed(() =>
 onMounted(() => {
   fetchCategories()
   fetchTaskTypes()
+  fetchTaskStatuses()
   fetchOffices()
   fetchProgressStatuses()
   fetchNotifications()
@@ -334,6 +380,16 @@ onMounted(() => {
         @create="handleCreateTaskType"
         @delete="handleDeleteTaskType"
         @reorder="handleReorderTaskType"
+      />
+
+      <MasterDataManager
+        v-if="activeTab === 'taskStatuses'"
+        title="状況ステータス"
+        :items="taskStatuses"
+        :loading="taskStatusesLoading"
+        @create="handleCreateTaskStatus"
+        @delete="handleDeleteTaskStatus"
+        @reorder="handleReorderTaskStatus"
       />
 
       <MasterDataManager

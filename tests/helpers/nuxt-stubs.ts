@@ -14,6 +14,7 @@ export const UTextarea = { template: '<textarea />', props: ['modelValue', 'plac
 export const UModal = { template: '<div v-if="open"><slot name="content" /></div>', props: ['open'] }
 export const UPagination = { template: '<div />', props: ['modelValue', 'total', 'itemsPerPage'] }
 export const USwitch = { template: '<input type="checkbox" />', props: ['modelValue', 'size'] }
+export const UTooltip = { template: '<div :data-tooltip="text"><slot /></div>', props: ['text', 'content', 'delayDuration'] }
 export const NuxtLink = { template: '<a><slot /></a>', props: ['to'] }
 export const NuxtLayout = { template: '<div><slot /></div>' }
 export const NuxtPage = { template: '<div />' }
@@ -29,7 +30,7 @@ export const TicketFilesStub = { template: '<div />', props: ['ticketId'] }
 
 export const allStubs = {
   UApp, UCard, UButton, UIcon, UBadge, UInput, USelect, UFormField,
-  UTextarea, UModal, UPagination, USwitch, NuxtLink, NuxtLayout, NuxtPage,
+  UTextarea, UModal, UPagination, USwitch, UTooltip, NuxtLink, NuxtLayout, NuxtPage,
   StagingFooter,
   TicketCategoryBadge: TicketCategoryBadgeStub,
   TicketFormFields: TicketFormFieldsStub,

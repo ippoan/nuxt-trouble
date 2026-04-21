@@ -18,6 +18,7 @@ const mockCreateTask = vi.fn().mockResolvedValue(sampleTask)
 const mockUpdateTask = vi.fn().mockResolvedValue(sampleTask)
 const mockDeleteTask = vi.fn().mockResolvedValue(undefined)
 const mockGetEmployees = vi.fn().mockResolvedValue([])
+const mockGetTaskStatuses = vi.fn().mockResolvedValue([])
 
 vi.mock('~/utils/api', () => ({
   getTasks: (...args: any[]) => mockGetTasks(...args),
@@ -26,6 +27,7 @@ vi.mock('~/utils/api', () => ({
   updateTask: (...args: any[]) => mockUpdateTask(...args),
   deleteTask: (...args: any[]) => mockDeleteTask(...args),
   getEmployees: (...args: any[]) => mockGetEmployees(...args),
+  getTaskStatuses: (...args: any[]) => mockGetTaskStatuses(...args),
   getTaskFiles: vi.fn().mockResolvedValue([]),
   uploadTaskFile: vi.fn().mockResolvedValue({}),
   downloadTaskFile: vi.fn().mockResolvedValue(undefined),
@@ -60,6 +62,7 @@ describe('TicketTaskList', () => {
       { id: '1', name: 'レッカー対応', sort_order: 0, tenant_id: 't1', created_at: '' },
     ])
     mockGetEmployees.mockResolvedValue([])
+    mockGetTaskStatuses.mockResolvedValue([])
   })
 
   it('renders heading', async () => {
@@ -88,6 +91,32 @@ describe('TicketTaskList', () => {
     })
     await flushPromises()
     expect(wrapper.text()).toContain('テストタスク')
+  })
+
+  it('statusOptions uses fetched task statuses when loaded', async () => {
+    mockGetTaskStatuses.mockResolvedValue([
+      { id: '1', tenant_id: 't1', key: 'waiting', name: '待機', color: '#F59E0B', sort_order: 30, is_done: false, created_at: '', updated_at: '' },
+      { id: '2', tenant_id: 't1', key: 'done', name: '完了', color: '#10B981', sort_order: 40, is_done: true, created_at: '', updated_at: '' },
+    ])
+    const wrapper = mount(TicketTaskList, {
+      props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+      global: { stubs },
+    })
+    await flushPromises()
+    const vm = wrapper.vm as unknown as { statusOptions: Array<{ label: string; value: string }> }
+    expect(vm.statusOptions.some(o => o.value === 'waiting' && o.label === '待機')).toBe(true)
+  })
+
+  it('statusOptions falls back to TASK_STATUS_LABELS when task statuses empty', async () => {
+    mockGetTaskStatuses.mockResolvedValue([])
+    const wrapper = mount(TicketTaskList, {
+      props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+      global: { stubs },
+    })
+    await flushPromises()
+    const vm = wrapper.vm as unknown as { statusOptions: Array<{ label: string; value: string }> }
+    expect(vm.statusOptions.some(o => o.value === 'open')).toBe(true)
+    expect(vm.statusOptions.some(o => o.value === 'done')).toBe(true)
   })
 
   it('handleAddTask sends null for empty due_date', async () => {

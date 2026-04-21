@@ -2,6 +2,10 @@
 import type { TroubleTask } from '~/types'
 import { TASK_STATUS_LABELS } from '~/types'
 import { updateTask } from '~/utils/api'
+import { useTaskStatuses } from '~/composables/useTaskStatuses'
+
+const { load: loadTaskStatuses, statuses: taskStatusList, loaded: taskStatusesLoaded } = useTaskStatuses()
+loadTaskStatuses()
 
 const props = defineProps<{ task: TroubleTask }>()
 const emit = defineEmits<{
@@ -17,11 +21,12 @@ const nextActionByDraft = ref(props.task.next_action_by || '')
 const nextActionDueDraft = ref(props.task.next_action_due?.substring(0, 10) || '')
 const dueDateDraft = ref(props.task.due_date?.substring(0, 10) || '')
 
-const statusOptions = [
-  { label: TASK_STATUS_LABELS['open']!.label, value: 'open' },
-  { label: TASK_STATUS_LABELS['in_progress']!.label, value: 'in_progress' },
-  { label: TASK_STATUS_LABELS['done']!.label, value: 'done' },
-]
+const statusOptions = computed<{ label: string; value: string }[]>(() => {
+  if (taskStatusesLoaded.value && taskStatusList.value.length > 0) {
+    return taskStatusList.value.map(s => ({ label: s.name, value: s.key }))
+  }
+  return Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ label: v.label, value: key }))
+})
 
 const selectedStatus = ref(props.task.status)
 
