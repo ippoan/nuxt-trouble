@@ -38,7 +38,7 @@ async function fetchCategories() {
 
 async function handleCreateCategory(name: string) {
   try {
-    const created = await createCategory({ name })
+    const created = await createCategory({ name, sort_order: (categories.value.length + 1) * 10 })
     categories.value = [...categories.value, created]
   } catch (e) {
     console.error('カテゴリ作成エラー:', e)
@@ -81,7 +81,7 @@ async function fetchTaskTypes() {
 
 async function handleCreateTaskType(name: string) {
   try {
-    const created = await createTaskType({ name })
+    const created = await createTaskType({ name, sort_order: (taskTypes.value.length + 1) * 10 })
     taskTypes.value = [...taskTypes.value, created]
   } catch (e) {
     console.error('タスクタイプ作成エラー:', e)
@@ -124,7 +124,7 @@ async function fetchOffices() {
 
 async function handleCreateOffice(name: string) {
   try {
-    const created = await createOffice({ name })
+    const created = await createOffice({ name, sort_order: (offices.value.length + 1) * 10 })
     offices.value = [...offices.value, created]
   } catch (e) {
     console.error('営業所作成エラー:', e)
@@ -167,7 +167,7 @@ async function fetchProgressStatuses() {
 
 async function handleCreateProgressStatus(name: string) {
   try {
-    const created = await createProgressStatus({ name })
+    const created = await createProgressStatus({ name, sort_order: (progressStatuses.value.length + 1) * 10 })
     progressStatuses.value = [...progressStatuses.value, created]
   } catch (e) {
     console.error('進捗状況作成エラー:', e)
