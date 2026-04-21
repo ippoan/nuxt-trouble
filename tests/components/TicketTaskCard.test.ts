@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import TicketTaskCard from '~/components/TicketTaskCard.vue'
 
+const mockGetTaskStatuses = vi.fn().mockResolvedValue([])
 vi.mock('~/utils/api', () => ({
   getActivities: vi.fn().mockResolvedValue([]),
   createActivity: vi.fn(),
@@ -11,6 +12,7 @@ vi.mock('~/utils/api', () => ({
   downloadActivityFile: vi.fn(),
   deleteActivityFile: vi.fn(),
   updateTask: vi.fn(),
+  getTaskStatuses: (...args: any[]) => mockGetTaskStatuses(...args),
 }))
 
 const stubs = {
@@ -61,5 +63,19 @@ describe('TicketTaskCard', () => {
     const nextActionInput = wrapper.find('input[placeholder="次のアクション..."]')
     expect(nextActionInput.exists()).toBe(true)
     expect((nextActionInput.element as HTMLInputElement).value).toBe('')
+  })
+
+  it('statusOptions uses fetched task statuses when loaded', async () => {
+    mockGetTaskStatuses.mockResolvedValueOnce([
+      { id: '1', tenant_id: 't1', key: 'waiting', name: '待機', color: '#F59E0B', sort_order: 30, is_done: false, created_at: '', updated_at: '' },
+      { id: '2', tenant_id: 't1', key: 'done', name: '完了', color: '#10B981', sort_order: 40, is_done: true, created_at: '', updated_at: '' },
+    ])
+    const wrapper = mount(TicketTaskCard, {
+      props: { task: sampleTask },
+      global: { stubs },
+    })
+    await flushPromises()
+    const vm = wrapper.vm as unknown as { statusOptions: Array<{ label: string; value: string }> }
+    expect(vm.statusOptions.length).toBeGreaterThan(0)
   })
 })

@@ -2,6 +2,17 @@
 import type { TroubleTask } from '~/types'
 import { TASK_STATUS_LABELS } from '~/types'
 import { getTasks } from '~/utils/api'
+import { useTaskStatuses } from '~/composables/useTaskStatuses'
+
+const { load: loadTaskStatuses, statuses: taskStatusList, loaded: taskStatusesLoaded } = useTaskStatuses()
+loadTaskStatuses()
+
+const legendEntries = computed<{ key: string; label: string; color: string }[]>(() => {
+  if (taskStatusesLoaded.value && taskStatusList.value.length > 0) {
+    return taskStatusList.value.map(s => ({ key: s.key, label: s.name, color: s.color }))
+  }
+  return Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ key, label: v.label, color: v.color }))
+})
 
 const props = defineProps<{
   ticketId: string
@@ -123,9 +134,9 @@ watch(() => props.ticketId, async () => {
 
     <!-- Legend -->
     <div class="flex gap-3 mb-2 text-xs text-gray-500">
-      <span v-for="(info, key) in TASK_STATUS_LABELS" :key="key" class="flex items-center gap-1">
-        <span class="inline-block w-3 h-3 rounded" :style="{ backgroundColor: info.color }" />
-        {{ info.label }}
+      <span v-for="entry in legendEntries" :key="entry.key" class="flex items-center gap-1">
+        <span class="inline-block w-3 h-3 rounded" :style="{ backgroundColor: entry.color }" />
+        {{ entry.label }}
       </span>
     </div>
 

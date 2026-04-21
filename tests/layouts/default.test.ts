@@ -59,6 +59,18 @@ describe('default layout', () => {
     expect(list?.attributes('data-target')).toBeUndefined()
   })
 
+  it('wraps each nav item in a tooltip with descriptive text', () => {
+    const wrapper = mount(DefaultLayout, { global: { stubs: allStubs } })
+    const tooltips = wrapper.findAll('[data-tooltip]')
+    // 5 nav items + potentially other UTooltips elsewhere; at minimum each nav has one
+    const texts = tooltips.map(t => t.attributes('data-tooltip'))
+    expect(texts).toContain('すべてのトラブルチケットを一覧表示・編集・新規作成')
+    expect(texts).toContain('ワークフロー状態別 (未着手/対応中/完了など) のカンバン表示')
+    expect(texts).toContain('進捗状況が「待機」のチケットのみ抽出')
+    expect(texts).toContain('全チケット横断の状況 (サブタスク) 一覧、フィルタ・並び替え可')
+    expect(texts).toContain('カテゴリ / 営業所 / ワークフロー / 通知などのマスタ管理')
+  })
+
   it('handles logout', async () => {
     const wrapper = mount(DefaultLayout, { global: { stubs: allStubs } })
     const buttons = wrapper.findAll('button')

@@ -269,10 +269,36 @@ export const DEFAULT_TASK_TYPES = [
   'その他',
 ] as const
 
+// Fallback labels for when the task-statuses master has not loaded or the API
+// is unavailable. Prefer `useTaskStatuses()` composable in new code — it
+// fetches the dynamic master (trouble_task_statuses) and falls back to these
+// defaults. Kept exported for backward compatibility.
 export const TASK_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   open: { label: '未着手', color: '#9CA3AF' },
   in_progress: { label: '進行中', color: '#3B82F6' },
+  waiting: { label: '待機', color: '#F59E0B' },
   done: { label: '完了', color: '#10B981' },
+}
+
+// --- Task Statuses (dynamic master) ---
+export interface TroubleTaskStatus {
+  id: string
+  tenant_id: string
+  key: string
+  name: string
+  color: string
+  sort_order: number
+  is_done: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTroubleTaskStatus {
+  key?: string | null
+  name: string
+  color?: string | null
+  sort_order?: number | null
+  is_done?: boolean | null
 }
 
 // --- Car Inspection (車検証) ---

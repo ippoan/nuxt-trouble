@@ -27,6 +27,8 @@ import type {
   CreateTroubleTask,
   UpdateTroubleTask,
   TroubleTaskType,
+  TroubleTaskStatus,
+  CreateTroubleTaskStatus,
 } from '~/types'
 
 let apiBase = ''
@@ -391,6 +393,30 @@ export async function updateTaskTypeSortOrder(id: string, sortOrder: number): Pr
   })
 }
 
+// --- Task Statuses (dynamic master) ---
+
+export async function getTaskStatuses(): Promise<TroubleTaskStatus[]> {
+  return request<TroubleTaskStatus[]>('/api/trouble/task-statuses')
+}
+
+export async function createTaskStatus(data: CreateTroubleTaskStatus): Promise<TroubleTaskStatus> {
+  return request<TroubleTaskStatus>('/api/trouble/task-statuses', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteTaskStatus(id: string): Promise<void> {
+  await request<void>(`/api/trouble/task-statuses/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export async function updateTaskStatusSortOrder(id: string, sort_order: number): Promise<TroubleTaskStatus> {
+  return request<TroubleTaskStatus>(`/api/trouble/task-statuses/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ sort_order }),
+  })
+}
+
 // --- Tasks ---
 
 export async function getTasks(ticketId: string): Promise<TroubleTask[]> {
@@ -419,7 +445,8 @@ export async function deleteTask(taskId: string): Promise<void> {
 
 export interface ListTasksQuery {
   ticket_id?: string
-  status?: 'open' | 'in_progress' | 'done'
+  /** task status key — now a dynamic master key (not a fixed union) */
+  status?: string
   task_type?: string
   assigned_to?: string
   q?: string

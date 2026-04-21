@@ -3,6 +3,10 @@ import type { TroubleTask, TroubleTaskType, Employee } from '~/types'
 import { TASK_STATUS_LABELS, DEFAULT_TASK_TYPES } from '~/types'
 import { listAllTasks, getTaskTypes, getEmployees } from '~/utils/api'
 import type { ListTasksQuery } from '~/utils/api'
+import { useTaskStatuses } from '~/composables/useTaskStatuses'
+
+const route = useRoute()
+const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
 
 const items = ref<TroubleTask[]>([])
 const total = ref(0)
@@ -15,7 +19,7 @@ const taskTypes = ref<TroubleTaskType[]>([])
 const employees = ref<Employee[]>([])
 
 // Filters
-const statusFilter = ref<'open' | 'in_progress' | 'done' | ''>('')
+const statusFilter = ref<string>('')
 const taskTypeFilter = ref<string>('')
 const assignedToFilter = ref<string>('')
 const qFilter = ref<string>('')
@@ -28,12 +32,16 @@ const occurredTo = ref<string>('')
 const sortBy = ref<'created_at' | 'occurred_at' | 'due_date' | 'next_action_due' | 'status'>('created_at')
 const sortDesc = ref<boolean>(true)
 
-const STATUS_OPTIONS = [
-  { label: 'すべて', value: '' },
-  { label: '未着手', value: 'open' },
-  { label: '進行中', value: 'in_progress' },
-  { label: '完了', value: 'done' },
-]
+const STATUS_OPTIONS = computed<{ label: string; value: string }[]>(() => {
+  const base = [{ label: 'すべて', value: '' }]
+  if (taskStatusesLoaded.value && taskStatusList.value.length > 0) {
+    return [...base, ...taskStatusList.value.map(s => ({ label: s.name, value: s.key }))]
+  }
+  return [
+    ...base,
+    ...Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ label: v.label, value: key })),
+  ]
+})
 
 const SORT_OPTIONS = [
   { label: '作成日', value: 'created_at' },
@@ -153,7 +161,12 @@ function ticketHref(taskTicketId: string): string {
 }
 
 onMounted(async () => {
-  await loadMasters()
+  // Preset status filter from ?status=<key>
+  const routeStatus = route.query.status
+  if (typeof routeStatus === 'string' && routeStatus) {
+    statusFilter.value = routeStatus
+  }
+  await Promise.all([loadMasters(), loadTaskStatuses()])
   await load()
 })
 </script>
@@ -266,11 +279,11 @@ onMounted(async () => {
               <td class="py-2 px-2">{{ formatYmd(task.next_action_due) }}</td>
               <td class="py-2 px-2">
                 <UBadge
-                  v-if="TASK_STATUS_LABELS[task.status]"
-                  :style="{ backgroundColor: TASK_STATUS_LABELS[task.status]!.color + '20', color: TASK_STATUS_LABELS[task.status]!.color }"
+                  v-if="taskStatusByKey(task.status)"
+                  :style="{ backgroundColor: taskStatusByKey(task.status)!.color + '20', color: taskStatusByKey(task.status)!.color }"
                   variant="subtle"
                 >
-                  {{ TASK_STATUS_LABELS[task.status]!.label }}
+                  {{ taskStatusByKey(task.status)!.label }}
                 </UBadge>
                 <span v-else class="text-gray-400">{{ task.status }}</span>
               </td>

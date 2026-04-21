@@ -16,12 +16,40 @@ const isDark = computed({
   },
 })
 
-const navigation: { label: string; icon: string; to: string; target?: string }[] = [
-  { label: 'チケット一覧', icon: 'i-lucide-list', to: '/tickets' },
-  { label: 'ステータス管理', icon: 'i-lucide-kanban', to: '/tickets/situations', target: '_blank' },
-  { label: '待機一覧', icon: 'i-lucide-clock', to: '/tickets/waiting', target: '_blank' },
-  { label: '状況管理', icon: 'i-lucide-list-checks', to: '/tasks', target: '_blank' },
-  { label: '設定', icon: 'i-lucide-settings', to: '/settings' },
+const navigation: { label: string; icon: string; to: string; target?: string; description: string }[] = [
+  {
+    label: 'チケット一覧',
+    icon: 'i-lucide-list',
+    to: '/tickets',
+    description: 'すべてのトラブルチケットを一覧表示・編集・新規作成',
+  },
+  {
+    label: 'ステータス管理',
+    icon: 'i-lucide-kanban',
+    to: '/tickets/situations',
+    target: '_blank',
+    description: 'ワークフロー状態別 (未着手/対応中/完了など) のカンバン表示',
+  },
+  {
+    label: '待機一覧',
+    icon: 'i-lucide-clock',
+    to: '/tickets/waiting',
+    target: '_blank',
+    description: '進捗状況が「待機」のチケットのみ抽出',
+  },
+  {
+    label: '状況管理',
+    icon: 'i-lucide-list-checks',
+    to: '/tasks',
+    target: '_blank',
+    description: '全チケット横断の状況 (サブタスク) 一覧、フィルタ・並び替え可',
+  },
+  {
+    label: '設定',
+    icon: 'i-lucide-settings',
+    to: '/settings',
+    description: 'カテゴリ / 営業所 / ワークフロー / 通知などのマスタ管理',
+  },
 ]
 
 function handleLogout() {
@@ -39,20 +67,28 @@ function handleLogout() {
       </div>
 
       <nav class="flex-1 p-2">
-        <NuxtLink
+        <UTooltip
           v-for="item in navigation"
           :key="item.to"
-          :to="item.to"
-          :target="item.target"
-          :rel="item.target ? 'noopener' : undefined"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
-          :class="!item.target && route.path.startsWith(item.to)
-            ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-medium'
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'"
+          :text="item.description"
+          :content="{ side: 'right', sideOffset: 12 }"
+          :delay-duration="150"
+          :ui="{ content: 'max-w-md text-lg px-5 py-3 leading-relaxed font-medium ring-2 ring-blue-500 dark:ring-blue-400 shadow-xl' }"
         >
-          <UIcon :name="item.icon" class="size-5" />
-          {{ item.label }}
-        </NuxtLink>
+          <NuxtLink
+            :to="item.to"
+            :target="item.target"
+            :rel="item.target ? 'noopener' : undefined"
+            :title="item.description"
+            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+            :class="!item.target && route.path.startsWith(item.to)
+              ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-medium'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'"
+          >
+            <UIcon :name="item.icon" class="size-5" />
+            {{ item.label }}
+          </NuxtLink>
+        </UTooltip>
       </nav>
 
       <!-- Dark mode toggle + User -->
