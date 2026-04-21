@@ -7,6 +7,7 @@ const stubs = {
   UButton: {
     template: '<button :disabled="disabled" @click="$emit(\'click\')">{{ label }}</button>',
     props: ['label', 'icon', 'size', 'disabled', 'variant', 'color'],
+    inheritAttrs: false,
   },
   UBadge: {
     template: '<span class="badge"><slot /></span>',
@@ -132,11 +133,11 @@ describe('MasterDataManager', () => {
     await upButton.trigger('click')
     const reorderEvents = wrapper.emitted('reorder')
     expect(reorderEvents).toBeTruthy()
-    expect(reorderEvents!.length).toBeGreaterThanOrEqual(2)
-    // Should contain the swap pair
-    const pairs = reorderEvents!.map(e => e)
-    expect(pairs).toContainEqual(['2', 1])
-    expect(pairs).toContainEqual(['1', 2])
+    // After swap, B is first (sort_order 10), A is second (sort_order 20)
+    expect(reorderEvents).toEqual([
+      ['2', 10],
+      ['1', 20],
+    ])
   })
 
   it('emits reorder events on moveDown', async () => {
@@ -154,10 +155,97 @@ describe('MasterDataManager', () => {
     await downButton.trigger('click')
     const reorderEvents = wrapper.emitted('reorder')
     expect(reorderEvents).toBeTruthy()
-    expect(reorderEvents!.length).toBeGreaterThanOrEqual(2)
-    const pairs = reorderEvents!.map(e => e)
-    expect(pairs).toContainEqual(['1', 2])
-    expect(pairs).toContainEqual(['2', 1])
+    // After swap, B is first (sort_order 10), A is second (sort_order 20)
+    expect(reorderEvents).toEqual([
+      ['2', 10],
+      ['1', 20],
+    ])
+  })
+
+  it('moveUp on index 2 of 5-item list emits 5 sequential reorder events with swap reflected', async () => {
+    // Reproduces issue #106: all items have sort_order 0 (ties).
+    // The component must renumber the entire list to break ties.
+    const sortedItems = [
+      { id: 'a', name: '佐賀', sort_order: 0 },
+      { id: 'b', name: '帯広', sort_order: 0 },
+      { id: 'c', name: '本社', sort_order: 0 },
+      { id: 'd', name: '諸富', sort_order: 0 },
+      { id: 'e', name: '北九州', sort_order: 0 },
+    ]
+    const wrapper = mount(MasterDataManager, {
+      props: { title: '営業所', items: sortedItems, loading: false },
+      global: { stubs },
+    })
+    const listItems = wrapper.findAll('li')
+    // Click "up" on item at index 2 ('本社')
+    const upButton = listItems[2].findAll('button')[0]
+    await upButton.trigger('click')
+    const reorderEvents = wrapper.emitted('reorder')
+    expect(reorderEvents).toBeTruthy()
+    // New order: 佐賀(a), 本社(c), 帯広(b), 諸富(d), 北九州(e)
+    expect(reorderEvents).toEqual([
+      ['a', 10],
+      ['c', 20],
+      ['b', 30],
+      ['d', 40],
+      ['e', 50],
+    ])
+  })
+
+  it('moveDown on index 2 of 5-item list emits 5 sequential reorder events with swap reflected', async () => {
+    const sortedItems = [
+      { id: 'a', name: '佐賀', sort_order: 0 },
+      { id: 'b', name: '帯広', sort_order: 0 },
+      { id: 'c', name: '本社', sort_order: 0 },
+      { id: 'd', name: '諸富', sort_order: 0 },
+      { id: 'e', name: '北九州', sort_order: 0 },
+    ]
+    const wrapper = mount(MasterDataManager, {
+      props: { title: '営業所', items: sortedItems, loading: false },
+      global: { stubs },
+    })
+    const listItems = wrapper.findAll('li')
+    // Click "down" on item at index 2 ('本社')
+    const downButton = listItems[2].findAll('button')[1]
+    await downButton.trigger('click')
+    const reorderEvents = wrapper.emitted('reorder')
+    expect(reorderEvents).toBeTruthy()
+    // New order: 佐賀(a), 帯広(b), 諸富(d), 本社(c), 北九州(e)
+    expect(reorderEvents).toEqual([
+      ['a', 10],
+      ['b', 20],
+      ['d', 30],
+      ['c', 40],
+      ['e', 50],
+    ])
+  })
+
+  it('builtins are skipped when emitting reorder events (only db items get sort_order)', async () => {
+    const sortedItems = [
+      { id: '1', name: 'A', sort_order: 10 },
+      { id: '2', name: 'B', sort_order: 20 },
+    ]
+    const wrapper = mount(MasterDataManager, {
+      props: {
+        title: 'テスト',
+        items: sortedItems,
+        builtinItems: ['X', 'Y'],
+        loading: false,
+      },
+      global: { stubs },
+    })
+    // mergedItems: A(db,10), B(db,20), X(builtin,1000), Y(builtin,1001)
+    const listItems = wrapper.findAll('li')
+    // Move B up — swap A and B; builtins are unchanged
+    const upButton = listItems[1].findAll('button')[0]
+    await upButton.trigger('click')
+    const reorderEvents = wrapper.emitted('reorder')
+    expect(reorderEvents).toBeTruthy()
+    // Only db items emit. New order: B(db), A(db), X(builtin skip), Y(builtin skip)
+    expect(reorderEvents).toEqual([
+      ['2', 10],
+      ['1', 20],
+    ])
   })
 
   it('does not emit reorder for first item moveUp', async () => {

@@ -34,13 +34,26 @@ const mergedItems = computed(() => {
   return [...dbItems, ...builtins].sort((a, b) => a.sort_order - b.sort_order)
 })
 
+function emitReorderedList(newOrder: typeof mergedItems.value) {
+  // Renumber the entire visible list with sequential indices (10x granularity
+  // so future single-item inserts can fit between). Skip builtins.
+  let dbIndex = 0
+  for (const it of newOrder) {
+    if (it.isBuiltin || !it.id) continue
+    dbIndex += 1
+    emit('reorder', it.id, dbIndex * 10)
+  }
+}
+
 function moveUp(index: number) {
   const item = mergedItems.value[index]
   const prev = mergedItems.value[index - 1]
   if (!item || !prev || index === 0 || item.isBuiltin || !item.id) return
   if (prev.isBuiltin || !prev.id) return
-  emit('reorder', item.id, prev.sort_order)
-  emit('reorder', prev.id, item.sort_order)
+  const newOrder = [...mergedItems.value]
+  newOrder[index - 1] = item
+  newOrder[index] = prev
+  emitReorderedList(newOrder)
 }
 
 function moveDown(index: number) {
@@ -48,8 +61,10 @@ function moveDown(index: number) {
   const next = mergedItems.value[index + 1]
   if (!item || !next || index >= mergedItems.value.length - 1 || item.isBuiltin || !item.id) return
   if (next.isBuiltin || !next.id) return
-  emit('reorder', item.id, next.sort_order)
-  emit('reorder', next.id, item.sort_order)
+  const newOrder = [...mergedItems.value]
+  newOrder[index + 1] = item
+  newOrder[index] = next
+  emitReorderedList(newOrder)
 }
 </script>
 
