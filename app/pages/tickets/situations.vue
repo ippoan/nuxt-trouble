@@ -29,16 +29,17 @@ const ticketsByState = computed(() => {
     map[state.id] = []
   }
   for (const t of tickets.value) {
-    if (t.status_id && map[t.status_id]) {
-      map[t.status_id].push(t)
-    }
+    if (!t.status_id) continue
+    const bucket = map[t.status_id]
+    if (bucket) bucket.push(t)
   }
   return map
 })
 
-const unassignedTickets = computed(() =>
-  tickets.value.filter(t => !t.status_id || !workflowStates.value.some(s => s.id === t.status_id)),
-)
+const unassignedTickets = computed<TroubleTicket[]>(() => {
+  const validIds = new Set(workflowStates.value.map(s => s.id))
+  return tickets.value.filter(t => !t.status_id || !validIds.has(t.status_id))
+})
 
 function navigateToTicket(id: string) {
   router.push(`/tickets/${id}`)
