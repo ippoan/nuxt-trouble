@@ -2,6 +2,7 @@
 import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
 import { formatOccurredAt } from '~/utils/datetime'
+import { formatExpiry } from '~/utils/carInspection'
 import type { TroubleTicket } from '~/types'
 
 const {
@@ -26,11 +27,6 @@ const showBulkImport = ref(false)
 
 function handleBulkImportDone() {
   fetchTickets()
-}
-
-function formatExpiry(v: string): string {
-  if (!v) return '-'
-  return v.length > 10 ? v.substring(0, 10) : v
 }
 
 // 保存中チケットID set（Enter + blur 重複発火を防ぐため in-flight 判定も兼ねる）
