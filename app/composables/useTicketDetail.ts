@@ -1,5 +1,6 @@
 import { getTicket, updateTicket, deleteTicket, getWorkflowStates } from '~/utils/api'
 import type { TroubleTicket, TroubleWorkflowState, UpdateTroubleTicket } from '~/types'
+import { toDatetimeLocalInput, fromDatetimeLocalInput, formatOccurredAt } from '~/utils/datetime'
 
 export function useTicketDetail(ticketId: string) {
   const router = useRouter()
@@ -22,7 +23,7 @@ export function useTicketDetail(ticketId: string) {
     { label: 'カテゴリ', key: 'category' },
     { label: 'タイトル', key: 'title' },
     { label: '説明', key: 'description' },
-    { label: '発生日', key: 'occurred_date' },
+    { label: '発生日時', key: 'occurred_at' },
     { label: '会社名', key: 'company_name' },
     { label: '営業所名', key: 'office_name' },
     { label: '部署名', key: 'department' },
@@ -38,6 +39,9 @@ export function useTicketDetail(ticketId: string) {
 
   function displayValue(key: string): string {
     if (!ticket.value) return '-'
+    if (key === 'occurred_at') {
+      return formatOccurredAt(ticket.value.occurred_at, ticket.value.occurred_date)
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const val = (ticket.value as any)[key]
     if (val == null || val === '') return '-'
@@ -50,7 +54,7 @@ export function useTicketDetail(ticketId: string) {
       category: ticket.value.category,
       title: ticket.value.title,
       description: ticket.value.description,
-      occurred_date: ticket.value.occurred_date || '',
+      occurred_at: toDatetimeLocalInput(ticket.value.occurred_at),
       company_name: ticket.value.company_name,
       office_name: ticket.value.office_name,
       department: ticket.value.department,
@@ -73,9 +77,15 @@ export function useTicketDetail(ticketId: string) {
     try {
       const data: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(form.value)) {
+        if (key === 'occurred_at') continue
         if (value != null && value !== '') {
           data[key] = value
         }
+      }
+      const occurred = fromDatetimeLocalInput(form.value.occurred_at as string | undefined)
+      if (occurred) {
+        data.occurred_at = occurred.occurred_at
+        data.occurred_date = occurred.occurred_date
       }
       ticket.value = await updateTicket(ticketId, data as UpdateTroubleTicket)
       editing.value = false

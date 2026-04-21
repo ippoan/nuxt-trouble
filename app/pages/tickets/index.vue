@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
+import { formatOccurredAt } from '~/utils/datetime'
 import type { TroubleTicket } from '~/types'
 
 const {
@@ -12,7 +13,7 @@ const {
   resetNewTicket, handleInlineCreate,
   fetchTickets, fetchWorkflowStates, fetchMasterData,
   clearFilter, confirmDelete, handleDelete, handleExportCsv,
-  formatDate, navigateToTicket,
+  navigateToTicket,
 } = useTicketList()
 
 const {
@@ -148,7 +149,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     <div v-else class="overflow-x-auto p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
       <div class="flex items-end gap-2 whitespace-nowrap min-w-[1600px]">
         <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
-        <UInput v-model="newTicket.occurred_date" type="date" size="sm" class="w-32" />
+        <UInput v-model="newTicket.occurred_at" type="datetime-local" size="sm" class="w-44" />
         <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
         <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
@@ -189,7 +190,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700">
               <th class="text-left py-2 px-2 font-medium">No</th>
-              <th class="text-left py-2 px-2 font-medium">発生日</th>
+              <th class="text-left py-2 px-2 font-medium">発生日時</th>
               <th class="text-left py-2 px-2 font-medium">所属会社名</th>
               <th class="text-left py-2 px-2 font-medium">営業所名</th>
               <th class="text-left py-2 px-2 font-medium">運行課</th>
@@ -220,7 +221,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               @click="navigateToTicket(ticket.id)"
             >
               <td class="py-2 px-2 text-gray-500">{{ ticket.ticket_no }}</td>
-              <td class="py-2 px-2">{{ formatDate(ticket.occurred_date) }}</td>
+              <td class="py-2 px-2">{{ formatOccurredAt(ticket.occurred_at, ticket.occurred_date) }}</td>
               <td class="py-2 px-2">{{ ticket.company_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.department || '-' }}</td>

@@ -1,5 +1,6 @@
 import { createTicket, setupDefaultWorkflow, getWorkflowStates } from '~/utils/api'
 import type { CreateTroubleTicket } from '~/types'
+import { fromDatetimeLocalInput } from '~/utils/datetime'
 
 export function useTicketNew() {
   const router = useRouter()
@@ -10,7 +11,7 @@ export function useTicketNew() {
     category: '',
     title: '',
     description: '',
-    occurred_date: '',
+    occurred_at: '',
     company_name: '',
     office_name: '',
     department: '',
@@ -45,10 +46,15 @@ export function useTicketNew() {
       await ensureWorkflow()
       const payload: Record<string, unknown> = { category: form.value.category }
       for (const [key, value] of Object.entries(form.value)) {
-        if (key === 'category') continue
+        if (key === 'category' || key === 'occurred_at') continue
         if (value != null && value !== '') {
           payload[key] = value
         }
+      }
+      const occurred = fromDatetimeLocalInput(form.value.occurred_at as string | undefined)
+      if (occurred) {
+        payload.occurred_at = occurred.occurred_at
+        payload.occurred_date = occurred.occurred_date
       }
       const ticket = await createTicket(payload as unknown as CreateTroubleTicket)
       router.push(`/tickets/${ticket.id}`)

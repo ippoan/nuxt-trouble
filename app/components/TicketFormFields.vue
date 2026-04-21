@@ -104,11 +104,11 @@ function updateEmployee(employeeId: string) {
         />
       </UFormField>
 
-      <UFormField label="発生日">
+      <UFormField label="発生日時">
         <UInput
-          type="date"
-          :model-value="(model.occurred_date as string) || ''"
-          @update:model-value="update('occurred_date', $event)"
+          type="datetime-local"
+          :model-value="(model.occurred_at as string) || ''"
+          @update:model-value="update('occurred_at', $event)"
         />
       </UFormField>
     </fieldset>

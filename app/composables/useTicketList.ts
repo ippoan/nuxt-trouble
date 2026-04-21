@@ -1,6 +1,7 @@
 import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow, getCategories, getOffices, getProgressStatuses } from '~/utils/api'
 import { TICKET_CATEGORIES } from '~/types'
 import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, CreateTroubleTicket } from '~/types'
+import { fromDatetimeLocalInput } from '~/utils/datetime'
 
 const STORAGE_KEY = 'trouble_filter_status'
 
@@ -135,7 +136,7 @@ export function useTicketList() {
   const creating = ref(false)
   const newTicket = reactive({
     category: '' as string,
-    occurred_date: '',
+    occurred_at: '',
     company_name: '',
     office_name: '',
     department: '',
@@ -157,7 +158,7 @@ export function useTicketList() {
 
   function resetNewTicket() {
     Object.assign(newTicket, {
-      category: '', occurred_date: '', company_name: '', office_name: '',
+      category: '', occurred_at: '', company_name: '', office_name: '',
       department: '', person_name: '', registration_number: '', location: '',
       description: '', progress_notes: '', allowance: '', damage_amount: '',
       compensation_amount: '', confirmation_notice: '', disciplinary_content: '',
@@ -174,7 +175,7 @@ export function useTicketList() {
       if (states.length === 0) await setupDefaultWorkflow()
       const payload: Record<string, unknown> = { category: newTicket.category }
       const fields = [
-        'occurred_date', 'company_name', 'office_name', 'department',
+        'company_name', 'office_name', 'department',
         'person_name', 'registration_number', 'location', 'description',
         'progress_notes', 'allowance', 'confirmation_notice',
         'disciplinary_content', 'disciplinary_action', 'counterparty',
@@ -185,6 +186,11 @@ export function useTicketList() {
       }
       for (const key of ['damage_amount', 'compensation_amount', 'road_service_cost'] as const) {
         if (newTicket[key]) payload[key] = Number(newTicket[key])
+      }
+      const occurred = fromDatetimeLocalInput(newTicket.occurred_at)
+      if (occurred) {
+        payload.occurred_at = occurred.occurred_at
+        payload.occurred_date = occurred.occurred_date
       }
       await createTicket(payload as unknown as CreateTroubleTicket)
       resetNewTicket()

@@ -318,7 +318,7 @@ describe('useTicketList', () => {
     l.newTicket.category = '貨物事故'
     l.newTicket.company_name = '会社A'
     l.newTicket.office_name = '営業所B'
-    l.newTicket.occurred_date = '2026-01-15'
+    l.newTicket.occurred_at = '2026-01-15T09:30'
     l.newTicket.description = '説明テスト'
     await l.handleInlineCreate()
 
@@ -326,6 +326,8 @@ describe('useTicketList', () => {
     expect(payload.company_name).toBe('会社A')
     expect(payload.office_name).toBe('営業所B')
     expect(payload.occurred_date).toBe('2026-01-15')
+    expect(typeof payload.occurred_at).toBe('string')
+    expect(payload.occurred_at).toMatch(/^2026-01-15T/)
     expect(payload.description).toBe('説明テスト')
   })
 

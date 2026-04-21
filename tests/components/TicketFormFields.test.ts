@@ -14,7 +14,7 @@ describe('TicketFormFields', () => {
     category: '',
     title: '',
     description: '',
-    occurred_date: '',
+    occurred_at: '',
     company_name: '',
     office_name: '',
     department: '',

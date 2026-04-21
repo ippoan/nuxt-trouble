@@ -2,6 +2,7 @@
 import type { TroubleTicket, TroubleWorkflowState } from '~/types'
 import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
+import { formatOccurredAt } from '~/utils/datetime'
 
 const props = defineProps<{
   ticket: TroubleTicket
@@ -88,7 +89,7 @@ const fields: Array<{ label: string; key: string }> = [
   { label: 'カテゴリ', key: 'category' },
   { label: 'タイトル', key: 'title' },
   { label: '説明', key: 'description' },
-  { label: '発生日', key: 'occurred_date' },
+  { label: '発生日時', key: 'occurred_at' },
   { label: '会社名', key: 'company_name' },
   { label: '営業所名', key: 'office_name' },
   { label: '部署名', key: 'department' },
@@ -104,21 +105,24 @@ const fields: Array<{ label: string; key: string }> = [
 ]
 
 function displayValue(key: string): string {
+  if (key === 'occurred_at') {
+    return formatOccurredAt(props.ticket.occurred_at, props.ticket.occurred_date)
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const val = (props.ticket as any)[key]
   if (val == null || val === '') return '-'
-  if (key === 'due_date' || key === 'occurred_date') return String(val).substring(0, 10)
+  if (key === 'due_date') return String(val).substring(0, 10)
   return String(val)
 }
 </script>
 
 <template>
   <div class="space-y-1">
-    <!-- Line 1: person_name + occurred_date -->
+    <!-- Line 1: person_name + occurred_at -->
     <div class="flex items-center gap-2 text-sm">
       <span v-if="ticket.person_name" class="font-medium">{{ ticket.person_name }}</span>
-      <span v-if="ticket.occurred_date" class="text-gray-500">
-        {{ ticket.occurred_date.substring(0, 10) }}
+      <span v-if="ticket.occurred_at || ticket.occurred_date" class="text-gray-500">
+        {{ formatOccurredAt(ticket.occurred_at, ticket.occurred_date) }}
       </span>
     </div>
 
