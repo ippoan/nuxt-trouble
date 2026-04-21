@@ -54,7 +54,7 @@ export function useTicketDetail(ticketId: string) {
       category: ticket.value.category,
       title: ticket.value.title,
       description: ticket.value.description,
-      occurred_at: toDatetimeLocalInput(ticket.value.occurred_at),
+      occurred_at: toDatetimeLocalInput(ticket.value.occurred_at, ticket.value.occurred_date),
       company_name: ticket.value.company_name,
       office_name: ticket.value.office_name,
       department: ticket.value.department,

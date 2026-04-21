@@ -2,11 +2,21 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-export function toDatetimeLocalInput(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+export function toDatetimeLocalInput(
+  iso: string | null | undefined,
+  fallbackDate?: string | null | undefined,
+): string {
+  if (iso) {
+    const d = new Date(iso)
+    if (!Number.isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    }
+  }
+  if (fallbackDate) {
+    const ymd = String(fallbackDate).substring(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return `${ymd}T00:00`
+  }
+  return ''
 }
 
 export function fromDatetimeLocalInput(
