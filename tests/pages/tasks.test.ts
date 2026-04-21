@@ -14,11 +14,13 @@ const listAllTasksMock = vi.fn()
 const getTaskTypesMock = vi.fn()
 const getEmployeesMock = vi.fn()
 const getTaskStatusesMock = vi.fn()
+const updateTaskMock = vi.fn()
 vi.mock('~/utils/api', () => ({
   listAllTasks: (...args: unknown[]) => listAllTasksMock(...args),
   getTaskTypes: (...args: unknown[]) => getTaskTypesMock(...args),
   getEmployees: (...args: unknown[]) => getEmployeesMock(...args),
   getTaskStatuses: (...args: unknown[]) => getTaskStatusesMock(...args),
+  updateTask: (...args: unknown[]) => updateTaskMock(...args),
 }))
 
 import TasksPage from '~/pages/tasks.vue'
@@ -44,6 +46,7 @@ describe('tasks page', () => {
     getTaskTypesMock.mockReset()
     getEmployeesMock.mockReset()
     getTaskStatusesMock.mockReset()
+    updateTaskMock.mockReset()
     routeQuery.value = {}
     listAllTasksMock.mockResolvedValue({ items: [], total: 0, page: 1, per_page: 50 })
     getTaskTypesMock.mockResolvedValue([])
@@ -76,8 +79,9 @@ describe('tasks page', () => {
     expect(wrapper.text()).toContain('タスクA')
     expect(wrapper.text()).toContain('タスクB')
     expect(wrapper.text()).toContain('山田太郎')
-    expect(wrapper.text()).toContain('未着手')
-    expect(wrapper.text()).toContain('進行中')
+    // Status is rendered as an inline USelect per row; assert selects are present
+    const selects = wrapper.findAll('[data-testid="task-status-select"]')
+    expect(selects.length).toBe(2)
   })
 
   it('shows empty state when items is empty', async () => {
@@ -248,14 +252,16 @@ describe('tasks page', () => {
     expect(wrapper.text()).toContain('-')
   })
 
-  it('renders unknown status as-is (fallback branch)', async () => {
+  it('preserves unknown status value on the row for inline select', async () => {
     const tasks = [makeTask({ id: 'task-1', status: 'weird-status' })]
     listAllTasksMock.mockResolvedValue({ items: tasks, total: 1, page: 1, per_page: 50 })
 
     const wrapper = mount(TasksPage, { global: { stubs: allStubs } })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('weird-status')
+    const vm = wrapper.vm as unknown as { items: Array<{ status: string }> }
+    expect(vm.items[0]!.status).toBe('weird-status')
+    expect(wrapper.find('[data-testid="task-status-select"]').exists()).toBe(true)
   })
 
   it('resolves employee name from id, falls back to id if unknown', async () => {
@@ -313,5 +319,71 @@ describe('tasks page', () => {
 
     expect(wrapper.text()).toContain('string error')
     errSpy.mockRestore()
+  })
+
+  it('inline status change calls updateTask and updates the row', async () => {
+    listAllTasksMock.mockResolvedValue({
+      items: [makeTask({ id: 'task-1', status: 'open' })],
+      total: 1,
+      page: 1,
+      per_page: 50,
+    })
+    updateTaskMock.mockImplementation((id: string, body: { status: string }) =>
+      Promise.resolve(makeTask({ id, status: body.status })),
+    )
+
+    const wrapper = mount(TasksPage, { global: { stubs: allStubs } })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleStatusChange: (t: { id: string; status: string }, v: string) => Promise<void>
+      items: Array<{ id: string; status: string }>
+    }
+    await vm.handleStatusChange(vm.items[0]!, 'in_progress')
+    await flushPromises()
+
+    expect(updateTaskMock).toHaveBeenCalledWith('task-1', { status: 'in_progress' })
+    expect(vm.items[0]!.status).toBe('in_progress')
+  })
+
+  it('inline status change reverts on API failure', async () => {
+    listAllTasksMock.mockResolvedValue({
+      items: [makeTask({ id: 'task-1', status: 'open' })],
+      total: 1,
+      page: 1,
+      per_page: 50,
+    })
+    updateTaskMock.mockRejectedValue(new Error('save failed'))
+
+    const wrapper = mount(TasksPage, { global: { stubs: allStubs } })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleStatusChange: (t: { id: string; status: string }, v: string) => Promise<void>
+      items: Array<{ id: string; status: string }>
+    }
+    await vm.handleStatusChange(vm.items[0]!, 'done')
+    await flushPromises()
+
+    expect(vm.items[0]!.status).toBe('open')
+    expect(wrapper.text()).toContain('save failed')
+  })
+
+  it('inline status change is a no-op when value is empty or unchanged', async () => {
+    listAllTasksMock.mockResolvedValue({
+      items: [makeTask({ id: 'task-1', status: 'open' })],
+      total: 1,
+      page: 1,
+      per_page: 50,
+    })
+    const wrapper = mount(TasksPage, { global: { stubs: allStubs } })
+    await flushPromises()
+    const vm = wrapper.vm as unknown as {
+      handleStatusChange: (t: { id: string; status: string }, v: string) => Promise<void>
+      items: Array<{ id: string; status: string }>
+    }
+    await vm.handleStatusChange(vm.items[0]!, '')
+    await vm.handleStatusChange(vm.items[0]!, 'open')
+    expect(updateTaskMock).not.toHaveBeenCalled()
   })
 })

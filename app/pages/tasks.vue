@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTask, TroubleTaskType, Employee } from '~/types'
 import { TASK_STATUS_LABELS, DEFAULT_TASK_TYPES } from '~/types'
-import { listAllTasks, getTaskTypes, getEmployees } from '~/utils/api'
+import { listAllTasks, getTaskTypes, getEmployees, updateTask } from '~/utils/api'
 import type { ListTasksQuery } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
 
@@ -42,6 +42,36 @@ const STATUS_OPTIONS = computed<{ label: string; value: string }[]>(() => {
     ...Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ label: v.label, value: key })),
   ]
 })
+
+// Inline edit dropdown on each table row: no "すべて" option, only real statuses.
+const inlineStatusOptions = computed<{ label: string; value: string }[]>(() => {
+  if (taskStatusesLoaded.value && taskStatusList.value.length > 0) {
+    return taskStatusList.value.map(s => ({ label: s.name, value: s.key }))
+  }
+  return Object.entries(TASK_STATUS_LABELS).map(([key, v]) => ({ label: v.label, value: key }))
+})
+
+const statusSaving = ref<Record<string, boolean>>({})
+
+async function handleStatusChange(task: TroubleTask, newStatus: string) {
+  if (!newStatus || newStatus === task.status) return
+  statusSaving.value = { ...statusSaving.value, [task.id]: true }
+  const prev = task.status
+  // Optimistic update
+  task.status = newStatus
+  try {
+    const updated = await updateTask(task.id, { status: newStatus })
+    const idx = items.value.findIndex(t => t.id === task.id)
+    if (idx >= 0) items.value[idx] = updated
+  } catch (e) {
+    task.status = prev
+    errorMessage.value = e instanceof Error ? e.message : 'ステータス更新に失敗しました'
+  } finally {
+    const next = { ...statusSaving.value }
+    delete next[task.id]
+    statusSaving.value = next
+  }
+}
 
 const SORT_OPTIONS = [
   { label: '作成日', value: 'created_at' },
@@ -278,14 +308,15 @@ onMounted(async () => {
               <td class="py-2 px-2">{{ employeeName(task.next_action_by) }}</td>
               <td class="py-2 px-2">{{ formatYmd(task.next_action_due) }}</td>
               <td class="py-2 px-2">
-                <UBadge
-                  v-if="taskStatusByKey(task.status)"
-                  :style="{ backgroundColor: taskStatusByKey(task.status)!.color + '20', color: taskStatusByKey(task.status)!.color }"
-                  variant="subtle"
-                >
-                  {{ taskStatusByKey(task.status)!.label }}
-                </UBadge>
-                <span v-else class="text-gray-400">{{ task.status }}</span>
+                <USelect
+                  :model-value="task.status"
+                  :items="inlineStatusOptions"
+                  size="xs"
+                  class="min-w-[6rem]"
+                  :disabled="statusSaving[task.id]"
+                  data-testid="task-status-select"
+                  @update:model-value="(v: string) => handleStatusChange(task, v)"
+                />
               </td>
               <td class="py-2 px-2">{{ formatYmd(task.created_at) }}</td>
             </tr>
