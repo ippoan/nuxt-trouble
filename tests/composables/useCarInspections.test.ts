@@ -24,8 +24,8 @@ describe('useCarInspections', () => {
   it.skipIf(isLive)('normalizes full-width registration numbers to half-width in options and lookup', async () => {
     getCarInspectionsCurrentMock.mockResolvedValue({
       carInspections: [
-        { EntryNoCarNo: '３８８１', OwnerName: 'オーナー1', CarName: '車名1', Model: 'モデル1', ValidPeriodExpirdate: '2027-01-01' },
-        { CarNo: '3829', OwnerName: 'オーナー2', CarName: '車名2', Model: 'モデル2', ValidPeriodExpirdate: '2027-02-01' },
+        { EntryNoCarNo: '３８８１', OwnerName: 'オーナー1', CarName: '車名1', Model: 'モデル1' },
+        { CarNo: '3829', OwnerName: 'オーナー2', CarName: '車名2', Model: 'モデル2' },
       ],
     })
 
@@ -37,5 +37,41 @@ describe('useCarInspections', () => {
     expect(ci.lookupByRegistration('3881')?.ownerName).toBe('オーナー1')
     expect(ci.lookupByRegistration('３８８１')?.ownerName).toBe('オーナー1')
     expect(ci.lookupByRegistration('3829')?.ownerName).toBe('オーナー2')
+  })
+
+  it.skipIf(isLive)('extracts expiry from TwodimensionCodeInfoValidPeriodExpirdate (YYMMDD)', async () => {
+    getCarInspectionsCurrentMock.mockResolvedValue({
+      carInspections: [
+        { CarNo: '1111', TwodimensionCodeInfoValidPeriodExpirdate: '270430' },
+      ],
+    })
+    const { useCarInspections } = await import('~/composables/useCarInspections')
+    const ci = useCarInspections()
+    await ci.load()
+    expect(ci.lookupByRegistration('1111')?.validPeriodExpirdate).toBe('2027-04-30')
+  })
+
+  it.skipIf(isLive)('falls back to wareki Y/M/D fields when TwodimensionCodeInfo is absent', async () => {
+    getCarInspectionsCurrentMock.mockResolvedValue({
+      carInspections: [
+        { CarNo: '2222', ValidPeriodExpirdateE: '令和', ValidPeriodExpirdateY: '7', ValidPeriodExpirdateM: '4', ValidPeriodExpirdateD: '30' },
+      ],
+    })
+    const { useCarInspections } = await import('~/composables/useCarInspections')
+    const ci = useCarInspections()
+    await ci.load()
+    expect(ci.lookupByRegistration('2222')?.validPeriodExpirdate).toBe('令和7年4月30日')
+  })
+
+  it.skipIf(isLive)('returns empty string when no expiry fields are present', async () => {
+    getCarInspectionsCurrentMock.mockResolvedValue({
+      carInspections: [
+        { CarNo: '3333', OwnerName: '社長' },
+      ],
+    })
+    const { useCarInspections } = await import('~/composables/useCarInspections')
+    const ci = useCarInspections()
+    await ci.load()
+    expect(ci.lookupByRegistration('3333')?.validPeriodExpirdate).toBe('')
   })
 })

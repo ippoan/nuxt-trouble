@@ -10,6 +10,25 @@ function normalizeKey(s: string | null | undefined): string {
     .toLowerCase()
 }
 
+// DB は ValidPeriodExpirdate を単一フィールドとしては持たず、
+// TwodimensionCodeInfoValidPeriodExpirdate (YYMMDD, 2D barcode 由来) か
+// ValidPeriodExpirdate{E,Y,M,D} (和暦) に分かれている。
+// ここでは YYMMDD を 20YY-MM-DD に変換、無ければ 和暦フィールドを合成する。
+function extractExpiry(raw: Record<string, unknown>): string {
+  const yymmdd = (raw.TwodimensionCodeInfoValidPeriodExpirdate as string | undefined) || ''
+  const m = /^(\d{2})(\d{2})(\d{2})$/.exec(yymmdd.trim())
+  if (m) return `20${m[1]}-${m[2]}-${m[3]}`
+
+  const era = (raw.ValidPeriodExpirdateE as string | undefined) || ''
+  const y = (raw.ValidPeriodExpirdateY as string | undefined) || ''
+  const mm = (raw.ValidPeriodExpirdateM as string | undefined) || ''
+  const dd = (raw.ValidPeriodExpirdateD as string | undefined) || ''
+  if (era && y && mm && dd) {
+    return `${era}${y}年${mm}月${dd}日`
+  }
+  return ''
+}
+
 function toSummary(raw: Record<string, unknown>): CarInspectionSummary | null {
   const rawReg = (raw.EntryNoCarNo as string | undefined)
     || (raw.CarNo as string | undefined)
@@ -23,7 +42,7 @@ function toSummary(raw: Record<string, unknown>): CarInspectionSummary | null {
       || '',
     carName: (raw.CarName as string | undefined) || '',
     model: (raw.Model as string | undefined) || '',
-    validPeriodExpirdate: (raw.ValidPeriodExpirdate as string | undefined) || '',
+    validPeriodExpirdate: extractExpiry(raw),
   }
 }
 
