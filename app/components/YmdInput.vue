@@ -176,16 +176,17 @@ const calendarValue = computed<CalendarDate | undefined>(() => {
   return new CalendarDate(Number(m[1]), Number(m[2]), Number(m[3]))
 })
 
-function onCalendarSelect(v: CalendarDate | undefined) {
-  if (!v) {
+function onCalendarSelect(v: unknown) {
+  if (!v || Array.isArray(v) || (typeof v === 'object' && v !== null && 'start' in v)) {
     emit('update:modelValue', undefined)
+    popoverOpen.value = false
+    return
   }
-  else {
-    const y = String(v.year)
-    const mm = String(v.month).padStart(2, '0')
-    const dd = String(v.day).padStart(2, '0')
-    emit('update:modelValue', `${y}-${mm}-${dd}`)
-  }
+  const d = v as CalendarDate
+  const y = String(d.year)
+  const mm = String(d.month).padStart(2, '0')
+  const dd = String(d.day).padStart(2, '0')
+  emit('update:modelValue', `${y}-${mm}-${dd}`)
   popoverOpen.value = false
 }
 </script>

@@ -255,17 +255,18 @@ const calendarValue = computed<CalendarDate | undefined>(() => {
   return new CalendarDate(Number(m[1]), Number(m[2]), Number(m[3]))
 })
 
-function onCalendarSelect(v: CalendarDate | undefined) {
-  if (!v) {
+function onCalendarSelect(v: unknown) {
+  if (!v || Array.isArray(v) || (typeof v === 'object' && v !== null && 'start' in v)) {
     year.value = ''
     month.value = ''
     day.value = ''
     emitModel()
     return
   }
-  year.value = String(v.year)
-  month.value = String(v.month).padStart(2, '0')
-  day.value = String(v.day).padStart(2, '0')
+  const d = v as CalendarDate
+  year.value = String(d.year)
+  month.value = String(d.month).padStart(2, '0')
+  day.value = String(d.day).padStart(2, '0')
   if (!hour.value) hour.value = '00'
   if (!minute.value) minute.value = '00'
   emitModel()
