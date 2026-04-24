@@ -70,6 +70,31 @@ function updateEmployee(employeeId: string) {
     model.value = { ...model.value, person_name: emp.name, person_id: emp.id }
   }
 }
+
+// Back-fill person_id from person_name for legacy tickets (person_id=null).
+// Skips when person_is_external=true — external parties are never in employee master.
+watch(
+  () => [props.employees, model.value.person_name, model.value.person_id, model.value.person_is_external] as const,
+  () => {
+    if (model.value.person_is_external) return
+    if (model.value.person_id || !model.value.person_name) return
+    const match = props.employees?.find(e => e.name === model.value.person_name)
+    if (match) {
+      model.value = { ...model.value, person_id: match.id }
+    }
+  },
+  { immediate: true },
+)
+
+function toggleExternal(checked: boolean) {
+  // Switching to external: drop person_id, keep person_name as free text.
+  // Switching to internal: clear both and let user select from dropdown.
+  if (checked) {
+    model.value = { ...model.value, person_is_external: true, person_id: null }
+  } else {
+    model.value = { ...model.value, person_is_external: false, person_id: null, person_name: '' }
+  }
+}
 </script>
 
 <template>
@@ -144,13 +169,31 @@ function updateEmployee(employeeId: string) {
         </UFormField>
 
         <UFormField label="氏名">
-          <USelect
-            :model-value="(model.person_id as string) || ''"
-            :items="employeeOptions"
-            placeholder="従業員を選択"
-            :disabled="employeeOptions.length === 0"
-            @update:model-value="updateEmployee($event as string)"
-          />
+          <div class="space-y-1">
+            <UInput
+              v-if="model.person_is_external"
+              :model-value="(model.person_name as string) || ''"
+              placeholder="外部当事者名（手入力）"
+              @update:model-value="update('person_name', $event)"
+            />
+            <USelect
+              v-else
+              :model-value="(model.person_id as string) || ''"
+              :items="employeeOptions"
+              placeholder="従業員を選択"
+              :disabled="employeeOptions.length === 0"
+              @update:model-value="updateEmployee($event as string)"
+            />
+            <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                :checked="!!model.person_is_external"
+                class="rounded"
+                @change="toggleExternal(($event.target as HTMLInputElement).checked)"
+              >
+              外部/手入力（従業員マスタ外）
+            </label>
+          </div>
         </UFormField>
       </div>
     </fieldset>

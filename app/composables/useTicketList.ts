@@ -141,6 +141,7 @@ export function useTicketList() {
     office_name: '',
     department: '',
     person_name: '',
+    person_is_external: false,
     registration_number: '',
     location: '',
     description: '',
@@ -159,7 +160,7 @@ export function useTicketList() {
   function resetNewTicket() {
     Object.assign(newTicket, {
       category: '', occurred_at: '', company_name: '', office_name: '',
-      department: '', person_name: '', registration_number: '', location: '',
+      department: '', person_name: '', person_is_external: false, registration_number: '', location: '',
       description: '', progress_notes: '', allowance: '', damage_amount: '',
       compensation_amount: '', confirmation_notice: '', disciplinary_content: '',
       disciplinary_action: '', road_service_cost: '', counterparty: '',
@@ -183,6 +184,9 @@ export function useTicketList() {
       ] as const
       for (const key of fields) {
         if (newTicket[key]) payload[key] = newTicket[key]
+      }
+      if (newTicket.person_is_external) {
+        payload.person_is_external = true
       }
       for (const key of ['damage_amount', 'compensation_amount', 'road_service_cost'] as const) {
         if (newTicket[key]) payload[key] = Number(newTicket[key])
