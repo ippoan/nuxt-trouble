@@ -93,9 +93,9 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       <UInput v-model="filter.person_name" placeholder="氏名" size="sm" class="w-24" />
       <UInput v-model="filter.company_name" placeholder="会社名" size="sm" class="w-28" />
       <USelect v-model="filter.office_name" :items="officeOptions" placeholder="営業所(全て)" size="sm" class="w-28" :disabled="officeOptions.length === 0" />
-      <UInput v-model="filter.date_from" type="date" size="sm" class="w-36" />
+      <YmdInput v-model="filter.date_from" />
       <span class="text-gray-400 text-xs">〜</span>
-      <UInput v-model="filter.date_to" type="date" size="sm" class="w-36" />
+      <YmdInput v-model="filter.date_to" />
       <UButton label="クリア" variant="ghost" size="xs" @click="clearFilter" />
     </div>
 
@@ -145,7 +145,11 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     <div v-else class="overflow-x-auto p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
       <div class="flex items-end gap-2 whitespace-nowrap min-w-[1600px]">
         <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
-        <UInput v-model="newTicket.occurred_at" type="datetime-local" size="sm" class="w-44" />
+        <YmdtInput
+          :model-value="newTicket.occurred_at || undefined"
+          class="w-72"
+          @update:model-value="(v: string | undefined) => { newTicket.occurred_at = v ?? '' }"
+        />
         <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
         <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
@@ -309,3 +313,4 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
     </UModal>
   </div>
 </template>
+

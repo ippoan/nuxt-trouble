@@ -138,11 +138,9 @@ async function saveDueDate() {
         @keydown.enter="($event.target as HTMLInputElement).blur()"
       />
       <span class="text-[10px] text-gray-400 shrink-0">期限</span>
-      <input
-        v-model="dueDateDraft"
-        type="date"
-        class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
-        @change="saveDueDate"
+      <YmdInput
+        :model-value="dueDateDraft || undefined"
+        @update:model-value="(v: string | undefined) => { dueDateDraft = v ?? ''; saveDueDate() }"
       />
     </div>
   </div>

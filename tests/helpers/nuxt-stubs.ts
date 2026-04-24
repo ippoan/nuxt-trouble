@@ -27,6 +27,16 @@ export const TicketCommentsStub = { template: '<div />', props: ['ticketId'] }
 export const TicketStatusHistoryStub = { template: '<div />', props: ['ticketId', 'workflowStates'] }
 export const TicketStatusTransitionStub = { template: '<div />', props: ['ticketId', 'currentStatusId', 'workflowStates'] }
 export const TicketFilesStub = { template: '<div />', props: ['ticketId'] }
+export const YmdInputStub = {
+  template: '<input data-ymd-input :value="modelValue || \'\'" @input="$emit(\'update:modelValue\', $event.target.value || undefined)" />',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+}
+export const YmdtInputStub = {
+  template: '<input data-ymdt-input :value="modelValue || \'\'" @input="$emit(\'update:modelValue\', $event.target.value || undefined)" />',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+}
 
 export const allStubs = {
   UApp, UCard, UButton, UIcon, UBadge, UInput, USelect, UFormField,
@@ -40,4 +50,6 @@ export const allStubs = {
   TicketStatusHistory: TicketStatusHistoryStub,
   TicketStatusTransition: TicketStatusTransitionStub,
   TicketFiles: TicketFilesStub,
+  YmdInput: YmdInputStub,
+  YmdtInput: YmdtInputStub,
 }

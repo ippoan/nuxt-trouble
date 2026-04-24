@@ -286,9 +286,9 @@ onMounted(() => {
           <h3 class="text-lg font-bold">通知を予約</h3>
 
           <UFormField label="通知日時">
-            <UInput
-              v-model="scheduleForm.scheduled_at"
-              type="datetime-local"
+            <YmdtInput
+              :model-value="scheduleForm.scheduled_at || undefined"
+              @update:model-value="(v: string | undefined) => { scheduleForm.scheduled_at = v ?? '' }"
             />
           </UFormField>
 

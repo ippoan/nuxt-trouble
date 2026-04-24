@@ -224,16 +224,28 @@ onMounted(async () => {
           <UInput v-model="qFilter" placeholder="キーワード" size="sm" />
         </UFormField>
         <UFormField label="期限 (から)">
-          <UInput v-model="dueFrom" type="date" size="sm" />
+          <YmdInput
+            :model-value="dueFrom || undefined"
+            @update:model-value="(v: string | undefined) => { dueFrom = v ?? '' }"
+          />
         </UFormField>
         <UFormField label="期限 (まで)">
-          <UInput v-model="dueTo" type="date" size="sm" />
+          <YmdInput
+            :model-value="dueTo || undefined"
+            @update:model-value="(v: string | undefined) => { dueTo = v ?? '' }"
+          />
         </UFormField>
         <UFormField label="発生日 (から)">
-          <UInput v-model="occurredFrom" type="date" size="sm" />
+          <YmdInput
+            :model-value="occurredFrom || undefined"
+            @update:model-value="(v: string | undefined) => { occurredFrom = v ?? '' }"
+          />
         </UFormField>
         <UFormField label="発生日 (まで)">
-          <UInput v-model="occurredTo" type="date" size="sm" />
+          <YmdInput
+            :model-value="occurredTo || undefined"
+            @update:model-value="(v: string | undefined) => { occurredTo = v ?? '' }"
+          />
         </UFormField>
         <UFormField label="並び">
           <div class="flex gap-2">

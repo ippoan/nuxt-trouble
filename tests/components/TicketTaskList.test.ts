@@ -52,6 +52,11 @@ const stubs = {
   UFormField: { template: '<div><slot /></div>', props: ['label'] },
   UModal: { template: '<div v-if="open"><slot name="content" /></div>', props: ['open'] },
   TicketTaskCard: { template: '<div class="task-card">{{ task.title }}</div>', props: ['task'] },
+  YmdInput: {
+    template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value || undefined)" />',
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+  },
 }
 
 describe('TicketTaskList', () => {

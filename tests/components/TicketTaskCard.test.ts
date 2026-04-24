@@ -25,6 +25,7 @@ const stubs = {
     template: '<select><option v-for="item in items" :key="item.value" :value="item.value">{{ item.label }}</option></select>',
     props: ['modelValue', 'items', 'size'],
   },
+  YmdInput: { template: '<input />', props: ['modelValue'] },
 }
 
 const sampleTask = {

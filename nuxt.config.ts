@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 
   vite: {
     server: {
-      allowedHosts: ['nuxt-trouble.dev.ippoan.org'],
+      allowedHosts: ['nuxt-trouble.dev.ippoan.org', '.trycloudflare.com'],
     },
     optimizeDeps: {
       // @ippoan/auth-client は .ts ソースで公開されており Vite の dep pre-bundle で
