@@ -4,7 +4,6 @@ export type {
   TroubleWorkflowState,
   TroubleWorkflowTransition,
   TroubleFile,
-  TroubleComment,
   TroubleStatusHistory,
   TransitionRequest,
 } from './generated'

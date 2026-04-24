@@ -59,6 +59,8 @@ export function useTicketDetail(ticketId: string) {
       office_name: ticket.value.office_name,
       department: ticket.value.department,
       person_name: ticket.value.person_name,
+      person_id: ticket.value.person_id,
+      person_is_external: ticket.value.person_is_external,
       registration_number: ticket.value.registration_number,
       location: ticket.value.location,
       damage_amount: ticket.value.damage_amount ? Number(ticket.value.damage_amount) : null,

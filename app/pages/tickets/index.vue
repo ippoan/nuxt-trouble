@@ -153,7 +153,13 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
         <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
-        <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" class="w-24" />
+        <div class="flex flex-col gap-0.5 w-24">
+          <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" />
+          <label class="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer whitespace-nowrap">
+            <input v-model="newTicket.person_is_external" type="checkbox" class="rounded">
+            外部/手入力
+          </label>
+        </div>
         <UInput
           :model-value="newTicket.registration_number"
           placeholder="登録番号"
@@ -225,7 +231,28 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               <td class="py-2 px-2">{{ ticket.company_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
               <td class="py-2 px-2">{{ ticket.department || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.person_name || '-' }}</td>
+              <td
+                class="py-2 px-2"
+                :class="ticket.person_name && !ticket.person_id && !ticket.person_is_external
+                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200'
+                  : ''"
+                :title="ticket.person_name && !ticket.person_id && !ticket.person_is_external ? '従業員マスタ未リンク（編集で自動リンクされます）' : undefined"
+              >
+                <span class="inline-flex items-center gap-1">
+                  <UIcon
+                    v-if="ticket.person_name && !ticket.person_id && !ticket.person_is_external"
+                    name="i-lucide-alert-triangle"
+                    class="size-3.5"
+                  />
+                  <UIcon
+                    v-else-if="ticket.person_is_external"
+                    name="i-lucide-user-round"
+                    class="size-3.5 text-gray-400"
+                    title="外部当事者"
+                  />
+                  {{ ticket.person_name || '-' }}
+                </span>
+              </td>
               <td class="py-2 px-2" @click.stop>
                 <input
                   type="text"
