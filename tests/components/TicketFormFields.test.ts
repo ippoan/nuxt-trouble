@@ -7,6 +7,8 @@ const stubs = {
   USelect: { template: '<select />', props: ['modelValue', 'items', 'placeholder'] },
   UInput: { template: '<input />', props: ['modelValue', 'placeholder', 'type'] },
   UTextarea: { template: '<textarea />', props: ['modelValue', 'placeholder', 'rows'] },
+  YmdInput: { template: '<input />', props: ['modelValue'] },
+  YmdtInput: { template: '<input />', props: ['modelValue'] },
 }
 
 describe('TicketFormFields', () => {

@@ -105,10 +105,9 @@ function updateEmployee(employeeId: string) {
       </UFormField>
 
       <UFormField label="発生日時">
-        <UInput
-          type="datetime-local"
-          :model-value="(model.occurred_at as string) || ''"
-          @update:model-value="update('occurred_at', $event)"
+        <YmdtInput
+          :model-value="(model.occurred_at as string) || undefined"
+          @update:model-value="(v: string | undefined) => update('occurred_at', v ?? '')"
         />
       </UFormField>
     </fieldset>
@@ -318,10 +317,9 @@ function updateEmployee(employeeId: string) {
       </div>
 
       <UFormField label="対応期限">
-        <UInput
-          type="date"
-          :model-value="(model.due_date as string) || ''"
-          @update:model-value="update('due_date', $event ? new Date($event).toISOString() : null)"
+        <YmdInput
+          :model-value="((model.due_date as string) || '').slice(0, 10) || undefined"
+          @update:model-value="(v: string | undefined) => update('due_date', v ? new Date(v).toISOString() : null)"
         />
       </UFormField>
     </fieldset>

@@ -391,7 +391,12 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <USelect v-if="isEditing(task.id, 'task_type')" :model-value="editingValue" :items="taskTypes" size="xs" class="min-w-0" @update:model-value="editingValue = $event; saveEdit(task.id, 'task_type')" />
           <span v-else class="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 truncate cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/60 transition-colors" @click="startEdit(task, 'task_type')">{{ task.task_type }}</span>
           <!-- occurred_at -->
-          <input v-if="isEditing(task.id, 'occurred_at')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'occurred_at')" />
+          <YmdInput
+            v-if="isEditing(task.id, 'occurred_at')"
+            :model-value="editingValue || undefined"
+            class="min-w-0"
+            @update:model-value="(v: string | undefined) => { editingValue = v ?? ''; saveEdit(task.id, 'occurred_at') }"
+          />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'occurred_at')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">発生:</span>{{ task.occurred_at?.substring(0, 10) || '-' }}
           </span>
@@ -426,7 +431,12 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <span />
           <span />
           <!-- due_date (aligned under occurred_at) -->
-          <input v-if="isEditing(task.id, 'due_date')" v-model="editingValue" type="date" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'due_date')" />
+          <YmdInput
+            v-if="isEditing(task.id, 'due_date')"
+            :model-value="editingValue || undefined"
+            class="min-w-0"
+            @update:model-value="(v: string | undefined) => { editingValue = v ?? ''; saveEdit(task.id, 'due_date') }"
+          />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'due_date')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
           </span>
@@ -477,7 +487,11 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">日時</span>
-            <input v-model="newTask.occurred_at" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            <YmdInput
+              :model-value="newTask.occurred_at || undefined"
+              class="min-w-0 flex-1"
+              @update:model-value="(v: string | undefined) => { newTask.occurred_at = v ?? '' }"
+            />
           </div>
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
@@ -489,7 +503,11 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
           <span />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">期限</span>
-            <input v-model="newTask.due_date" type="date" class="min-w-0 flex-1 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            <YmdInput
+              :model-value="newTask.due_date || undefined"
+              class="min-w-0 flex-1"
+              @update:model-value="(v: string | undefined) => { newTask.due_date = v ?? '' }"
+            />
           </div>
           <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <input v-model="newTask.next_action_detail" placeholder="詳細" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
