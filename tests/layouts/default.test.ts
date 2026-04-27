@@ -1,37 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import { ref } from 'vue'
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
 import { allStubs } from '../helpers/nuxt-stubs'
 
-const clearAuthMock = vi.fn()
-const navigateToMock = vi.fn()
-
 vi.mock('~/composables/useAuth', () => ({
-  useAuth: () => ({
-    username: ref('テストユーザー'),
-    clearAuth: clearAuthMock,
-  }),
+  AuthToolbar: { template: '<div data-testid="auth-toolbar"><button>Apps</button></div>' },
 }))
 
 vi.mock('#app/composables/router', () => ({
   useRoute: () => ({ path: '/tickets' }),
-  navigateTo: (...args: unknown[]) => navigateToMock(...args),
 }))
 
 
 import DefaultLayout from '~/layouts/default.vue'
 
 describe('default layout', () => {
-  beforeEach(() => { clearAuthMock.mockReset(); navigateToMock.mockReset() })
-
-  it('renders navigation and user name', () => {
+  it('renders navigation and AuthToolbar', () => {
     const wrapper = mount(DefaultLayout, { global: { stubs: allStubs }, slots: { default: '<p>content</p>' } })
     expect(wrapper.text()).toContain('チケット一覧')
     expect(wrapper.text()).toContain('ステータス管理')
     expect(wrapper.text()).toContain('待機一覧')
     expect(wrapper.text()).toContain('状況管理')
     expect(wrapper.text()).toContain('設定')
-    expect(wrapper.text()).toContain('テストユーザー')
+    expect(wrapper.find('[data-testid="auth-toolbar"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('content')
   })
 
@@ -62,21 +52,11 @@ describe('default layout', () => {
   it('wraps each nav item in a tooltip with descriptive text', () => {
     const wrapper = mount(DefaultLayout, { global: { stubs: allStubs } })
     const tooltips = wrapper.findAll('[data-tooltip]')
-    // 5 nav items + potentially other UTooltips elsewhere; at minimum each nav has one
     const texts = tooltips.map(t => t.attributes('data-tooltip'))
     expect(texts).toContain('すべてのトラブルチケットを一覧表示・編集・新規作成')
     expect(texts).toContain('ワークフロー状態別 (未着手/対応中/完了など) のカンバン表示')
     expect(texts).toContain('進捗状況が「待機」のチケットのみ抽出')
     expect(texts).toContain('全チケット横断の状況 (サブタスク) 一覧、フィルタ・並び替え可')
     expect(texts).toContain('カテゴリ / 営業所 / ワークフロー / 通知などのマスタ管理')
-  })
-
-  it('handles logout', async () => {
-    const wrapper = mount(DefaultLayout, { global: { stubs: allStubs } })
-    const buttons = wrapper.findAll('button')
-    await buttons[buttons.length - 1].trigger('click')
-    await flushPromises()
-    expect(clearAuthMock).toHaveBeenCalled()
-    expect(navigateToMock).toHaveBeenCalledWith('/login')
   })
 })
