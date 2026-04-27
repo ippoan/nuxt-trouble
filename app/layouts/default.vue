@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const { username, clearAuth } = useAuth()
+import { AuthToolbar } from '~/composables/useAuth'
+
 const route = useRoute()
 const _darkMode = ref(false)
 let _colorMode: { value: string; preference: string } | null = null
@@ -52,10 +53,6 @@ const navigation: { label: string; icon: string; to: string; target?: string; de
   },
 ]
 
-function handleLogout() {
-  clearAuth()
-  navigateTo('/login')
-}
 </script>
 
 <template>
@@ -91,22 +88,18 @@ function handleLogout() {
         </UTooltip>
       </nav>
 
-      <!-- Dark mode toggle + User -->
-      <div class="p-4 border-t border-gray-200 dark:border-gray-800">
-        <div class="flex items-center justify-between mb-3">
+      <!-- Dark mode toggle + AuthToolbar (Apps / Settings / Logout) -->
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div class="flex items-center justify-between">
           <span class="text-xs text-gray-500 dark:text-gray-400">ダークモード</span>
           <USwitch v-model="isDark" size="xs" />
         </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400 truncate mb-2">
-          {{ username }}
-        </div>
-        <UButton
-          label="ログアウト"
-          icon="i-lucide-log-out"
-          variant="ghost"
-          size="sm"
-          block
-          @click="handleLogout"
+        <AuthToolbar
+          class="flex flex-col items-stretch gap-1
+                 [&>*]:w-full [&>button]:justify-start
+                 [&>button]:px-3 [&>button]:py-1.5 [&>button]:text-sm"
+          :show-copy-url="false"
+          :show-qr="false"
         />
       </div>
     </aside>

@@ -19,6 +19,10 @@ export const NuxtLink = { template: '<a><slot /></a>', props: ['to'] }
 export const NuxtLayout = { template: '<div><slot /></div>' }
 export const NuxtPage = { template: '<div />' }
 export const StagingFooter = { template: '<div />', props: ['apiBase', 'tenantId'] }
+export const AuthToolbar = {
+  template: '<div data-testid="auth-toolbar"><button data-testid="apps-btn">Apps</button></div>',
+  props: ['showCopyUrl', 'showQr', 'showApps', 'showSettings', 'showLogout', 'showUserInfo', 'showOrgSlug'],
+}
 export const TicketCategoryBadgeStub = { template: '<span />', props: ['category'] }
 export const TicketFormFieldsStub = { template: '<div />', props: ['modelValue', 'mode'] }
 export const MasterDataManagerStub = { template: '<div />', props: ['title', 'items', 'builtinItems', 'loading'] }
@@ -42,6 +46,7 @@ export const allStubs = {
   UApp, UCard, UButton, UIcon, UBadge, UInput, USelect, UFormField,
   UTextarea, UModal, UPagination, USwitch, UTooltip, NuxtLink, NuxtLayout, NuxtPage,
   StagingFooter,
+  AuthToolbar,
   TicketCategoryBadge: TicketCategoryBadgeStub,
   TicketFormFields: TicketFormFieldsStub,
   MasterDataManager: MasterDataManagerStub,
