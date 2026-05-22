@@ -5,6 +5,7 @@ import { allStubs } from '../helpers/nuxt-stubs'
 vi.mock('#app/nuxt', () => ({
   useRuntimeConfig: () => ({ public: { authWorkerUrl: 'https://auth.example.com' } }),
   useNuxtApp: () => ({}),
+  defineAppConfig: <T>(c: T) => c,
 }))
 
 vi.mock('~/utils/api', () => ({

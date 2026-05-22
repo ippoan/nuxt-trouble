@@ -8,6 +8,7 @@ vi.mock('#app/composables/router', () => ({ definePageMeta: vi.fn() }))
 vi.mock('#app/nuxt', () => ({
   useRuntimeConfig: () => ({ public: {} }),
   useNuxtApp: () => ({}),
+  defineAppConfig: <T>(c: T) => c,
 }))
 
 import LoginPage from '~/pages/login.vue'
