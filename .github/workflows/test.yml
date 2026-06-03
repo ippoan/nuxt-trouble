@@ -11,12 +11,17 @@ permissions:
   contents: write
   packages: read
   pull-requests: write
+  id-token: write
 
 jobs:
   ci:
     uses: ippoan/ci-workflows/.github/workflows/frontend-ci.yml@main
     with:
       has_integration: true
+      # docker-compose.test.yml が ${API_IMAGE:-…:dev} で backend image を読むため、
+      # Release Wave compatibility edge を rust-alc-api に対して記録する。
+      compat_backend_repo: ippoan/rust-alc-api
+      compat_backend_image_env: API_IMAGE
       install_command: 'npm install'
       post_install_script: 'npx nuxt prepare && npx wrangler types'
       integration_env: 'API_BASE_URL=http://localhost:18080'
