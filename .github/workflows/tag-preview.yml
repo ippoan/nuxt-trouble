@@ -1,0 +1,85 @@
+name: Tag Preview (no-traffic)
+
+# stage (= no-traffic preview / staging) を **wave から切り離し**、ver tag を
+# 打った時点で独立して上げるための workflow (Refs ippoan/ci-workflows#96)。
+#
+# 設計原則:
+#   - stage は ver tag push でのみ発生する (wave とは無関係)。
+#   - wave の責務は flip (traffic 投入) のみ。wave はここで上げた preview version を
+#     後から flip するだけで、upload はしない。
+#
+# 本 workflow は `wrangler versions upload` で **no-traffic** の新 version を上げる
+# (= 100% traffic は現行 active version のまま)。flip は Release Wave (ci-dashboard
+# → release-wave-handler.yml の flip job) が `wrangler versions deploy <id>@100%`
+# で行う。
+#
+# version_id は後段の wave flip が発見できるよう `--message` に tag/sha を埋め込み、
+# Step Summary にも出力する (wave 側 discovery = #96 課題1)。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read      # checkout
+  packages: read      # @ippoan/* GitHub Packages dep install
+
+jobs:
+  preview:
+    name: no-traffic preview upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@ippoan'
+
+      - name: Install deps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm install
+
+      - name: Build (Nuxt)
+        run: |
+          npx nuxt prepare
+          npx wrangler types
+          npx nuxt build
+
+      # wrangler versions upload = no-traffic deploy。新 version を上げるが
+      # traffic は現行 active のまま。`--message` に git tag / sha を埋めて、
+      # 後で wave flip が `wrangler versions list` から本 version を発見できる
+      # ようにする (= stage を wave から切り離した上での flip 対象の引き当て)。
+      - name: wrangler versions upload (no-traffic)
+        id: upload
+        env:
+          # account_id は wrangler.toml に明記済みなので CLOUDFLARE_ACCOUNT_ID は不要。
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          OUT=$(npx wrangler versions upload --message "release ${TAG} (${SHA})" 2>&1)
+          echo "$OUT"
+          VERSION_ID=$(printf '%s' "$OUT" | grep -oiE 'Version ID:[[:space:]]+[a-f0-9-]+' | tail -1 | awk '{print $NF}')
+          if [[ -z "$VERSION_ID" ]]; then
+            echo "::error::could not parse Version ID from wrangler output"
+            exit 1
+          fi
+          echo "version_id=$VERSION_ID" >> "$GITHUB_OUTPUT"
+          WV_PREVIEW=$(printf '%s' "$OUT" | grep -iE 'preview url' | grep -oiE 'https://[a-z0-9._-]+\.workers\.dev[^[:space:]]*' | head -1 || true)
+          {
+            echo "## Tag Preview (no-traffic)"
+            echo ""
+            echo "| key | value |"
+            echo "|---|---|"
+            echo "| tag | \`${TAG}\` |"
+            echo "| commit | \`${SHA}\` |"
+            echo "| previewed_version_id | \`${VERSION_ID}\` |"
+            echo "| preview_url | ${WV_PREVIEW:-(n/a)} |"
+            echo ""
+            echo "traffic は flip されていません。Release Wave の flip で 100% に投入します。"
+          } >> "$GITHUB_STEP_SUMMARY"
