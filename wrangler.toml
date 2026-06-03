@@ -12,6 +12,15 @@ custom_domain = true
 NUXT_PUBLIC_API_BASE = "https://alc-api.ippoan.org"
 NUXT_PUBLIC_AUTH_WORKER_URL = "https://auth.ippoan.org"
 
+# Workers Logs (observability) を有効化。prod / staging 両方に継承される。
+[observability]
+enabled = true
+
+# secret-verify (frontend-ci) が明示宣言を要求する。本 worker は実行時 secret を
+# 使わない (API base / auth URL は vars) ので、空リストを明示する。
+[secrets]
+required = []
+
 [env.staging]
 name = "nuxt-trouble-staging"
 
