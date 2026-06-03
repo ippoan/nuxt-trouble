@@ -353,9 +353,9 @@ onMounted(() => {
 })
 
 // Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
-const GRID = 'grid-cols-[2.5rem_6rem_7rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
+const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
 // Form grid: task_type / date / title / description / assignee / add-btn
-const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
+const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
 </script>
 
 <template>
@@ -375,9 +375,13 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
     </div>
 
     <template v-else>
-      <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
-        状況管理項目はありません
-      </div>
+      <!-- Horizontal scroll wrapper: keeps the dense grid from collapsing so the
+           date inputs (YmdInput) never overflow into the neighbouring placeholders. -->
+      <div class="overflow-x-auto">
+        <div class="min-w-[54rem]">
+          <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
+            状況管理項目はありません
+          </div>
 
       <!-- Task rows (2 rows per task, same 9-col grid) -->
       <template v-for="(task, idx) in tasks" :key="task.id">
@@ -517,6 +521,8 @@ const FORM_GRID = 'grid-cols-[6rem_7rem_1fr_1fr_8rem_2.5rem]'
         <datalist id="task-employee-list">
           <option v-for="e in employees" :key="e.id" :value="e.name" />
         </datalist>
+      </div>
+        </div>
       </div>
       <!-- Trash toggle -->
       <div class="mt-2 flex justify-end">
