@@ -14,6 +14,7 @@ const year = ref('')
 const month = ref('')
 const day = ref('')
 
+const rootRef = ref<HTMLElement | null>(null)
 const yearRef = ref<HTMLInputElement | null>(null)
 const monthRef = ref<HTMLInputElement | null>(null)
 const dayRef = ref<HTMLInputElement | null>(null)
@@ -69,24 +70,26 @@ function sanitize(s: string): string {
   return s.replace(/\D/g, '')
 }
 
+// 入力中は内部状態のみ更新する。保存 (emit) は blur / Enter / カレンダー選択
+// など「確定」操作でのみ行い、手入力の途中で API を撃たない。自動フォーカス
+// 移動も廃止 (4 桁打って勝手に次へ飛ぶのが手入力では不快)。セル間移動は
+// Tab / `/` / 矢印キーで行える (keydown ハンドラ参照)。
 function onYearInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 4)
-  year.value = v
-  if (v.length === 4) nextTick(() => monthRef.value?.focus())
-  emitModel()
+  year.value = sanitize((e.target as HTMLInputElement).value).slice(0, 4)
 }
 
 function onMonthInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
-  month.value = v
-  const advance = v.length === 2 || (v.length === 1 && Number(v) > 1)
-  if (advance) nextTick(() => dayRef.value?.focus())
-  emitModel()
+  month.value = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
 }
 
 function onDayInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
-  day.value = v
+  day.value = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+}
+
+/** root の外へフォーカスが抜けたときだけ確定 (セル間移動では確定しない)。 */
+function commitOnBlur(e: FocusEvent) {
+  const next = e.relatedTarget as Node | null
+  if (next && rootRef.value?.contains(next)) return
   emitModel()
 }
 
@@ -193,7 +196,10 @@ function onCalendarSelect(v: unknown) {
 
 <template>
   <div
+    ref="rootRef"
     class="inline-flex items-center gap-0.5 h-8 px-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-sm"
+    @focusout="commitOnBlur"
+    @keydown.enter="emitModel"
   >
     <input
       ref="yearRef"
