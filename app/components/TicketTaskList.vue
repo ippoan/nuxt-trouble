@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { TroubleTask, TroubleWorkflowState, Employee, TroubleFile } from '~/types'
+import type { TroubleTask, TroubleWorkflowState, TroubleWorkflowTransition, Employee, TroubleFile } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile } from '~/utils/api'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
 
 const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
@@ -94,20 +94,40 @@ async function loadTasks() {
   }
 }
 
+const transitions = ref<TroubleWorkflowTransition[]>([])
+
+async function loadTransitions() {
+  try {
+    transitions.value = await getWorkflowTransitions()
+  } catch {
+    transitions.value = []
+  }
+}
+
+/** 現在の状態 from から to への遷移がワークフローで許可されているか。 */
+function isTransitionAllowed(fromId: string | null, toId: string): boolean {
+  if (!fromId) return false
+  return transitions.value.some(t => t.from_state_id === fromId && t.to_state_id === toId)
+}
+
 function checkSuggestions() {
   if (tasks.value.length === 0) return
   const allDone = tasks.value.every(t => isTaskDone(t.status))
   const anyInProgress = tasks.value.some(t => t.status === 'in_progress')
+  // 提案する遷移は「現在の状態から実際に許可されている」ものに限る。
+  // 未許可の遷移を提案すると transition API が 422 を返すため (Refs #122 系)。
   if (allDone) {
     const terminalState = props.workflowStates.find(s => s.is_terminal)
-    if (terminalState && props.currentStatusId !== terminalState.id) {
-      emit('suggestTransition', terminalState.id, '全てのタスクが完了しました。ステータスを変更しますか？')
+    if (terminalState && props.currentStatusId !== terminalState.id
+      && isTransitionAllowed(props.currentStatusId, terminalState.id)) {
+      emit('suggestTransition', terminalState.id, '全てのタスクが完了しました。完了にしますか？')
     }
   } else if (anyInProgress) {
     const inProgressState = props.workflowStates.find(
       s => !s.is_initial && !s.is_terminal && s.label.includes('対応中'),
     )
-    if (inProgressState && props.currentStatusId !== inProgressState.id) {
+    if (inProgressState && props.currentStatusId !== inProgressState.id
+      && isTransitionAllowed(props.currentStatusId, inProgressState.id)) {
       emit('suggestTransition', inProgressState.id, 'タスクが進行中です。ステータスを「対応中」に変更しますか？')
     }
   }
@@ -349,6 +369,7 @@ onMounted(() => {
   fetchTaskTypes()
   fetchEmployees()
   loadTaskStatuses()
+  loadTransitions()
   loadTasks().then(() => loadAllFileCounts())
 })
 

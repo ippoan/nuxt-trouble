@@ -25,5 +25,7 @@ jobs:
       install_command: 'npm install'
       post_install_script: 'npx nuxt prepare && npx wrangler types'
       integration_env: 'API_BASE_URL=http://localhost:18080'
-    secrets:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    # inherit で org-level secret も渡す: RELEASE_WAVE_WEBHOOK_SECRET (compat
+    # report → ci-dashboard の Compatibility グラフに出す) と CI_APP_ID /
+    # CI_APP_PRIVATE_KEY (auto-merge job)。frontend-ci の他 caller と同じ標準形。
+    secrets: inherit
