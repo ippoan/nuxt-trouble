@@ -129,8 +129,8 @@ function bump(
       else if (next < min) next = min
     }
   }
+  // ↑↓ で値を動かしても即保存しない。確定 (emit) は blur / Enter で行う。
   r.value = String(next).padStart(pad, '0')
-  emitModel()
 }
 
 function bumpYear(delta: number) {
