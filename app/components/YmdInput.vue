@@ -93,6 +93,16 @@ function commitOnBlur(e: FocusEvent) {
   emitModel()
 }
 
+/**
+ * フォーカス時に既存値を全選択する。これをしないと既存値 (例 "06") の入った
+ * セルに数字を打っても sanitize().slice() で先頭が残り、入力が置換されず
+ * 編集できない (= 「編集で入力しづらい」原因)。全選択しておけば打った数字で
+ * そのまま上書きできる。
+ */
+function selectOnFocus(e: FocusEvent) {
+  (e.target as HTMLInputElement).select()
+}
+
 type Ref = typeof year
 
 function bump(
@@ -209,6 +219,7 @@ function onCalendarSelect(v: unknown) {
       maxlength="4"
       placeholder="YYYY"
       class="w-12 text-center outline-none bg-transparent"
+      @focus="selectOnFocus"
       @input="onYearInput"
       @keydown="onYearKeydown"
     >
@@ -221,6 +232,7 @@ function onCalendarSelect(v: unknown) {
       maxlength="2"
       placeholder="MM"
       class="w-6 text-center outline-none bg-transparent"
+      @focus="selectOnFocus"
       @input="onMonthInput"
       @keydown="onMonthKeydown"
     >
@@ -233,6 +245,7 @@ function onCalendarSelect(v: unknown) {
       maxlength="2"
       placeholder="DD"
       class="w-6 text-center outline-none bg-transparent"
+      @focus="selectOnFocus"
       @input="onDayInput"
       @keydown="onDayKeydown"
     >
