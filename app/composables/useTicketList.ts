@@ -134,6 +134,8 @@ export function useTicketList() {
   // Inline create
   const showInlineCreate = ref(false)
   const creating = ref(false)
+  const createError = ref<string | null>(null)
+
   const newTicket = reactive({
     category: '' as string,
     occurred_at: '',
@@ -169,7 +171,11 @@ export function useTicketList() {
   }
 
   async function handleInlineCreate() {
-    if (!newTicket.category) return
+    createError.value = null
+    if (!newTicket.category) {
+      createError.value = 'カテゴリは必須です'
+      return
+    }
     creating.value = true
     try {
       const states = await getWorkflowStates()
@@ -202,6 +208,7 @@ export function useTicketList() {
       await fetchTickets()
     } catch (e) {
       console.error('Failed to create:', e)
+      createError.value = e instanceof Error ? e.message : '作成に失敗しました'
     } finally {
       creating.value = false
     }
@@ -273,7 +280,7 @@ export function useTicketList() {
     filter, selectedStatuses, tickets, total, workflowStates, loading,
     deleteTarget, showDeleteModal, stateMap, totalPages,
     categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
-    showInlineCreate, creating, newTicket,
+    showInlineCreate, creating, createError, newTicket,
     categories, offices, progressStatuses,
     loadStatusFilter, toggleStatus, toggleAllStatuses,
     resetNewTicket, handleInlineCreate,

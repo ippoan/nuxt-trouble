@@ -9,7 +9,7 @@ const {
   filter, selectedStatuses, tickets, loading,
   deleteTarget, showDeleteModal, stateMap, totalPages,
   categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
-  showInlineCreate, creating, newTicket, workflowStates, total,
+  showInlineCreate, creating, createError, newTicket, workflowStates, total,
   loadStatusFilter, toggleStatus, toggleAllStatuses,
   resetNewTicket, handleInlineCreate,
   fetchTickets, fetchWorkflowStates, fetchMasterData,
@@ -183,6 +183,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
         <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showInlineCreate = false; resetNewTicket()" />
       </div>
+      <p v-if="createError" class="text-xs text-red-500 mt-1 px-1">作成エラー: {{ createError }}</p>
     </div>
 
     <!-- Table -->
