@@ -88,6 +88,14 @@ function onDayInput(e: Event) {
 
 /** root の外へフォーカスが抜けたときだけ確定 (セル間移動では確定しない)。 */
 function commitOnBlur(e: FocusEvent) {
+  // カレンダーアイコンを押すと UPopover が開き、reka-ui が teleport 先の
+  // UCalendar にフォーカスを移すため input root から focusout が発火する。
+  // これを「確定」と誤判定して emit すると、TicketTaskList のように
+  // @update:model-value で即 saveEdit() → editingId=null → v-if 解除する親では
+  // 入力欄ごと消え、カレンダーを押した瞬間に消滅する (= 「クリックで消える」)。
+  // popover 操作中は確定しない。日付選択は onCalendarSelect が、popover を閉じて
+  // 他要素へ移ったときは下の relatedTarget 判定が確定を担う。
+  if (popoverOpen.value) return
   const next = e.relatedTarget as Node | null
   if (next && rootRef.value?.contains(next)) return
   emitModel()
