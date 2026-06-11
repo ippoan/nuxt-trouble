@@ -9,6 +9,9 @@ const deleteTicketMock = vi.fn()
 const exportTicketsCsvMock = vi.fn()
 const createTicketMock = vi.fn()
 const setupDefaultWorkflowMock = vi.fn()
+const getCategoriesMock = vi.fn()
+const getOfficesMock = vi.fn()
+const getProgressStatusesMock = vi.fn()
 
 vi.mock('~/utils/api', async (importOriginal) => {
   if (process.env.API_BASE_URL) return await importOriginal()
@@ -20,6 +23,9 @@ vi.mock('~/utils/api', async (importOriginal) => {
     exportTicketsCsv: (...args: unknown[]) => exportTicketsCsvMock(...args),
     createTicket: (...args: unknown[]) => createTicketMock(...args),
     setupDefaultWorkflow: (...args: unknown[]) => setupDefaultWorkflowMock(...args),
+    getCategories: (...args: unknown[]) => getCategoriesMock(...args),
+    getOffices: (...args: unknown[]) => getOfficesMock(...args),
+    getProgressStatuses: (...args: unknown[]) => getProgressStatusesMock(...args),
   }
 })
 
@@ -43,6 +49,9 @@ describe('useTicketList', () => {
     exportTicketsCsvMock.mockReset()
     createTicketMock.mockReset()
     setupDefaultWorkflowMock.mockReset()
+    getCategoriesMock.mockReset()
+    getOfficesMock.mockReset()
+    getProgressStatusesMock.mockReset()
   })
   afterEach(() => teardownApi())
 
@@ -338,6 +347,50 @@ describe('useTicketList', () => {
     l.resetNewTicket()
     expect(l.newTicket.category).toBe('')
     expect(l.newTicket.person_name).toBe('')
+  })
+
+  it('handleInlineCreate includes person_is_external flag', async () => {
+    if (isLive) return
+    getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
+    createTicketMock.mockResolvedValue({ id: 'new-id' })
+    getTicketsMock.mockResolvedValue({ tickets: [], total: 0, page: 1, per_page: 20 })
+
+    const l = useTicketList()
+    l.newTicket.category = '貨物事故'
+    l.newTicket.person_is_external = true
+    await l.handleInlineCreate()
+
+    const payload = createTicketMock.mock.calls[0][0]
+    expect(payload.person_is_external).toBe(true)
+  })
+
+  // Master data
+  it('fetchMasterData loads categories, offices, progress statuses', async () => {
+    if (isLive) return
+    getCategoriesMock.mockResolvedValue([{ id: 'c1', tenant_id: 't1', name: '貨物事故', sort_order: 1, created_at: '' }])
+    getOfficesMock.mockResolvedValue([{ id: 'o1', tenant_id: 't1', name: '東京営業所', sort_order: 1, created_at: '' }])
+    getProgressStatusesMock.mockResolvedValue([{ id: 'p1', tenant_id: 't1', name: '対応中', sort_order: 1, created_at: '' }])
+
+    const l = useTicketList()
+    await l.fetchMasterData()
+
+    expect(l.categories.value.length).toBe(1)
+    expect(l.officeOptions.value).toEqual([{ label: '東京営業所', value: '東京営業所' }])
+    expect(l.progressOptions.value).toEqual([{ label: '対応中', value: '対応中' }])
+  })
+
+  it('fetchMasterData falls back to empty arrays on per-call failure', async () => {
+    if (isLive) return
+    getCategoriesMock.mockRejectedValue(new Error('cats fail'))
+    getOfficesMock.mockRejectedValue(new Error('offs fail'))
+    getProgressStatusesMock.mockRejectedValue(new Error('progs fail'))
+
+    const l = useTicketList()
+    await l.fetchMasterData()
+
+    expect(l.categories.value).toEqual([])
+    expect(l.officeOptions.value).toEqual([])
+    expect(l.progressOptions.value).toEqual([])
   })
 
   it('createCategoryOptions has correct length with no DB categories', () => {

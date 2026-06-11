@@ -120,6 +120,15 @@ describe('useTicketDetail', () => {
     expect(useTicketDetail('x').displayValue('category')).toBe('-')
   })
 
+  it('displayValue formats occurred_at via formatOccurredAt', async () => {
+    if (isLive) return
+    getTicketMock.mockResolvedValue(makeTroubleTicket({ occurred_at: null, occurred_date: '2026-01-15' }))
+    getWorkflowStatesMock.mockResolvedValue([])
+    const d = useTicketDetail('test-id')
+    await d.load()
+    expect(d.displayValue('occurred_at')).toBe('2026-01-15')
+  })
+
   it('startEdit populates form', async () => {
     if (!isLive) { getTicketMock.mockResolvedValue(ticket); getWorkflowStatesMock.mockResolvedValue([]) }
     const d = useTicketDetail(tid())
