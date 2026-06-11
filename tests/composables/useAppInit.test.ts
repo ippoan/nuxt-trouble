@@ -73,4 +73,16 @@ describe('useAppInit', () => {
     const { isLoading } = useAppInit()
     expect(isLoading.value).toBe(false)
   })
+
+  it('onUnauthorized handler clears auth and navigates to /login', async () => {
+    const { setup } = useAppInit()
+    await setup()
+
+    const onUnauthorized = initApiMock.mock.calls[0][4] as () => void
+    onUnauthorized()
+
+    expect(clearAuthMock).toHaveBeenCalled()
+    const { navigateTo } = await import('#app/composables/router')
+    expect(navigateTo).toHaveBeenCalledWith('/login')
+  })
 })

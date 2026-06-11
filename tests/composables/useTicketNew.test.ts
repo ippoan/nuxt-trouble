@@ -84,6 +84,22 @@ describe('useTicketNew', () => {
     expect(setupDefaultWorkflowMock).toHaveBeenCalled()
   })
 
+  it('includes occurred_at and occurred_date when set', async () => {
+    if (isLive) return
+    getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
+    createTicketMock.mockResolvedValue({ id: 'new-id' })
+
+    const { form, handleSubmit } = useTicketNew()
+    form.value.category = '貨物事故'
+    form.value.occurred_at = '2026-01-15T09:30'
+    await handleSubmit()
+
+    const payload = createTicketMock.mock.calls[0][0]
+    expect(payload.occurred_date).toBe('2026-01-15')
+    expect(typeof payload.occurred_at).toBe('string')
+    expect(payload.occurred_at).toMatch(/^2026-01-15T/)
+  })
+
   it('handles Error on create failure', async () => {
     if (isLive) return
     getWorkflowStatesMock.mockResolvedValue([{ id: 's1' }])
