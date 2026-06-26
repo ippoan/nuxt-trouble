@@ -51,6 +51,11 @@ export default defineEventHandler(async (event) => {
       'https://rust-alc-api-747065218280.asia-northeast1.run.app',
     authWorkerUrl,
     sharedSecret,
+    // app/utils/api.ts の request path が `/api/trouble/...` と **`/api/` を含む**
+    // ため、default pathPrefix='/api/' だと backend/api/api/trouble/... の二重 /api
+    // で 404 になる。pathPrefix='/' にして backend/api/trouble/... に正す
+    // (nuxt-dtako-admin / nuxt-items#35 と同方針)。
+    pathPrefix: '/',
     // AUTH_WORKER service binding 経由で introspect (worker-to-worker, in-process)。
     introspectFetch: authWorker ? () => authWorker.fetch.bind(authWorker) : undefined,
   })
