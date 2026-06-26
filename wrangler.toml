@@ -1,6 +1,7 @@
 name = "nuxt-trouble"
 account_id = "24b45709d060d957340180e995f0d373"
 compatibility_date = "2025-03-10"
+compatibility_flags = ["nodejs_compat"]
 main = ".output/server/index.mjs"
 assets = { directory = ".output/public/", binding = "ASSETS" }
 
@@ -11,15 +12,28 @@ custom_domain = true
 [vars]
 NUXT_PUBLIC_API_BASE = "https://alc-api.ippoan.org"
 NUXT_PUBLIC_AUTH_WORKER_URL = "https://auth.ippoan.org"
+# /api/proxy/* が introspect 検証後に forward する rust-alc-api backend。
+NUXT_ALC_API_URL = "https://rust-alc-api-747065218280.asia-northeast1.run.app"
 
 # Workers Logs (observability) を有効化。prod / staging 両方に継承される。
 [observability]
 enabled = true
 
-# secret-verify (frontend-ci) が明示宣言を要求する。本 worker は実行時 secret を
-# 使わない (API base / auth URL は vars) ので、空リストを明示する。
-[secrets]
-required = []
+# auth-worker POST /auth/introspect (#290 Phase 4 / #434 step 2) を叩くための
+# 共有 secret。/api/proxy/* の forward 前段で browser JWT を introspect 検証し
+# X-Tenant-ID + X-User-* を注入するために使う。auth-worker / cc-relay / ref-files
+# と同じ CF Secrets Store entry を物理共有。GCP cloudsql-sv に同名 secret が SoT
+# として存在し frontend-ci の secret-verify が検証する (test.yml で
+# gcp_secret_verify_* 配線)。
+[[secrets_store_secrets]]
+binding = "INTERNAL_SHARED_SECRET"
+store_id = "bd7bc91a3e5f4111add4acf6cb4b8733"
+secret_name = "INTERNAL_SHARED_SECRET"
+
+# introspect を公開 HTTP ではなく CF service binding (worker-to-worker, 内部) で叩く。
+[[services]]
+binding = "AUTH_WORKER"
+service = "auth-worker"
 
 [env.staging]
 name = "nuxt-trouble-staging"
@@ -27,7 +41,20 @@ name = "nuxt-trouble-staging"
 [[env.staging.routes]]
 pattern = "trouble-staging.ippoan.org"
 custom_domain = true
+
 [env.staging.vars]
 NUXT_PUBLIC_API_BASE = "https://rust-alc-api-staging-566bls5vfq-an.a.run.app"
-NUXT_PUBLIC_AUTH_WORKER_URL = "https://auth-worker-staging.m-tama-ramu.workers.dev"
+NUXT_PUBLIC_AUTH_WORKER_URL = "https://auth-staging.ippoan.org"
 NUXT_PUBLIC_STAGING_TENANT_ID = ""
+NUXT_ALC_API_URL = "https://rust-alc-api-staging-566bls5vfq-an.a.run.app"
+
+# named env は top-level binding を継承しないので再宣言する。
+# staging/prod 統合 entry なので同じ secret_name (auth-worker #189)。
+[[env.staging.secrets_store_secrets]]
+binding = "INTERNAL_SHARED_SECRET"
+store_id = "bd7bc91a3e5f4111add4acf6cb4b8733"
+secret_name = "INTERNAL_SHARED_SECRET"
+
+[[env.staging.services]]
+binding = "AUTH_WORKER"
+service = "auth-worker-staging"
