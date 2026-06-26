@@ -1,6 +1,6 @@
 ---
 name: nuxt-trouble-map
-generated-from: nuxt-trouble:5e241507c6f96402e9e47106fdc978841f89ba07
+generated-from: nuxt-trouble:cae92b8901a7194bf26ec913db5baf72fa9fdf29
 paths: [app/, server/]
 description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / Cloudflare Workers) の構造ナビゲーション。rust-alc-api `/api/troubles` を叩くチケット・タスク・ワークフロー管理 SPA。pages/composables/utils と ts-rs 生成型の配置、/api/proxy identity proxy、2 対応者フィールドの罠を 1 枚にまとめる。トリガー:「nuxt-trouble」「トラブル管理」「状況管理」「チケット」「trouble_tasks」「assigned_to」「next_action_by」「ワークフロー」「ガントチャート」「trouble.ippoan.org」「/api/proxy」等。
 ---
@@ -9,8 +9,9 @@ description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / C
 
 トラブル (状況) 管理アプリ。Nuxt 4 (`app/` ディレクトリ構成) + Cloudflare Workers。
 rust-alc-api の `/api/troubles` 系を叩く SPA。フロントは `app/utils/api.ts` を
-**同一 Worker の `/api/proxy/*` server route 経由**で叩き、proxy が auth-worker
-introspect で identity (tenant + user) を注入する (#434 step 2)。
+**同一 Worker の `/api/proxy/*` server route 経由**で叩き、proxy は auth-worker
+`/alc-proxy/*` に service binding で thin-forward する (#434 step 3 方式 B)。
+introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker 側。
 
 > ここは索引。細部 (関数シグネチャ・行) は repo 側が正。
 > frontmatter の `generated-from` が現在の tree-sha とズレたら
@@ -24,13 +25,13 @@ introspect で identity (tenant + user) を注入する (#434 step 2)。
 | **composables** | `useTicketList.ts` `useTicketDetail.ts` `useTicketNew.ts` `useTaskStatuses.ts` `useCarInspections.ts` `useAppInit.ts` `useAuth.ts` | チケット・タスク・車検証・初期化・認証 |
 | **components** | `Ticket*.vue` (FormFields / TaskList / TaskCard / StatusHistory / StatusTransition / GanttChart / CategoryBadge / CompactOverview / Files) `WorkflowManager.vue` `MasterDataManager.vue` `BulkImportModal.vue` `Ymd(t)Input.vue` | チケット UI / ワークフロー / マスタ / 一括取込 / 日付入力 |
 | **utils** | `app/utils/api.ts` (API client) `datetime.ts` `normalize.ts` `excel-import.ts` `carInspection.ts` | API 呼び出し本体 / 日付 / 正規化 / Excel 取込 |
-| **server (proxy)** | `server/api/proxy/[...path].ts` | `/api/proxy/*` → rust-alc-api。`@ippoan/auth-client/server` の `createIdentityProxyHandler` に委譲し、introspect 検証 → X-Tenant-ID + X-User-* 注入。INTERNAL_SHARED_SECRET (Secrets Store) + AUTH_WORKER service binding を resolve して渡す (#434 step 2) |
+| **server (proxy)** | `server/api/proxy/[...path].ts` | `/api/proxy/*` → auth-worker `/alc-proxy/*` → rust-alc-api。`@ippoan/auth-client/server` の `createAuthWorkerProxyHandler` で AUTH_WORKER service binding に thin-forward (方式 B)。introspect / ACL / OIDC mint / X-Tenant-ID + X-User-* 注入は auth-worker 側。INTERNAL_SHARED_SECRET (Secrets Store) を resolve して consumer proof として渡す。**client path が既に `/api/` を含むため `pathPrefix: '/'`** (二重 /api 防止)。AUTH_WORKER 未設定は 503 (fail-closed) (#434 step 3) |
 | **型 (生成)** | `app/types/generated/*` (Trouble* 系: Ticket/Task/Category/Office/ProgressStatus/Workflow* 等) + `app/types/index.ts` | rust-alc-api models.rs から **ts-rs 自動生成**。手動編集しない |
 | **middleware / layout** | `app/middleware/auth.global.ts` `app/layouts/{default,auth}.vue` | 全ルート認証ガード / レイアウト |
 
 ## entrypoint
 
-- **nitro**: `nuxt.config.ts` → `nitro.preset = "cloudflare_module"`、`main = .output/server/index.mjs` (wrangler.toml)。`server/api/proxy/[...path].ts` で identity proxy を持つ (それ以外は SPA)。
+- **nitro**: `nuxt.config.ts` → `nitro.preset = "cloudflare_module"`、`main = .output/server/index.mjs` (wrangler.toml)。`server/api/proxy/[...path].ts` で auth-worker `/alc-proxy/*` への thin-forward proxy を持つ (それ以外は SPA)。
 - **API base**: ブラウザは `/api/proxy` (相対 = 同一 Worker server route) を基点に fetch (`useAppInit.ts` が `initApi('/api/proxy', ...)`)。proxy が `runtimeConfig.alcApiUrl` (= `NUXT_ALC_API_URL`) の rust-alc-api に forward。`runtimeConfig.public.apiBase` (= `NUXT_PUBLIC_API_BASE`) は StagingFooter の export/import 用に残る。
 - **wrangler**: top-level = prod (`nuxt-trouble`, trouble.ippoan.org)。`[env.staging]` = `nuxt-trouble-staging` (trouble-staging.ippoan.org)。
 
