@@ -1,15 +1,16 @@
 ---
 name: nuxt-trouble-map
-generated-from: nuxt-trouble:4b2c1eb5c37a43f5efa7a62e2e648caba6eba388
-paths: [app/]
-description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / Cloudflare Workers) の構造ナビゲーション。rust-alc-api `/api/troubles` を叩くチケット・タスク・ワークフロー管理 SPA。pages/composables/utils と ts-rs 生成型の配置、2 対応者フィールドの罠を 1 枚にまとめる。トリガー:「nuxt-trouble」「トラブル管理」「状況管理」「チケット」「trouble_tasks」「assigned_to」「next_action_by」「ワークフロー」「ガントチャート」「trouble.ippoan.org」等。
+generated-from: nuxt-trouble:5e241507c6f96402e9e47106fdc978841f89ba07
+paths: [app/, server/]
+description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / Cloudflare Workers) の構造ナビゲーション。rust-alc-api `/api/troubles` を叩くチケット・タスク・ワークフロー管理 SPA。pages/composables/utils と ts-rs 生成型の配置、/api/proxy identity proxy、2 対応者フィールドの罠を 1 枚にまとめる。トリガー:「nuxt-trouble」「トラブル管理」「状況管理」「チケット」「trouble_tasks」「assigned_to」「next_action_by」「ワークフロー」「ガントチャート」「trouble.ippoan.org」「/api/proxy」等。
 ---
 
 # nuxt-trouble-map — ippoan/nuxt-trouble 構造ナビゲーション
 
 トラブル (状況) 管理アプリ。Nuxt 4 (`app/` ディレクトリ構成) + Cloudflare Workers。
-rust-alc-api の `/api/troubles` 系を叩く SPA。server route は無く (proxy せず) フロントが
-`app/utils/api.ts` から直接 rust-alc-api を fetch する。
+rust-alc-api の `/api/troubles` 系を叩く SPA。フロントは `app/utils/api.ts` を
+**同一 Worker の `/api/proxy/*` server route 経由**で叩き、proxy が auth-worker
+introspect で identity (tenant + user) を注入する (#434 step 2)。
 
 > ここは索引。細部 (関数シグネチャ・行) は repo 側が正。
 > frontmatter の `generated-from` が現在の tree-sha とズレたら
@@ -23,19 +24,20 @@ rust-alc-api の `/api/troubles` 系を叩く SPA。server route は無く (prox
 | **composables** | `useTicketList.ts` `useTicketDetail.ts` `useTicketNew.ts` `useTaskStatuses.ts` `useCarInspections.ts` `useAppInit.ts` `useAuth.ts` | チケット・タスク・車検証・初期化・認証 |
 | **components** | `Ticket*.vue` (FormFields / TaskList / TaskCard / StatusHistory / StatusTransition / GanttChart / CategoryBadge / CompactOverview / Files) `WorkflowManager.vue` `MasterDataManager.vue` `BulkImportModal.vue` `Ymd(t)Input.vue` | チケット UI / ワークフロー / マスタ / 一括取込 / 日付入力 |
 | **utils** | `app/utils/api.ts` (API client) `datetime.ts` `normalize.ts` `excel-import.ts` `carInspection.ts` | API 呼び出し本体 / 日付 / 正規化 / Excel 取込 |
+| **server (proxy)** | `server/api/proxy/[...path].ts` | `/api/proxy/*` → rust-alc-api。`@ippoan/auth-client/server` の `createIdentityProxyHandler` に委譲し、introspect 検証 → X-Tenant-ID + X-User-* 注入。INTERNAL_SHARED_SECRET (Secrets Store) + AUTH_WORKER service binding を resolve して渡す (#434 step 2) |
 | **型 (生成)** | `app/types/generated/*` (Trouble* 系: Ticket/Task/Category/Office/ProgressStatus/Workflow* 等) + `app/types/index.ts` | rust-alc-api models.rs から **ts-rs 自動生成**。手動編集しない |
 | **middleware / layout** | `app/middleware/auth.global.ts` `app/layouts/{default,auth}.vue` | 全ルート認証ガード / レイアウト |
 
 ## entrypoint
 
-- **nitro**: `nuxt.config.ts` → `nitro.preset = "cloudflare_module"`、`main = .output/server/index.mjs` (wrangler.toml)。server/api 無し = pure SPA + API は外部 rust-alc-api。
-- **API base**: `runtimeConfig.public.apiBase` (= `NUXT_PUBLIC_API_BASE`)。prod = `https://alc-api.ippoan.org`、staging = `rust-alc-api-staging-...run.app`。`app/utils/api.ts` がここを基点に fetch。
+- **nitro**: `nuxt.config.ts` → `nitro.preset = "cloudflare_module"`、`main = .output/server/index.mjs` (wrangler.toml)。`server/api/proxy/[...path].ts` で identity proxy を持つ (それ以外は SPA)。
+- **API base**: ブラウザは `/api/proxy` (相対 = 同一 Worker server route) を基点に fetch (`useAppInit.ts` が `initApi('/api/proxy', ...)`)。proxy が `runtimeConfig.alcApiUrl` (= `NUXT_ALC_API_URL`) の rust-alc-api に forward。`runtimeConfig.public.apiBase` (= `NUXT_PUBLIC_API_BASE`) は StagingFooter の export/import 用に残る。
 - **wrangler**: top-level = prod (`nuxt-trouble`, trouble.ippoan.org)。`[env.staging]` = `nuxt-trouble-staging` (trouble-staging.ippoan.org)。
 
 ## gotcha
 
 - **`trouble_tasks` の対応者は 2 フィールド**: Row1 = タスク対応者 (`assigned_to`)、Row2 = 次のアクション対応者 (`next_action_by`)。**両 row に対応者欄が必要**。テーブルレイアウト変更時に片方を消さない (user が複数回指摘した経緯、CLAUDE.md `feedback_two_assignees`)。
-- **`@ippoan/auth-client` は Vite で exclude** (`nuxt.config.ts` の `optimizeDeps.exclude`)。.ts ソース公開のため dep pre-bundle で `#imports` 解決がバグり invalid JS になる → SSR/ESM 経路に委ねる。carins/dtako の `build.transpile` とは別の回避策。
+- **`@ippoan/auth-client` は `build.transpile` + Vite `optimizeDeps.exclude` の両方** (`nuxt.config.ts`)。root import は .ts + .vue 公開で、SSR/Nitro 経路は transpile が必要、Vite dep pre-bundle は `#imports` 解決がバグり invalid JS になるため exclude する。server route は `@ippoan/auth-client/server` (.mjs) を import するので Nitro でそのまま解決できる。
 - `app/types/generated/` は ts-rs 生成物 (rust-alc-api 側 `sync-types.sh`)。手動編集禁止、差分は backend 型変更で生じる。
 - `typescript.tsConfig.compilerOptions.skipLibCheck = true` 設定済み (依存型の lib check を回避)。
 - `@nuxt/ui` は **4.x** (Nuxt 4 世代)。`frappe-gantt` でガントチャート (`TicketGanttChart.vue`)。

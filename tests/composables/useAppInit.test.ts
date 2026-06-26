@@ -50,23 +50,23 @@ describe('useAppInit', () => {
     expect(stagingTenantId).toBe('stg-tenant')
   })
 
-  it('setup calls initApi and loadFromStorage', async () => {
+  it('setup calls initApi (via /api/proxy, tenant 注入は server 側) and loadFromStorage', async () => {
     const { setup } = useAppInit()
     await setup()
 
+    // #434 step 2: base は /api/proxy (同一 Worker server route)、tenantIdGetter は
+    // 渡さない (proxy が introspect で X-Tenant-ID を注入する)。
     expect(initApiMock).toHaveBeenCalledWith(
-      'https://api.test',
+      '/api/proxy',
       expect.any(Function),
       undefined,
-      expect.any(Function),
+      undefined,
       expect.any(Function),
     )
     expect(loadFromStorageMock).toHaveBeenCalled()
 
     const tokenGetter = initApiMock.mock.calls[0][1]
-    const orgIdGetter = initApiMock.mock.calls[0][3]
     expect(tokenGetter()).toBe('test-token')
-    expect(orgIdGetter()).toBe('test-org')
   })
 
   it('returns isLoading ref', () => {

@@ -25,6 +25,18 @@ jobs:
       install_command: 'npm install'
       post_install_script: 'npx nuxt prepare && npx wrangler types'
       integration_env: 'API_BASE_URL=http://localhost:18080'
+      # PR 時に @ippoan/auth-client@dev を overlay install する。
+      # createIdentityProxyHandler (= /api/proxy/* の本体) は dev dist-tag にしか
+      # 無く、committed lockfile があると "dev" 指定でも npm が古い版を再利用する
+      # ため (npm/cli#7562)、この overlay が無いと typecheck が
+      # "@ippoan/auth-client/server が無い" で必ず fail する。Refs rust-alc-api#434
+      use_auth_client_dev: true
+      # #434 step 2: wrangler.toml に INTERNAL_SHARED_SECRET の
+      # secrets_store_secrets binding を追加したので secret-verify が必須化する。
+      # GCP cloudsql-sv の同名 secret を WIF で検証 (ippoan org vars)。
+      gcp_secret_verify_project: ${{ vars.GCP_PROJECT_ID_STAGING }}
+      gcp_secret_verify_provider: ${{ vars.GCP_WIF_PROVIDER }}
+      gcp_secret_verify_sa: ${{ vars.GCP_WIF_SERVICE_ACCOUNT_STAGING }}
     # inherit で org-level secret も渡す: RELEASE_WAVE_WEBHOOK_SECRET (compat
     # report → ci-dashboard の Compatibility グラフに出す) と CI_APP_ID /
     # CI_APP_PRIVATE_KEY (auto-merge job)。frontend-ci の他 caller と同じ標準形。
