@@ -1,18 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { ref } from 'vue'
+
 const initApiMock = vi.fn()
 const loadFromStorageMock = vi.fn()
+const recoverFromCookieMock = vi.fn()
 const clearAuthMock = vi.fn()
+// テストごとに認証状態を切り替えられるよう mutable ref を外に持つ
+const isAuthenticatedRef = ref(false)
 
 vi.mock('~/utils/api', () => ({
   initApi: (...args: unknown[]) => initApiMock(...args),
 }))
 
 vi.mock('~/composables/useAuth', () => {
-  const { ref } = require('vue')
   return {
     useAuth: () => ({
       loadFromStorage: loadFromStorageMock,
+      recoverFromCookie: recoverFromCookieMock,
+      isAuthenticated: isAuthenticatedRef,
       clearAuth: clearAuthMock,
       token: ref('test-token'),
       orgId: ref('test-org'),
@@ -41,7 +47,9 @@ describe('useAppInit', () => {
   beforeEach(() => {
     initApiMock.mockReset()
     loadFromStorageMock.mockReset()
+    recoverFromCookieMock.mockReset()
     clearAuthMock.mockReset()
+    isAuthenticatedRef.value = false
   })
 
   it('returns apiBase and stagingTenantId from config', () => {
@@ -67,6 +75,20 @@ describe('useAppInit', () => {
 
     const tokenGetter = initApiMock.mock.calls[0][1]
     expect(tokenGetter()).toBe('test-token')
+  })
+
+  it('setup recovers from shared cookie when not authenticated (top からの遷移で /login バウンス防止)', async () => {
+    isAuthenticatedRef.value = false
+    const { setup } = useAppInit()
+    await setup()
+    expect(recoverFromCookieMock).toHaveBeenCalled()
+  })
+
+  it('setup skips cookie recovery when already authenticated (localStorage で復元済み)', async () => {
+    isAuthenticatedRef.value = true
+    const { setup } = useAppInit()
+    await setup()
+    expect(recoverFromCookieMock).not.toHaveBeenCalled()
   })
 
   it('returns isLoading ref', () => {
