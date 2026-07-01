@@ -423,7 +423,7 @@ onMounted(() => {
             icon="i-lucide-plus"
             size="sm"
             :disabled="availableEventTypes.length === 0"
-            @click="showAddNotifModal = true"
+            @click="() => { showAddNotifModal = true }"
           />
         </div>
 
@@ -517,7 +517,7 @@ onMounted(() => {
           </UFormField>
 
           <div class="flex justify-end gap-2">
-            <UButton label="キャンセル" variant="outline" @click="showAddNotifModal = false" />
+            <UButton label="キャンセル" variant="outline" @click="() => { showAddNotifModal = false }" />
             <UButton
               label="追加"
               :loading="notifSaving"

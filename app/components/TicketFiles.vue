@@ -224,7 +224,7 @@ onUnmounted(() => {
               icon="i-lucide-x"
               variant="ghost"
               size="xs"
-              @click="previewOpen = false"
+              @click="() => { previewOpen = false }"
             />
           </div>
           <img

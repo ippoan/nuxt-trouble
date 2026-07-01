@@ -142,7 +142,7 @@ onMounted(async () => {
         </div>
 
         <div class="flex justify-end gap-2">
-          <UButton label="キャンセル" variant="outline" @click="showModal = false" />
+          <UButton label="キャンセル" variant="outline" @click="() => { showModal = false }" />
           <UButton
             label="変更"
             icon="i-lucide-arrow-right"

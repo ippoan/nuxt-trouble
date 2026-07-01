@@ -221,7 +221,7 @@ async function copyDebug() {
           </details>
 
           <div class="flex justify-between">
-            <UButton label="戻る" variant="outline" @click="step = 1" />
+            <UButton label="戻る" variant="outline" @click="() => { step = 1 }" />
             <UButton label="プレビュー" @click="handlePreview" />
           </div>
         </template>
@@ -334,7 +334,7 @@ async function copyDebug() {
             </details>
 
             <div class="flex justify-between">
-              <UButton label="戻る" variant="outline" :disabled="importing" @click="step = 2" />
+              <UButton label="戻る" variant="outline" :disabled="importing" @click="() => { step = 2 }" />
               <UButton
                 :label="`${selectedCount} 件を登録`"
                 :disabled="importing || selectedCount === 0"

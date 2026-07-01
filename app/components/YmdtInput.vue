@@ -393,7 +393,7 @@ function setNowAndClose() {
             </select>
             <div class="flex-1" />
             <UButton size="xs" variant="outline" label="今" @click="setNowAndClose" />
-            <UButton size="xs" variant="ghost" label="閉じる" @click="popoverOpen = false" />
+            <UButton size="xs" variant="ghost" label="閉じる" @click="() => { popoverOpen = false }" />
           </div>
         </div>
       </template>

@@ -141,7 +141,7 @@ onMounted(() => {
         <div class="flex gap-2">
           <template v-if="!editing">
             <UButton label="編集" icon="i-lucide-pencil" variant="outline" @click="startEdit" />
-            <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="showDeleteModal = true" />
+            <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="() => { showDeleteModal = true }" />
           </template>
         </div>
       </div>
@@ -160,7 +160,7 @@ onMounted(() => {
           :employees="employees"
         />
         <div class="flex justify-end gap-2 mt-6">
-          <UButton label="キャンセル" variant="outline" @click="editing = false" />
+          <UButton label="キャンセル" variant="outline" @click="() => { editing = false }" />
           <UButton label="保存" :loading="saving" @click="handleSave" />
         </div>
       </UCard>
@@ -183,7 +183,7 @@ onMounted(() => {
           @tasks-changed="ganttKey++"
         >
           <template #actions>
-            <UButton icon="i-lucide-gantt-chart" size="xs" variant="outline" @click="showGantt = true; ganttKey++">
+            <UButton icon="i-lucide-gantt-chart" size="xs" variant="outline" @click="() => { showGantt = true; ganttKey++ }">
               ガントチャート
             </UButton>
           </template>
@@ -196,7 +196,7 @@ onMounted(() => {
           <div class="p-6 h-full flex flex-col">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-bold">ガントチャート</h2>
-              <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showGantt = false" />
+              <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="() => { showGantt = false }" />
             </div>
             <div class="flex-1 overflow-auto">
               <ClientOnly>
@@ -215,7 +215,7 @@ onMounted(() => {
         <span class="text-sm text-blue-700 dark:text-blue-300">{{ suggestedTransition.message }}</span>
         <div class="flex gap-2">
           <UButton label="変更する" size="xs" @click="handleSuggestedTransition" />
-          <UButton label="閉じる" size="xs" variant="outline" @click="suggestedTransition = null" />
+          <UButton label="閉じる" size="xs" variant="outline" @click="() => { suggestedTransition = null }" />
         </div>
       </div>
 
@@ -233,7 +233,7 @@ onMounted(() => {
             icon="i-lucide-clock"
             size="sm"
             variant="outline"
-            @click="showScheduleModal = true"
+            @click="() => { showScheduleModal = true }"
           />
         </div>
 
@@ -322,7 +322,7 @@ onMounted(() => {
           </UFormField>
 
           <div class="flex justify-end gap-2">
-            <UButton label="キャンセル" variant="outline" @click="showScheduleModal = false" />
+            <UButton label="キャンセル" variant="outline" @click="() => { showScheduleModal = false }" />
             <UButton
               label="予約"
               :loading="scheduleSaving"
@@ -342,7 +342,7 @@ onMounted(() => {
             No.{{ ticket?.ticket_no }} 「{{ ticket?.category }}」を削除します。
           </p>
           <div class="flex justify-end gap-2">
-            <UButton label="キャンセル" variant="outline" @click="showDeleteModal = false" />
+            <UButton label="キャンセル" variant="outline" @click="() => { showDeleteModal = false }" />
             <UButton label="削除" color="error" @click="handleDelete" />
           </div>
         </div>

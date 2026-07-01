@@ -76,7 +76,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       <h2 class="text-xl font-bold">チケット一覧</h2>
       <div class="flex gap-2">
         <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
-        <UButton label="一括登録" icon="i-lucide-upload" variant="outline" size="sm" @click="showBulkImport = true" />
+        <UButton label="一括登録" icon="i-lucide-upload" variant="outline" size="sm" @click="() => { showBulkImport = true }" />
       </div>
     </div>
 
@@ -140,7 +140,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       size="sm"
       block
       class="border-dashed"
-      @click="showInlineCreate = true"
+      @click="() => { showInlineCreate = true }"
     />
     <div v-else class="overflow-x-auto p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
       <div class="flex items-end gap-2 whitespace-nowrap min-w-[1600px]">
@@ -333,7 +333,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
             No.{{ deleteTarget?.ticket_no }} 「{{ deleteTarget?.category }}」を削除します。
           </p>
           <div class="flex justify-end gap-2">
-            <UButton label="キャンセル" variant="outline" @click="showDeleteModal = false" />
+            <UButton label="キャンセル" variant="outline" @click="() => { showDeleteModal = false }" />
             <UButton label="削除" color="error" @click="handleDelete" />
           </div>
         </div>

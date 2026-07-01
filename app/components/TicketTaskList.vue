@@ -577,7 +577,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
             「{{ deleteConfirm.filename }}」を削除します。30日以内であればゴミ箱から復元できます。
           </p>
           <div class="flex justify-end gap-2">
-            <UButton label="キャンセル" variant="outline" @click="deleteConfirm.show = false" />
+            <UButton label="キャンセル" variant="outline" @click="() => { deleteConfirm.show = false }" />
             <UButton label="削除" color="error" @click="executeFileDelete" />
           </div>
         </div>
