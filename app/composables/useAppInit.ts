@@ -2,7 +2,8 @@ import { initApi } from '~/utils/api'
 
 export function useAppInit() {
   const config = useRuntimeConfig()
-  const { loadFromStorage, token, isLoading, clearAuth } = useAuth()
+  const { loadFromStorage, recoverFromCookie, isAuthenticated, token, isLoading, clearAuth } =
+    useAuth()
   const apiBase = config.public.apiBase as string
   const stagingTenantId = (config.public.stagingTenantId as string) || ''
 
@@ -21,7 +22,14 @@ export function useAppInit() {
         navigateTo('/login')
       },
     )
+    // localStorage から復元 → 未認証なら共有 cookie (Domain=.ippoan.org の
+    // logi_auth_token) から復旧する。トップページや他アプリで既にログイン済みの
+    // 場合に、trouble へ遷移しただけで /login にバウンスするのを防ぐ
+    // (initAuthSession の step 2 + 2.5 相当、Refs ippoan/auth-worker#257)。
     loadFromStorage()
+    if (!isAuthenticated.value) {
+      recoverFromCookie()
+    }
   }
 
   return { apiBase, stagingTenantId, isLoading, setup }
