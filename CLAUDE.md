@@ -9,7 +9,7 @@ rust-alc-api `/api/troubles` を叩く。
 |---|---|---|
 | production | https://trouble.ippoan.org | `v*` タグ push |
 | staging | https://trouble-staging.ippoan.org | PR (non-draft) への push のたび (`test.yml` の `frontend-ci.yml` deploy-staging job) |
-| preview | https://nuxt-trouble-preview.m-tama-ramu.workers.dev | 任意の branch (main 以外) への push のたび (`.github/workflows/preview-deploy.yml`、test/typecheck 無し・deploy のみの軽量パイプライン) |
+| preview | https://trouble-preview.ippoan.org | 任意の branch (main 以外) への push のたび (`.github/workflows/preview-deploy.yml`、test/typecheck 無し・deploy のみの軽量パイプライン) |
 
 **preview は UI 変更の見た目確認が主目的** (backend は staging を再利用、専用 DB は持たない)。
 DB migration 等の本格的な検証が必要な変更は PR を作成して staging で確認する
