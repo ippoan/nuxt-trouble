@@ -343,7 +343,7 @@ onMounted(() => {
             </thead>
             <tbody>
               <tr v-for="h in statusHistory" :key="h.id" class="break-inside-avoid">
-                <td class="border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ new Date(h.created_at).toLocaleString('ja-JP') }}</td>
+                <td class="border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ formatOccurredAt(h.created_at) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ stateLabel(h.from_state_id) }} → {{ stateLabel(h.to_state_id) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ h.comment || '-' }}</td>
               </tr>
