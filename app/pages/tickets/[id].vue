@@ -15,6 +15,8 @@ const offices = ref<TroubleOffice[]>([])
 const progressStatuses = ref<TroubleProgressStatus[]>([])
 const employees = ref<Employee[]>([])
 
+const { fieldLayout, fetchFieldLayout } = useTicketFieldLayout()
+
 // --- Schedule notifications ---
 const schedules = ref<TroubleSchedule[]>([])
 const showScheduleModal = ref(false)
@@ -113,6 +115,7 @@ onMounted(() => {
   getOffices().then(r => offices.value = r).catch(() => {})
   getProgressStatuses().then(r => progressStatuses.value = r).catch(() => {})
   getEmployees().then(r => employees.value = r).catch(() => {})
+  fetchFieldLayout()
 })
 </script>
 
@@ -159,6 +162,7 @@ onMounted(() => {
           :offices="offices"
           :progress-statuses="progressStatuses"
           :employees="employees"
+          :field-layout="fieldLayout"
           @updated="ticket = $event"
         />
       </UCard>

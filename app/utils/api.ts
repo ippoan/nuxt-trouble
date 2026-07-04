@@ -29,6 +29,7 @@ import type {
   TroubleTaskType,
   TroubleTaskStatus,
   CreateTroubleTaskStatus,
+  TroubleFieldLayout,
 } from '~/types'
 
 let apiBase = ''
@@ -219,6 +220,19 @@ export async function updateProgressStatusSortOrder(id: string, sort_order: numb
   return request<TroubleProgressStatus>(`/api/trouble/progress-statuses/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify({ sort_order }),
+  })
+}
+
+// --- Field Layout ---
+
+export async function getFieldLayout(): Promise<TroubleFieldLayout> {
+  return request<TroubleFieldLayout>('/api/trouble/field-layout')
+}
+
+export async function updateFieldLayout(data: TroubleFieldLayout): Promise<TroubleFieldLayout> {
+  return request<TroubleFieldLayout>('/api/trouble/field-layout', {
+    method: 'PUT',
+    body: JSON.stringify(data),
   })
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, UpdateTroubleTicket } from '~/types'
+import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, UpdateTroubleTicket, TroubleFieldLayout } from '~/types'
 import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
 import { formatOccurredAt, toDatetimeLocalInput, fromDatetimeLocalInput } from '~/utils/datetime'
@@ -12,6 +12,7 @@ const props = defineProps<{
   offices?: TroubleOffice[]
   progressStatuses?: TroubleProgressStatus[]
   employees?: Employee[]
+  fieldLayout?: TroubleFieldLayout | null
 }>()
 
 const emit = defineEmits<{
@@ -139,8 +140,11 @@ function buildFormFromTicket(t: TroubleTicket): Record<string, unknown> {
     road_service_cost: t.road_service_cost != null ? Number(t.road_service_cost) : null,
     counterparty: t.counterparty,
     counterparty_insurance: t.counterparty_insurance,
+    counterparty_vehicle: t.counterparty_vehicle,
+    confirmation_notice: t.confirmation_notice,
     disciplinary_content: t.disciplinary_content,
     disciplinary_action: t.disciplinary_action,
+    disciplinary_committee: t.disciplinary_committee,
     due_date: t.due_date,
   }
 }
@@ -285,6 +289,7 @@ async function handleFieldCommitted(keys: string[]) {
         :offices="offices"
         :progress-statuses="progressStatuses"
         :employees="employees"
+        :field-layout="fieldLayout"
         @field-committed="handleFieldCommitted"
       />
       <p v-if="fieldError" class="text-xs text-red-600 mt-2">{{ fieldError }}</p>
