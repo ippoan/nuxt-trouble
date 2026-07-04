@@ -229,6 +229,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <table class="text-sm whitespace-nowrap min-w-[1600px]">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left py-2 px-2 font-medium" />
               <th class="text-left py-2 px-2 font-medium">No</th>
               <th class="text-left py-2 px-2 font-medium">発生日時</th>
               <th class="text-left py-2 px-2 font-medium">所属会社名</th>
@@ -260,6 +261,9 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
               @click="navigateToTicket(ticket.id)"
             >
+              <td class="py-2 px-2" @click.stop>
+                <UButton icon="i-lucide-printer" variant="ghost" size="xs" title="印刷" @click.stop="openPrintView(ticket.id)" />
+              </td>
               <td class="py-2 px-2 text-gray-500">{{ ticket.ticket_no }}</td>
               <td class="py-2 px-2">{{ formatOccurredAt(ticket.occurred_at, ticket.occurred_date) }}</td>
               <td class="py-2 px-2">{{ ticket.company_name || '-' }}</td>
@@ -335,7 +339,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               </td>
             </tr>
             <tr v-if="filteredTickets.length === 0 && !loading">
-              <td colspan="22" class="py-8 text-center text-gray-400">チケットがありません</td>
+              <td colspan="23" class="py-8 text-center text-gray-400">チケットがありません</td>
             </tr>
           </tbody>
         </table>
