@@ -245,7 +245,7 @@ onMounted(() => {
             <tr class="border-b border-gray-400">
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">確認書</th>
               <td class="border-r border-gray-400 px-3 py-2">{{ displayValue(ticket.confirmation_notice) }}</td>
-              <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">対応期限</th>
+              <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">賞罰委員会</th>
               <td class="px-3 py-2">{{ ymd(ticket.due_date) }}</td>
             </tr>
             <tr class="border-b border-gray-400">
@@ -336,15 +336,15 @@ onMounted(() => {
           <table v-else class="w-full border-collapse text-xs">
             <thead>
               <tr class="border-b-2 border-black">
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">日時</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">変更</th>
+                <th class="w-px whitespace-nowrap border border-gray-400 px-2 py-1 text-left font-medium">日時</th>
+                <th class="w-px whitespace-nowrap border border-gray-400 px-2 py-1 text-left font-medium">変更</th>
                 <th class="border border-gray-400 px-2 py-1 text-left font-medium">コメント</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="h in statusHistory" :key="h.id" class="break-inside-avoid">
-                <td class="border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ new Date(h.created_at).toLocaleString('ja-JP') }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ stateLabel(h.from_state_id) }} → {{ stateLabel(h.to_state_id) }}</td>
+                <td class="w-px border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ formatOccurredAt(h.created_at) }}</td>
+                <td class="w-px border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ stateLabel(h.from_state_id) }} → {{ stateLabel(h.to_state_id) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ h.comment || '-' }}</td>
               </tr>
             </tbody>
