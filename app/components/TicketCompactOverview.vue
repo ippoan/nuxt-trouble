@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import type { TroubleTicket, TroubleWorkflowState } from '~/types'
+import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, UpdateTroubleTicket } from '~/types'
 import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
-import { formatOccurredAt } from '~/utils/datetime'
+import { formatOccurredAt, toDatetimeLocalInput, fromDatetimeLocalInput } from '~/utils/datetime'
 import { formatExpiry, getExpiryStatus } from '~/utils/carInspection'
 
 const props = defineProps<{
   ticket: TroubleTicket
   workflowStates: TroubleWorkflowState[]
+  categories?: TroubleCategory[]
+  offices?: TroubleOffice[]
+  progressStatuses?: TroubleProgressStatus[]
+  employees?: Employee[]
 }>()
 
 const emit = defineEmits<{
@@ -107,34 +111,68 @@ const counterpartyLine = computed(() => {
   return line
 })
 
-const fields: Array<{ label: string; key: string }> = [
-  { label: 'カテゴリ', key: 'category' },
-  { label: 'タイトル', key: 'title' },
-  { label: '説明', key: 'description' },
-  { label: '発生日時', key: 'occurred_at' },
-  { label: '会社名', key: 'company_name' },
-  { label: '営業所名', key: 'office_name' },
-  { label: '部署名', key: 'department' },
-  { label: '氏名', key: 'person_name' },
-  { label: '登録番号', key: 'registration_number' },
-  { label: '場所', key: 'location' },
-  { label: '損害額', key: 'damage_amount' },
-  { label: '補償額', key: 'compensation_amount' },
-  { label: 'ロードサービス費', key: 'road_service_cost' },
-  { label: '相手方', key: 'counterparty' },
-  { label: '相手方保険', key: 'counterparty_insurance' },
-  { label: '対応期限', key: 'due_date' },
-]
+// --- Expanded: inline auto-save form (元の編集画面と同じ TicketFormFields を
+// 展開表示に使い、フィールド確定 (blur / select 選択 / 日付確定) のたびに
+// そのフィールドだけ即保存する) ---
+const form = ref<Record<string, unknown>>({})
+const savingField = ref(false)
+const fieldError = ref<string | null>(null)
 
-function displayValue(key: string): string {
-  if (key === 'occurred_at') {
-    return formatOccurredAt(props.ticket.occurred_at, props.ticket.occurred_date)
+function buildFormFromTicket(t: TroubleTicket): Record<string, unknown> {
+  return {
+    category: t.category,
+    title: t.title,
+    description: t.description,
+    occurred_at: toDatetimeLocalInput(t.occurred_at, t.occurred_date),
+    company_name: t.company_name,
+    office_name: t.office_name,
+    department: t.department,
+    person_name: t.person_name,
+    person_id: t.person_id,
+    person_is_external: t.person_is_external,
+    registration_number: t.registration_number,
+    location: t.location,
+    progress_notes: t.progress_notes,
+    allowance: t.allowance,
+    damage_amount: t.damage_amount != null ? Number(t.damage_amount) : null,
+    compensation_amount: t.compensation_amount != null ? Number(t.compensation_amount) : null,
+    road_service_cost: t.road_service_cost != null ? Number(t.road_service_cost) : null,
+    counterparty: t.counterparty,
+    counterparty_insurance: t.counterparty_insurance,
+    disciplinary_content: t.disciplinary_content,
+    disciplinary_action: t.disciplinary_action,
+    due_date: t.due_date,
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const val = (props.ticket as any)[key]
-  if (val == null || val === '') return '-'
-  if (key === 'due_date') return String(val).substring(0, 10)
-  return String(val)
+}
+
+watch(
+  () => props.ticket,
+  (t) => { form.value = buildFormFromTicket(t) },
+  { immediate: true },
+)
+
+async function handleFieldCommitted(keys: string[]) {
+  if (savingField.value) return
+  const payload: Record<string, unknown> = {}
+  for (const key of keys) {
+    if (key === 'occurred_at') {
+      const occurred = fromDatetimeLocalInput(form.value.occurred_at as string | undefined)
+      if (occurred) Object.assign(payload, occurred)
+      continue
+    }
+    payload[key] = form.value[key]
+  }
+  if (Object.keys(payload).length === 0) return
+  savingField.value = true
+  fieldError.value = null
+  try {
+    const updated = await updateTicket(props.ticket.id, payload as UpdateTroubleTicket)
+    emit('updated', updated)
+  } catch (e) {
+    fieldError.value = e instanceof Error ? e.message : '保存に失敗しました'
+  } finally {
+    savingField.value = false
+  }
 }
 </script>
 
@@ -238,16 +276,19 @@ function displayValue(key: string): string {
       <UIcon :name="expanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3" />
     </button>
 
-    <!-- Expanded full grid -->
-    <dl v-if="expanded" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-      <div v-for="field in fields" :key="field.key" class="space-y-1">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">{{ field.label }}</dt>
-        <dd class="text-sm">{{ displayValue(field.key) }}</dd>
-      </div>
-      <div class="space-y-1">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">作成日</dt>
-        <dd class="text-sm">{{ ticket.created_at.substring(0, 10) }}</dd>
-      </div>
-    </dl>
+    <!-- Expanded: 元の編集画面と同じフォームをそのまま表示し、その場で編集・自動保存する -->
+    <div v-if="expanded" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <TicketFormFields
+        v-model="form"
+        mode="edit"
+        :categories="categories"
+        :offices="offices"
+        :progress-statuses="progressStatuses"
+        :employees="employees"
+        @field-committed="handleFieldCommitted"
+      />
+      <p v-if="fieldError" class="text-xs text-red-600 mt-2">{{ fieldError }}</p>
+      <p class="text-xs text-gray-400 mt-3">作成日: {{ ticket.created_at.substring(0, 10) }}</p>
+    </div>
   </div>
 </template>

@@ -43,6 +43,7 @@ export interface UpdateTroubleTicket {
   department?: string | null
   person_name?: string | null
   person_id?: string | null
+  person_is_external?: boolean | null
   registration_number?: string | null
   location?: string | null
   description?: string | null

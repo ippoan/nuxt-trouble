@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
-import { TICKET_CATEGORIES } from '~/types'
 import { toHalfWidth } from '~/utils/normalize'
+import { buildCategoryOptions, buildOfficeOptions, buildProgressOptions, buildEmployeeOptions } from '~/utils/ticketFieldOptions'
 
 const model = defineModel<Record<string, unknown>>({ required: true })
 
@@ -12,6 +12,17 @@ const props = defineProps<{
   progressStatuses?: TroubleProgressStatus[]
   employees?: Employee[]
 }>()
+
+// mode === 'edit' で親が listen すると、各フィールド確定時 (select/checkbox/日付は
+// 即時、text/textarea は blur 時) に対象キーを通知する。親はこれを使って
+// フィールド単位で自動保存できる (new.vue のような一括作成フローでは無視すればよい)。
+const commitEmit = defineEmits<{
+  (e: 'field-committed', keys: string[]): void
+}>()
+
+function commit(...keys: string[]) {
+  commitEmit('field-committed', keys)
+}
 
 const {
   load: loadCarInspections,
@@ -33,32 +44,10 @@ function formatExpiry(v: string): string {
   return v.length > 10 ? v.substring(0, 10) : v
 }
 
-const categoryOptions = computed(() => {
-  if (props.categories && props.categories.length > 0) {
-    const dbNames = new Set(props.categories.map(c => c.name))
-    const hardcoded = ([...TICKET_CATEGORIES] as string[]).filter(c => !dbNames.has(c))
-    return [...props.categories.map(c => c.name), ...hardcoded].map(c => ({ label: c, value: c }))
-  }
-  return TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
-})
-
-const officeOptions = computed(() => {
-  if (!props.offices || props.offices.length === 0) return []
-  return props.offices.map(o => ({ label: o.name, value: o.name }))
-})
-
-const progressOptions = computed(() => {
-  if (!props.progressStatuses || props.progressStatuses.length === 0) return []
-  return props.progressStatuses.map(p => ({ label: p.name, value: p.name }))
-})
-
-const employeeOptions = computed(() => {
-  if (!props.employees || props.employees.length === 0) return []
-  return props.employees.map(e => ({
-    label: e.code ? `${e.name} (${e.code})` : e.name,
-    value: e.id,
-  }))
-})
+const categoryOptions = computed(() => buildCategoryOptions(props.categories))
+const officeOptions = computed(() => buildOfficeOptions(props.offices))
+const progressOptions = computed(() => buildProgressOptions(props.progressStatuses))
+const employeeOptions = computed(() => buildEmployeeOptions(props.employees))
 
 function update(key: string, value: unknown) {
   model.value = { ...model.value, [key]: value }
@@ -68,6 +57,7 @@ function updateEmployee(employeeId: string) {
   const emp = props.employees?.find(e => e.id === employeeId)
   if (emp) {
     model.value = { ...model.value, person_name: emp.name, person_id: emp.id }
+    commit('person_name', 'person_id')
   }
 }
 
@@ -94,6 +84,7 @@ function toggleExternal(checked: boolean) {
   } else {
     model.value = { ...model.value, person_is_external: false, person_id: null, person_name: '' }
   }
+  commit('person_is_external', 'person_id', 'person_name')
 }
 </script>
 
@@ -108,7 +99,7 @@ function toggleExternal(checked: boolean) {
           :model-value="(model.category as string) || ''"
           :items="categoryOptions"
           placeholder="カテゴリを選択"
-          @update:model-value="update('category', $event)"
+          @update:model-value="update('category', $event); commit('category')"
         />
       </UFormField>
 
@@ -117,6 +108,7 @@ function toggleExternal(checked: boolean) {
           :model-value="(model.title as string) || ''"
           placeholder="タイトル"
           @update:model-value="update('title', $event)"
+          @blur="commit('title')"
         />
       </UFormField>
 
@@ -126,13 +118,14 @@ function toggleExternal(checked: boolean) {
           placeholder="詳細な説明"
           :rows="4"
           @update:model-value="update('description', $event)"
+          @blur="commit('description')"
         />
       </UFormField>
 
       <UFormField label="発生日時">
         <YmdtInput
           :model-value="(model.occurred_at as string) || undefined"
-          @update:model-value="(v: string | undefined) => update('occurred_at', v ?? '')"
+          @update:model-value="(v: string | undefined) => { update('occurred_at', v ?? ''); commit('occurred_at') }"
         />
       </UFormField>
     </fieldset>
@@ -147,6 +140,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.company_name as string) || ''"
             placeholder="会社名"
             @update:model-value="update('company_name', $event)"
+            @blur="commit('company_name')"
           />
         </UFormField>
 
@@ -156,7 +150,7 @@ function toggleExternal(checked: boolean) {
             :items="officeOptions"
             placeholder="営業所を選択"
             :disabled="officeOptions.length === 0"
-            @update:model-value="update('office_name', $event)"
+            @update:model-value="update('office_name', $event); commit('office_name')"
           />
         </UFormField>
 
@@ -165,6 +159,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.department as string) || ''"
             placeholder="部署名"
             @update:model-value="update('department', $event)"
+            @blur="commit('department')"
           />
         </UFormField>
 
@@ -175,6 +170,7 @@ function toggleExternal(checked: boolean) {
               :model-value="(model.person_name as string) || ''"
               placeholder="外部当事者名（手入力）"
               @update:model-value="update('person_name', $event)"
+              @blur="commit('person_name')"
             />
             <USelect
               v-else
@@ -209,6 +205,7 @@ function toggleExternal(checked: boolean) {
             placeholder="登録番号 (車検証と照合)"
             list="ticket-form-registrations"
             @update:model-value="(v: string | number) => update('registration_number', toHalfWidth(String(v ?? '')))"
+            @blur="commit('registration_number')"
           />
           <datalist id="ticket-form-registrations">
             <option
@@ -224,6 +221,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.location as string) || ''"
             placeholder="発生場所"
             @update:model-value="update('location', $event)"
+            @blur="commit('location')"
           />
         </UFormField>
       </div>
@@ -264,7 +262,7 @@ function toggleExternal(checked: boolean) {
             :items="progressOptions"
             placeholder="進捗状況を選択"
             :disabled="progressOptions.length === 0"
-            @update:model-value="update('progress_notes', $event)"
+            @update:model-value="update('progress_notes', $event); commit('progress_notes')"
           />
         </UFormField>
 
@@ -273,6 +271,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.allowance as string) || ''"
             placeholder="手当等"
             @update:model-value="update('allowance', $event)"
+            @blur="commit('allowance')"
           />
         </UFormField>
       </div>
@@ -289,6 +288,7 @@ function toggleExternal(checked: boolean) {
             :model-value="String(model.damage_amount ?? '')"
             placeholder="0"
             @update:model-value="update('damage_amount', $event ? Number($event) : null)"
+            @blur="commit('damage_amount')"
           />
         </UFormField>
 
@@ -298,6 +298,7 @@ function toggleExternal(checked: boolean) {
             :model-value="String(model.compensation_amount ?? '')"
             placeholder="0"
             @update:model-value="update('compensation_amount', $event ? Number($event) : null)"
+            @blur="commit('compensation_amount')"
           />
         </UFormField>
 
@@ -307,6 +308,7 @@ function toggleExternal(checked: boolean) {
             :model-value="String(model.road_service_cost ?? '')"
             placeholder="0"
             @update:model-value="update('road_service_cost', $event ? Number($event) : null)"
+            @blur="commit('road_service_cost')"
           />
         </UFormField>
       </div>
@@ -322,6 +324,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.counterparty as string) || ''"
             placeholder="相手方"
             @update:model-value="update('counterparty', $event)"
+            @blur="commit('counterparty')"
           />
         </UFormField>
 
@@ -330,6 +333,7 @@ function toggleExternal(checked: boolean) {
             :model-value="(model.counterparty_insurance as string) || ''"
             placeholder="相手方保険"
             @update:model-value="update('counterparty_insurance', $event)"
+            @blur="commit('counterparty_insurance')"
           />
         </UFormField>
       </div>
@@ -346,6 +350,7 @@ function toggleExternal(checked: boolean) {
             placeholder="処分検討内容"
             :rows="2"
             @update:model-value="update('disciplinary_content', $event)"
+            @blur="commit('disciplinary_content')"
           />
         </UFormField>
 
@@ -355,6 +360,7 @@ function toggleExternal(checked: boolean) {
             placeholder="処分内容"
             :rows="2"
             @update:model-value="update('disciplinary_action', $event)"
+            @blur="commit('disciplinary_action')"
           />
         </UFormField>
       </div>
@@ -362,7 +368,7 @@ function toggleExternal(checked: boolean) {
       <UFormField label="対応期限">
         <YmdInput
           :model-value="((model.due_date as string) || '').slice(0, 10) || undefined"
-          @update:model-value="(v: string | undefined) => update('due_date', v ? new Date(v).toISOString() : null)"
+          @update:model-value="(v: string | undefined) => { update('due_date', v ? new Date(v).toISOString() : null); commit('due_date') }"
         />
       </UFormField>
     </fieldset>

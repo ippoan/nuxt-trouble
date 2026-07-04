@@ -6,9 +6,8 @@ const route = useRoute()
 const ticketId = route.params.id as string
 
 const {
-  ticket, workflowStates, editing, saving, error,
-  showDeleteModal, form, fields,
-  displayValue, startEdit, handleSave, handleDelete, load,
+  ticket, workflowStates, error,
+  showDeleteModal, handleDelete, load,
 } = useTicketDetail(ticketId)
 
 const categories = ref<TroubleCategory[]>([])
@@ -144,10 +143,7 @@ onMounted(() => {
         </div>
         <div class="flex gap-2">
           <UButton label="印刷" icon="i-lucide-printer" variant="outline" @click="openPrintView" />
-          <template v-if="!editing">
-            <UButton label="編集" icon="i-lucide-pencil" variant="outline" @click="startEdit" />
-            <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="showDeleteModal = true" />
-          </template>
+          <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="showDeleteModal = true" />
         </div>
       </div>
 
@@ -155,25 +151,14 @@ onMounted(() => {
         {{ error }}
       </div>
 
-      <UCard v-if="editing">
-        <TicketFormFields
-          v-model="form"
-          mode="edit"
+      <UCard>
+        <TicketCompactOverview
+          :ticket="ticket"
+          :workflow-states="workflowStates"
           :categories="categories"
           :offices="offices"
           :progress-statuses="progressStatuses"
           :employees="employees"
-        />
-        <div class="flex justify-end gap-2 mt-6">
-          <UButton label="キャンセル" variant="outline" @click="editing = false" />
-          <UButton label="保存" :loading="saving" @click="handleSave" />
-        </div>
-      </UCard>
-
-      <UCard v-else>
-        <TicketCompactOverview
-          :ticket="ticket"
-          :workflow-states="workflowStates"
           @updated="ticket = $event"
         />
       </UCard>
