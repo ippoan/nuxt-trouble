@@ -1,0 +1,25 @@
+name: Preview Deploy
+
+# push のたびに軽量プレビュー環境 (nuxt-trouble-preview) を更新する。
+# test/typecheck は回さない (UI 変更の見た目確認が主目的)。
+# staging (nuxt-trouble-staging) は既存どおり test.yml の PR trigger で更新される。
+#
+# Refs ippoan/secrets-inventory#85
+
+on:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  preview:
+    uses: ippoan/ci-workflows/.github/workflows/preview-deploy.yml@main
+    with:
+      install_command: 'npm install'
+      post_install_script: 'npx nuxt prepare && npx wrangler types'
+      use_auth_client_dev: true
+      npm_scope: '@ippoan'
+    secrets: inherit
