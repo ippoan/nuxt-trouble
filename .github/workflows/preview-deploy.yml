@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   preview:
@@ -20,4 +21,5 @@ jobs:
       install_command: 'npm install'
       post_install_script: 'npx nuxt prepare && npx wrangler types'
       use_auth_client_dev: true
+      npm_scope: '@ippoan'
     secrets: inherit
