@@ -105,9 +105,15 @@ onMounted(() => {
       {{ error || 'チケットが見つかりません' }}
     </div>
 
-    <div v-else class="mx-auto max-w-[210mm] bg-white text-black print:max-w-none">
+    <!-- 画面プレビューでも「鏡」「詳細情報」がそれぞれ1ページ分の紙として見えるよう、
+         各 section を A4 相当のカードとして分けて表示する (印刷時は影/角丸/余白を消し、
+         break-after-page によるページ区切りだけが残る)。 -->
+    <div v-else class="px-4 py-6 print:p-0">
       <!-- ============ 鏡 (サマリー) ============ -->
-      <section class="print-sheet px-10 py-10 break-after-page" style="page-break-after: always;">
+      <section
+        class="print-sheet mx-auto mb-8 min-h-[297mm] max-w-[210mm] rounded-lg bg-white px-10 py-10 text-black shadow-lg break-after-page print:mb-0 print:min-h-0 print:max-w-none print:rounded-none print:shadow-none"
+        style="page-break-after: always;"
+      >
         <div class="flex items-start justify-between border-b-2 border-black pb-3">
           <h1 class="text-2xl font-bold tracking-wide">トラブル報告書（鏡）</h1>
           <div class="text-right text-xs text-gray-600">
@@ -170,7 +176,9 @@ onMounted(() => {
       </section>
 
       <!-- ============ 詳細情報 ============ -->
-      <section class="print-sheet px-10 py-10">
+      <section
+        class="print-sheet mx-auto min-h-[297mm] max-w-[210mm] rounded-lg bg-white px-10 py-10 text-black shadow-lg print:min-h-0 print:max-w-none print:rounded-none print:shadow-none"
+      >
         <div class="flex items-center justify-between border-b-2 border-black pb-3">
           <h2 class="text-xl font-bold tracking-wide">詳細情報</h2>
           <div class="text-right text-xs text-gray-600">No.{{ ticket.ticket_no }}（{{ ticket.category }}）</div>
