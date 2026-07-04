@@ -128,6 +128,7 @@ function toggleExternal(checked: boolean) {
             <!-- select (category / office_name / progress_notes) -->
             <USelect
               v-if="field.type === 'select'"
+              class="w-full"
               :model-value="(fieldValue(field.key) as string) || ''"
               :items="selectOptionsFor(field.key)"
               :placeholder="`${field.label}を選択`"
@@ -138,6 +139,7 @@ function toggleExternal(checked: boolean) {
             <!-- text: registration_number (datalist 付き、半角変換、車検証マスタ照合) -->
             <template v-else-if="field.key === 'registration_number'">
               <UInput
+                class="w-full"
                 :model-value="(fieldValue('registration_number') as string) || ''"
                 placeholder="登録番号 (車検証と照合)"
                 list="ticket-form-registrations"
@@ -152,6 +154,7 @@ function toggleExternal(checked: boolean) {
             <!-- text (汎用) -->
             <UInput
               v-else-if="field.type === 'text'"
+              class="w-full"
               :model-value="(fieldValue(field.key) as string) || ''"
               :placeholder="field.label"
               @update:model-value="update(field.key, $event)"
@@ -161,6 +164,7 @@ function toggleExternal(checked: boolean) {
             <!-- textarea -->
             <UTextarea
               v-else-if="field.type === 'textarea'"
+              class="w-full"
               :model-value="(fieldValue(field.key) as string) || ''"
               :placeholder="field.label"
               :rows="field.key === 'description' ? 4 : 2"
@@ -171,6 +175,7 @@ function toggleExternal(checked: boolean) {
             <!-- number -->
             <UInput
               v-else-if="field.type === 'number'"
+              class="w-full"
               type="number"
               :model-value="String(fieldValue(field.key) ?? '')"
               placeholder="0"
@@ -196,6 +201,7 @@ function toggleExternal(checked: boolean) {
             <div v-else-if="field.type === 'person'" class="space-y-1">
               <UInput
                 v-if="model.person_is_external"
+                class="w-full"
                 :model-value="(model.person_name as string) || ''"
                 placeholder="外部当事者名（手入力）"
                 @update:model-value="update('person_name', $event)"
@@ -203,6 +209,7 @@ function toggleExternal(checked: boolean) {
               />
               <USelect
                 v-else
+                class="w-full"
                 :model-value="(model.person_id as string) || ''"
                 :items="employeeOptions"
                 placeholder="従業員を選択"

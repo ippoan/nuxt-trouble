@@ -86,13 +86,27 @@ function moveDown(index: number) {
 }
 
 function handleSave() {
-  const settings: TroubleFieldLayoutEntry[] = rows.value.map(r => ({
-    key: r.key,
-    visible: r.visible,
-    width: r.width,
-    sort_order: r.sortOrder,
-    label: r.label.trim() && r.label.trim() !== r.defaultLabel ? r.label.trim() : null,
-  }))
+  // デフォルトから変更が無いフィールドは保存しない。全件を具体値で保存すると
+  // 「保存」を押しただけで当時のデフォルト値がテナント設定として凍結され、
+  // 以後コード側でデフォルトを変更しても反映されなくなってしまうため。
+  const settings: TroubleFieldLayoutEntry[] = rows.value
+    .filter((r) => {
+      const meta = FIELD_METAS.find(m => m.key === r.key)!
+      const label = r.label.trim() && r.label.trim() !== r.defaultLabel ? r.label.trim() : null
+      return (
+        r.visible !== meta.defaultVisible
+        || r.width !== meta.defaultWidth
+        || r.sortOrder !== meta.defaultSortOrder
+        || label !== null
+      )
+    })
+    .map(r => ({
+      key: r.key,
+      visible: r.visible,
+      width: r.width,
+      sort_order: r.sortOrder,
+      label: r.label.trim() && r.label.trim() !== r.defaultLabel ? r.label.trim() : null,
+    }))
   emit('save', { settings })
 }
 </script>

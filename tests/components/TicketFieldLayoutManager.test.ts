@@ -52,18 +52,16 @@ describe('TicketFieldLayoutManager', () => {
     expect(wrapper.text()).toContain('相手方車両')
   })
 
-  it('emits save with default settings unchanged', () => {
+  it('emits save with an empty settings array when nothing was changed from defaults', () => {
+    // 何も変更せずに保存した場合、全フィールドを具体値で凍結してしまうと将来の
+    // コード側デフォルト変更が反映されなくなるため、差分が無ければ何も保存しない。
     const wrapper = mountManager()
-    wrapper.find('button[title], button').exists()
     const saveButton = wrapper.findAll('button').find(b => b.text().includes('保存'))!
     saveButton.trigger('click')
     const emitted = wrapper.emitted('save')
     expect(emitted).toBeTruthy()
-    const layout = emitted![0][0] as { settings: Array<{ key: string; visible: boolean; width: string; sort_order: number; label: string | null }> }
-    const title = layout.settings.find(s => s.key === 'title')!
-    expect(title.visible).toBe(true)
-    expect(title.width).toBe('full')
-    expect(title.label).toBeNull()
+    const layout = emitted![0][0] as { settings: Array<{ key: string }> }
+    expect(layout.settings).toEqual([])
   })
 
   it('moveDown swaps sort order within the same section and reflects in saved settings', async () => {
