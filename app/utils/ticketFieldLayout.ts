@@ -44,7 +44,7 @@ export const FIELD_METAS: FieldMeta[] = [
 
   { key: 'counterparty', label: '相手方', section: '相手方', type: 'text', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 10 },
   { key: 'counterparty_insurance', label: '相手方保険', section: '相手方', type: 'text', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 20 },
-  { key: 'counterparty_vehicle', label: '相手方車両', section: '相手方', type: 'text', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 30 },
+  { key: 'counterparty_vehicle', label: '相手方車両', section: '相手方', type: 'text', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 30 },
 
   { key: 'disciplinary_content', label: '処分検討内容', section: '管理', type: 'textarea', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 10 },
   { key: 'disciplinary_action', label: '処分内容', section: '管理', type: 'textarea', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 20 },
