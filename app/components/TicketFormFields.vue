@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee } from '~/types'
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, TroubleFieldLayout } from '~/types'
 import { toHalfWidth } from '~/utils/normalize'
 import { buildCategoryOptions, buildOfficeOptions, buildProgressOptions, buildEmployeeOptions } from '~/utils/ticketFieldOptions'
+import { resolveFieldLayout, groupFieldsBySection, widthColSpanClass } from '~/utils/ticketFieldLayout'
 
 const model = defineModel<Record<string, unknown>>({ required: true })
 
@@ -11,6 +12,7 @@ const props = defineProps<{
   offices?: TroubleOffice[]
   progressStatuses?: TroubleProgressStatus[]
   employees?: Employee[]
+  fieldLayout?: TroubleFieldLayout | null
 }>()
 
 // mode === 'edit' で親が listen すると、各フィールド確定時 (select/checkbox/日付は
@@ -49,8 +51,35 @@ const officeOptions = computed(() => buildOfficeOptions(props.offices))
 const progressOptions = computed(() => buildProgressOptions(props.progressStatuses))
 const employeeOptions = computed(() => buildEmployeeOptions(props.employees))
 
+function selectOptionsFor(key: string) {
+  if (key === 'category') return categoryOptions.value
+  if (key === 'office_name') return officeOptions.value
+  if (key === 'progress_notes') return progressOptions.value
+  return []
+}
+
+const groupedFields = computed(() => groupFieldsBySection(resolveFieldLayout(props.fieldLayout)))
+
+function fieldValue(key: string): unknown {
+  return (model.value as Record<string, unknown>)[key]
+}
+
 function update(key: string, value: unknown) {
   model.value = { ...model.value, [key]: value }
+}
+
+function updateNumber(key: string, value: string | number) {
+  update(key, value === '' || value == null ? null : Number(value))
+}
+
+function updateDatetime(key: string, value: string | undefined) {
+  update(key, value ?? '')
+  commit(key)
+}
+
+function updateDate(key: string, value: string | undefined) {
+  update(key, value ? new Date(value).toISOString() : null)
+  commit(key)
 }
 
 function updateEmployee(employeeId: string) {
@@ -90,287 +119,133 @@ function toggleExternal(checked: boolean) {
 
 <template>
   <div class="space-y-6">
-    <!-- 基本情報 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">基本情報</legend>
+    <fieldset v-for="group in groupedFields" :key="group.section" class="space-y-4">
+      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ group.section }}</legend>
 
-      <UFormField label="カテゴリ" required>
-        <USelect
-          :model-value="(model.category as string) || ''"
-          :items="categoryOptions"
-          placeholder="カテゴリを選択"
-          @update:model-value="update('category', $event); commit('category')"
-        />
-      </UFormField>
-
-      <UFormField label="タイトル">
-        <UInput
-          :model-value="(model.title as string) || ''"
-          placeholder="タイトル"
-          @update:model-value="update('title', $event)"
-          @blur="commit('title')"
-        />
-      </UFormField>
-
-      <UFormField label="説明">
-        <UTextarea
-          :model-value="(model.description as string) || ''"
-          placeholder="詳細な説明"
-          :rows="4"
-          @update:model-value="update('description', $event)"
-          @blur="commit('description')"
-        />
-      </UFormField>
-
-      <UFormField label="発生日時">
-        <YmdtInput
-          :model-value="(model.occurred_at as string) || undefined"
-          @update:model-value="(v: string | undefined) => { update('occurred_at', v ?? ''); commit('occurred_at') }"
-        />
-      </UFormField>
-    </fieldset>
-
-    <!-- 関係者情報 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">関係者情報</legend>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="会社名">
-          <UInput
-            :model-value="(model.company_name as string) || ''"
-            placeholder="会社名"
-            @update:model-value="update('company_name', $event)"
-            @blur="commit('company_name')"
-          />
-        </UFormField>
-
-        <UFormField label="営業所名">
-          <USelect
-            :model-value="(model.office_name as string) || ''"
-            :items="officeOptions"
-            placeholder="営業所を選択"
-            :disabled="officeOptions.length === 0"
-            @update:model-value="update('office_name', $event); commit('office_name')"
-          />
-        </UFormField>
-
-        <UFormField label="部署名">
-          <UInput
-            :model-value="(model.department as string) || ''"
-            placeholder="部署名"
-            @update:model-value="update('department', $event)"
-            @blur="commit('department')"
-          />
-        </UFormField>
-
-        <UFormField label="氏名">
-          <div class="space-y-1">
-            <UInput
-              v-if="model.person_is_external"
-              :model-value="(model.person_name as string) || ''"
-              placeholder="外部当事者名（手入力）"
-              @update:model-value="update('person_name', $event)"
-              @blur="commit('person_name')"
-            />
+      <div class="grid grid-cols-6 gap-4">
+        <div v-for="field in group.fields" :key="field.key" :class="widthColSpanClass(field.width)">
+          <UFormField :label="field.label" :required="field.key === 'category'">
+            <!-- select (category / office_name / progress_notes) -->
             <USelect
-              v-else
-              :model-value="(model.person_id as string) || ''"
-              :items="employeeOptions"
-              placeholder="従業員を選択"
-              :disabled="employeeOptions.length === 0"
-              @update:model-value="updateEmployee($event as string)"
+              v-if="field.type === 'select'"
+              :model-value="(fieldValue(field.key) as string) || ''"
+              :items="selectOptionsFor(field.key)"
+              :placeholder="`${field.label}を選択`"
+              :disabled="selectOptionsFor(field.key).length === 0"
+              @update:model-value="update(field.key, $event); commit(field.key)"
             />
-            <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                :checked="!!model.person_is_external"
-                class="rounded"
-                @change="toggleExternal(($event.target as HTMLInputElement).checked)"
-              >
-              外部/手入力（従業員マスタ外）
-            </label>
-          </div>
-        </UFormField>
-      </div>
-    </fieldset>
 
-    <!-- 車両・場所 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">車両・場所</legend>
+            <!-- text: registration_number (datalist 付き、半角変換、車検証マスタ照合) -->
+            <template v-else-if="field.key === 'registration_number'">
+              <UInput
+                :model-value="(fieldValue('registration_number') as string) || ''"
+                placeholder="登録番号 (車検証と照合)"
+                list="ticket-form-registrations"
+                @update:model-value="(v: string | number) => update('registration_number', toHalfWidth(String(v ?? '')))"
+                @blur="commit('registration_number')"
+              />
+              <datalist id="ticket-form-registrations">
+                <option v-for="reg in carInspectionRegistrations" :key="reg" :value="reg" />
+              </datalist>
+            </template>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="登録番号">
-          <UInput
-            :model-value="(model.registration_number as string) || ''"
-            placeholder="登録番号 (車検証と照合)"
-            list="ticket-form-registrations"
-            @update:model-value="(v: string | number) => update('registration_number', toHalfWidth(String(v ?? '')))"
-            @blur="commit('registration_number')"
-          />
-          <datalist id="ticket-form-registrations">
-            <option
-              v-for="reg in carInspectionRegistrations"
-              :key="reg"
-              :value="reg"
+            <!-- text (汎用) -->
+            <UInput
+              v-else-if="field.type === 'text'"
+              :model-value="(fieldValue(field.key) as string) || ''"
+              :placeholder="field.label"
+              @update:model-value="update(field.key, $event)"
+              @blur="commit(field.key)"
             />
-          </datalist>
-        </UFormField>
 
-        <UFormField label="場所">
-          <UInput
-            :model-value="(model.location as string) || ''"
-            placeholder="発生場所"
-            @update:model-value="update('location', $event)"
-            @blur="commit('location')"
-          />
-        </UFormField>
-      </div>
+            <!-- textarea -->
+            <UTextarea
+              v-else-if="field.type === 'textarea'"
+              :model-value="(fieldValue(field.key) as string) || ''"
+              :placeholder="field.label"
+              :rows="field.key === 'description' ? 4 : 2"
+              @update:model-value="update(field.key, $event)"
+              @blur="commit(field.key)"
+            />
 
-      <!-- 車検証マスタ一致情報 -->
-      <div
-        v-if="model.registration_number"
-        class="rounded-md border p-3 text-xs"
-        :class="carInspectionMatch
-          ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
-          : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900'"
-      >
-        <template v-if="carInspectionMatch">
-          <div class="font-semibold text-blue-700 dark:text-blue-300 mb-1">
-            車検証マスタ: {{ carInspectionMatch.registrationNumber }}
+            <!-- number -->
+            <UInput
+              v-else-if="field.type === 'number'"
+              type="number"
+              :model-value="String(fieldValue(field.key) ?? '')"
+              placeholder="0"
+              @update:model-value="updateNumber(field.key, $event)"
+              @blur="commit(field.key)"
+            />
+
+            <!-- datetime (occurred_at) -->
+            <YmdtInput
+              v-else-if="field.type === 'datetime'"
+              :model-value="(fieldValue(field.key) as string) || undefined"
+              @update:model-value="(v: string | undefined) => updateDatetime(field.key, v)"
+            />
+
+            <!-- date (due_date) -->
+            <YmdInput
+              v-else-if="field.type === 'date'"
+              :model-value="((fieldValue(field.key) as string) || '').slice(0, 10) || undefined"
+              @update:model-value="(v: string | undefined) => updateDate(field.key, v)"
+            />
+
+            <!-- person (氏名: 外部/従業員) -->
+            <div v-else-if="field.type === 'person'" class="space-y-1">
+              <UInput
+                v-if="model.person_is_external"
+                :model-value="(model.person_name as string) || ''"
+                placeholder="外部当事者名（手入力）"
+                @update:model-value="update('person_name', $event)"
+                @blur="commit('person_name')"
+              />
+              <USelect
+                v-else
+                :model-value="(model.person_id as string) || ''"
+                :items="employeeOptions"
+                placeholder="従業員を選択"
+                :disabled="employeeOptions.length === 0"
+                @update:model-value="updateEmployee($event as string)"
+              />
+              <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="!!model.person_is_external"
+                  class="rounded"
+                  @change="toggleExternal(($event.target as HTMLInputElement).checked)"
+                >
+                外部/手入力（従業員マスタ外）
+              </label>
+            </div>
+          </UFormField>
+
+          <!-- 車検証マスタ一致情報 (登録番号フィールドの直後) -->
+          <div
+            v-if="field.key === 'registration_number' && model.registration_number"
+            class="mt-2 rounded-md border p-3 text-xs"
+            :class="carInspectionMatch
+              ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
+              : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900'"
+          >
+            <template v-if="carInspectionMatch">
+              <div class="font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                車検証マスタ: {{ carInspectionMatch.registrationNumber }}
+              </div>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div><span class="text-gray-500">所有者: </span>{{ carInspectionMatch.ownerName || '-' }}</div>
+                <div><span class="text-gray-500">車種: </span>{{ carInspectionMatch.carName || '-' }}</div>
+                <div><span class="text-gray-500">型式: </span>{{ carInspectionMatch.model || '-' }}</div>
+                <div><span class="text-gray-500">車検満了日: </span>{{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}</div>
+              </div>
+            </template>
+            <template v-else>
+              車検証マスタに登録なし（入力値はそのまま保存されます）
+            </template>
           </div>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-            <div><span class="text-gray-500">所有者: </span>{{ carInspectionMatch.ownerName || '-' }}</div>
-            <div><span class="text-gray-500">車種: </span>{{ carInspectionMatch.carName || '-' }}</div>
-            <div><span class="text-gray-500">型式: </span>{{ carInspectionMatch.model || '-' }}</div>
-            <div><span class="text-gray-500">車検満了日: </span>{{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}</div>
-          </div>
-        </template>
-        <template v-else>
-          車検証マスタに登録なし（入力値はそのまま保存されます）
-        </template>
+        </div>
       </div>
-    </fieldset>
-
-    <!-- 進捗・手当 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">進捗・手当</legend>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="進捗状況">
-          <USelect
-            :model-value="(model.progress_notes as string) || ''"
-            :items="progressOptions"
-            placeholder="進捗状況を選択"
-            :disabled="progressOptions.length === 0"
-            @update:model-value="update('progress_notes', $event); commit('progress_notes')"
-          />
-        </UFormField>
-
-        <UFormField label="手当等">
-          <UInput
-            :model-value="(model.allowance as string) || ''"
-            placeholder="手当等"
-            @update:model-value="update('allowance', $event)"
-            @blur="commit('allowance')"
-          />
-        </UFormField>
-      </div>
-    </fieldset>
-
-    <!-- 金額 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">金額</legend>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <UFormField label="損害額">
-          <UInput
-            type="number"
-            :model-value="String(model.damage_amount ?? '')"
-            placeholder="0"
-            @update:model-value="update('damage_amount', $event ? Number($event) : null)"
-            @blur="commit('damage_amount')"
-          />
-        </UFormField>
-
-        <UFormField label="補償額">
-          <UInput
-            type="number"
-            :model-value="String(model.compensation_amount ?? '')"
-            placeholder="0"
-            @update:model-value="update('compensation_amount', $event ? Number($event) : null)"
-            @blur="commit('compensation_amount')"
-          />
-        </UFormField>
-
-        <UFormField label="ロードサービス費用">
-          <UInput
-            type="number"
-            :model-value="String(model.road_service_cost ?? '')"
-            placeholder="0"
-            @update:model-value="update('road_service_cost', $event ? Number($event) : null)"
-            @blur="commit('road_service_cost')"
-          />
-        </UFormField>
-      </div>
-    </fieldset>
-
-    <!-- 相手方 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">相手方</legend>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="相手方">
-          <UInput
-            :model-value="(model.counterparty as string) || ''"
-            placeholder="相手方"
-            @update:model-value="update('counterparty', $event)"
-            @blur="commit('counterparty')"
-          />
-        </UFormField>
-
-        <UFormField label="相手方保険">
-          <UInput
-            :model-value="(model.counterparty_insurance as string) || ''"
-            placeholder="相手方保険"
-            @update:model-value="update('counterparty_insurance', $event)"
-            @blur="commit('counterparty_insurance')"
-          />
-        </UFormField>
-      </div>
-    </fieldset>
-
-    <!-- 管理 -->
-    <fieldset class="space-y-4">
-      <legend class="text-sm font-semibold text-gray-700 dark:text-gray-300">管理</legend>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="処分検討内容">
-          <UTextarea
-            :model-value="(model.disciplinary_content as string) || ''"
-            placeholder="処分検討内容"
-            :rows="2"
-            @update:model-value="update('disciplinary_content', $event)"
-            @blur="commit('disciplinary_content')"
-          />
-        </UFormField>
-
-        <UFormField label="処分内容">
-          <UTextarea
-            :model-value="(model.disciplinary_action as string) || ''"
-            placeholder="処分内容"
-            :rows="2"
-            @update:model-value="update('disciplinary_action', $event)"
-            @blur="commit('disciplinary_action')"
-          />
-        </UFormField>
-      </div>
-
-      <UFormField label="対応期限">
-        <YmdInput
-          :model-value="((model.due_date as string) || '').slice(0, 10) || undefined"
-          @update:model-value="(v: string | undefined) => { update('due_date', v ? new Date(v).toISOString() : null); commit('due_date') }"
-        />
-      </UFormField>
     </fieldset>
   </div>
 </template>

@@ -6,6 +6,8 @@ export type {
   TroubleFile,
   TroubleStatusHistory,
   TransitionRequest,
+  TroubleFieldLayout,
+  TroubleFieldLayoutEntry,
 } from './generated'
 
 // Override: ts-rs makes Option<T> fields required (T | null),
@@ -55,9 +57,11 @@ export interface UpdateTroubleTicket {
   confirmation_notice?: string | null
   disciplinary_content?: string | null
   disciplinary_action?: string | null
+  disciplinary_committee?: string | null
   road_service_cost?: number | null
   counterparty?: string | null
   counterparty_insurance?: string | null
+  counterparty_vehicle?: string | null
   custom_fields?: Record<string, unknown> | null
   due_date?: string | null
 }

@@ -20,6 +20,8 @@ export type { TenantAllowedEmail } from "./TenantAllowedEmail";
 export type { TransitionRequest } from "./TransitionRequest";
 export type { TroubleCategory } from "./TroubleCategory";
 export type { TroubleCustomFieldDef } from "./TroubleCustomFieldDef";
+export type { TroubleFieldLayout } from "./TroubleFieldLayout";
+export type { TroubleFieldLayoutEntry } from "./TroubleFieldLayoutEntry";
 export type { TroubleFile } from "./TroubleFile";
 export type { TroubleNotificationPref } from "./TroubleNotificationPref";
 export type { TroubleOffice } from "./TroubleOffice";

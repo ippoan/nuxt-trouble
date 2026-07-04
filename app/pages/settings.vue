@@ -21,7 +21,19 @@ const tabs = [
   { label: '進捗状況', value: 'progress' },
   { label: 'ワークフロー', value: 'workflow' },
   { label: '通知', value: 'notifications' },
+  { label: '入力フォーム表示', value: 'fieldLayout' },
 ]
+
+// Field layout
+const { fieldLayout, loading: fieldLayoutLoading, saving: fieldLayoutSaving, error: fieldLayoutError, fetchFieldLayout, saveFieldLayout } = useTicketFieldLayout()
+
+async function handleSaveFieldLayout(layout: import('~/types').TroubleFieldLayout) {
+  try {
+    await saveFieldLayout(layout)
+  } catch {
+    // エラーは useTicketFieldLayout 側の error に格納済み
+  }
+}
 
 // Categories
 const categories = ref<TroubleCategory[]>([])
@@ -338,6 +350,7 @@ onMounted(() => {
   fetchOffices()
   fetchProgressStatuses()
   fetchNotifications()
+  fetchFieldLayout()
 })
 </script>
 
@@ -413,6 +426,18 @@ onMounted(() => {
       />
 
       <WorkflowManager v-if="activeTab === 'workflow'" />
+
+      <div v-if="activeTab === 'fieldLayout'" class="space-y-4">
+        <div v-if="fieldLayoutError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
+          {{ fieldLayoutError }}
+        </div>
+        <TicketFieldLayoutManager
+          :field-layout="fieldLayout"
+          :loading="fieldLayoutLoading"
+          :saving="fieldLayoutSaving"
+          @save="handleSaveFieldLayout"
+        />
+      </div>
 
       <!-- Notifications tab -->
       <div v-if="activeTab === 'notifications'" class="space-y-4">
