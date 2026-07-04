@@ -274,6 +274,7 @@ onMounted(() => {
                 v-for="t in tasks"
                 :key="t.id"
                 class="break-inside-avoid"
+                :class="t.print_page_break_before ? 'border-t-4 border-t-emerald-500 print:border-t print:border-t-gray-400' : ''"
                 :style="t.print_page_break_before ? { breakBefore: 'page', pageBreakBefore: 'always' } : undefined"
               >
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
