@@ -103,6 +103,10 @@ function scheduleMemberName(userId: string): string {
   return m?.user_name || m?.email || userId
 }
 
+function openPrintView() {
+  window.open(`/tickets/print/${ticketId}`, '_blank')
+}
+
 onMounted(() => {
   load()
   loadSchedules()
@@ -139,6 +143,7 @@ onMounted(() => {
           />
         </div>
         <div class="flex gap-2">
+          <UButton label="印刷" icon="i-lucide-printer" variant="outline" @click="openPrintView" />
           <template v-if="!editing">
             <UButton label="編集" icon="i-lucide-pencil" variant="outline" @click="startEdit" />
             <UButton label="削除" icon="i-lucide-trash-2" variant="outline" color="error" @click="showDeleteModal = true" />
