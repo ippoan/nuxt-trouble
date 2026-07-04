@@ -45,6 +45,13 @@ function displayValue(v: string | number | null | undefined): string {
   return String(v)
 }
 
+// 登録番号 (ナンバープレート) はデータ中に半角/全角スペースが混在することがあるため、
+// 印刷表示時は除去する (user 指摘: 「登録番号 スペース除外」)。
+function registrationNumber(v: string | null | undefined): string {
+  if (v == null || v === '') return '-'
+  return String(v).replace(/\s+/g, '')
+}
+
 function money(v: string | null | undefined): string {
   if (v == null || v === '') return '-'
   return `${Number(v).toLocaleString()}円`
@@ -188,12 +195,12 @@ onMounted(() => {
             </tr>
             <tr class="border-b border-gray-400">
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">登録番号</th>
-              <td class="border-r border-gray-400 px-3 py-2">{{ displayValue(ticket.registration_number) }}</td>
+              <td class="border-r border-gray-400 px-3 py-2">{{ registrationNumber(ticket.registration_number) }}</td>
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">車検満了日</th>
               <td class="px-3 py-2">
                 <template v-if="carInspectionMatch">
-                  {{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}
-                  （{{ carInspectionMatch.carName || '-' }} / {{ carInspectionMatch.ownerName || '-' }}）
+                  <div>{{ formatExpiry(carInspectionMatch.validPeriodExpirdate) }}</div>
+                  <div>（{{ carInspectionMatch.carName || '-' }} / {{ carInspectionMatch.ownerName || '-' }}）</div>
                 </template>
                 <template v-else>-</template>
               </td>
@@ -288,9 +295,7 @@ onMounted(() => {
                 <tr class="border-b-2 border-black">
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">種別</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">タイトル / 内容</th>
-                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">発生日</th>
-                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">期限</th>
-                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">次のアクション</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">日付</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
                   <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
@@ -305,8 +310,6 @@ onMounted(() => {
                     <div v-if="t.next_action_detail" class="text-gray-600">次回詳細: {{ t.next_action_detail }}</div>
                   </td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.occurred_at) }}</td>
-                  <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.due_date) }}</td>
-                  <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action) }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action_by) }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ taskStatusLabel(t.status) }}</td>
                   <td class="print:hidden border border-gray-400 px-2 py-1 align-top">
