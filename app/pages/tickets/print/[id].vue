@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTicket, TroubleWorkflowState, TroubleTask, TroubleStatusHistory } from '~/types'
 import { getTicket, getWorkflowStates, getTasks, getStatusHistory } from '~/utils/api'
-import { formatOccurredAt } from '~/utils/datetime'
+import { formatOccurredAt, toDatetimeLocalInput, fromDatetimeLocalInput } from '~/utils/datetime'
 import { formatExpiry } from '~/utils/carInspection'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
 
@@ -50,6 +50,50 @@ function money(v: string | null | undefined): string {
   return `${Number(v).toLocaleString()}円`
 }
 
+// 状況管理 (タスク) の追加印刷 (前回印刷以降の分だけ印刷する) 用。
+// 「どこまで印刷したか」を分かるよう、この範囲指定は状況管理の見出しにも表示する
+// (= 紙面自体に印刷範囲が残る)。
+function printStorageKey(): string {
+  return `trouble-print-last-${ticketId}`
+}
+
+const printFromDate = ref<string | undefined>(undefined)
+const lastPrintedAt = ref<string | null>(null)
+
+function loadLastPrinted() {
+  if (typeof window === 'undefined') return
+  lastPrintedAt.value = localStorage.getItem(printStorageKey())
+}
+
+function applyLastPrintedFilter() {
+  if (!lastPrintedAt.value) return
+  printFromDate.value = toDatetimeLocalInput(lastPrintedAt.value)
+}
+
+function clearPrintFilter() {
+  printFromDate.value = undefined
+}
+
+function taskTime(t: TroubleTask): number {
+  const iso = t.occurred_at || t.created_at
+  const time = new Date(iso).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const printFromThresholdMs = computed<number | null>(() => {
+  if (!printFromDate.value) return null
+  const converted = fromDatetimeLocalInput(printFromDate.value)
+  if (!converted) return null
+  const time = new Date(converted.occurred_at).getTime()
+  return Number.isNaN(time) ? null : time
+})
+
+const filteredTasks = computed(() => {
+  const threshold = printFromThresholdMs.value
+  if (threshold == null) return tasks.value
+  return tasks.value.filter(t => taskTime(t) >= threshold)
+})
+
 async function load() {
   loading.value = true
   error.value = null
@@ -73,6 +117,11 @@ async function load() {
 
 function handlePrint() {
   window.print()
+  if (typeof window !== 'undefined') {
+    const now = new Date().toISOString()
+    localStorage.setItem(printStorageKey(), now)
+    lastPrintedAt.value = now
+  }
 }
 
 function handleClose() {
@@ -83,6 +132,7 @@ onMounted(() => {
   load()
   loadCarInspections()
   loadTaskStatuses()
+  loadLastPrinted()
 })
 </script>
 
@@ -227,8 +277,23 @@ onMounted(() => {
 
         <!-- 状況管理 (タスク) -->
         <div class="mt-8">
-          <h3 class="mb-2 border-b border-black pb-1 text-base font-semibold">状況管理</h3>
-          <p v-if="tasks.length === 0" class="text-sm text-gray-500">状況管理項目はありません</p>
+          <!-- 追加印刷 (状況管理が複数ページに渡る場合、前回印刷以降の分だけ印刷する)。
+               画面プレビューのみで印刷はされない。 -->
+          <div class="print:hidden mb-2 flex flex-wrap items-center gap-2 rounded border border-dashed border-gray-300 bg-gray-50 p-2 text-xs">
+            <span class="font-medium text-gray-600">状況管理の印刷範囲（追加印刷用）:</span>
+            <YmdtInput :model-value="printFromDate" @update:model-value="(v: string | undefined) => { printFromDate = v }" />
+            <UButton label="前回印刷以降のみ" size="xs" variant="outline" :disabled="!lastPrintedAt" @click="applyLastPrintedFilter" />
+            <UButton label="すべて表示" size="xs" variant="ghost" :disabled="!printFromDate" @click="clearPrintFilter" />
+            <span v-if="lastPrintedAt" class="text-gray-400">前回印刷: {{ new Date(lastPrintedAt).toLocaleString('ja-JP') }}</span>
+          </div>
+
+          <h3 class="mb-2 border-b border-black pb-1 text-base font-semibold">
+            状況管理
+            <span v-if="printFromDate" class="ml-2 text-xs font-normal text-gray-600">（{{ printFromDate.replace('T', ' ') }} 以降のみ表示・追加印刷）</span>
+          </h3>
+          <p v-if="filteredTasks.length === 0" class="text-sm text-gray-500">
+            {{ printFromDate ? 'この範囲に状況管理項目はありません' : '状況管理項目はありません' }}
+          </p>
           <table v-else class="w-full border-collapse text-xs">
             <thead>
               <tr class="border-b-2 border-black">
@@ -242,7 +307,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="t in tasks" :key="t.id" class="break-inside-avoid">
+              <tr v-for="t in filteredTasks" :key="t.id" class="break-inside-avoid">
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">
                   <div class="font-medium">{{ t.title }}</div>
