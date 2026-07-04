@@ -173,18 +173,8 @@ onMounted(() => {
           <div class="mb-1 text-sm font-medium">進捗状況</div>
           <div class="border border-gray-400 p-3 text-sm">{{ displayValue(ticket.progress_notes) }}</div>
         </div>
-      </section>
 
-      <!-- ============ 詳細情報 ============ -->
-      <section
-        class="print-sheet mx-auto min-h-[297mm] max-w-[210mm] rounded-lg bg-white px-10 py-10 text-black shadow-lg print:min-h-0 print:max-w-none print:rounded-none print:shadow-none"
-      >
-        <div class="flex items-center justify-between border-b-2 border-black pb-3">
-          <h2 class="text-xl font-bold tracking-wide">詳細情報</h2>
-          <div class="text-right text-xs text-gray-600">No.{{ ticket.ticket_no }}（{{ ticket.category }}）</div>
-        </div>
-
-        <table class="mt-4 w-full border-collapse text-sm">
+        <table class="mt-6 w-full border-collapse text-sm">
           <tbody>
             <tr class="border-t border-b border-gray-400">
               <th class="w-40 border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">損害額</th>
@@ -224,6 +214,16 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <!-- ============ 詳細情報 ============ -->
+      <section
+        class="print-sheet mx-auto min-h-[297mm] max-w-[210mm] rounded-lg bg-white px-10 py-10 text-black shadow-lg print:min-h-0 print:max-w-none print:rounded-none print:shadow-none"
+      >
+        <div class="flex items-center justify-between border-b-2 border-black pb-3">
+          <h2 class="text-xl font-bold tracking-wide">詳細情報</h2>
+          <div class="text-right text-xs text-gray-600">No.{{ ticket.ticket_no }}（{{ ticket.category }}）</div>
+        </div>
 
         <!-- 状況管理 (タスク) -->
         <div class="mt-8">
