@@ -333,18 +333,18 @@ onMounted(() => {
         <div class="mt-8">
           <h3 class="mb-2 border-b border-black pb-1 text-base font-semibold">ステータス履歴</h3>
           <p v-if="statusHistory.length === 0" class="text-sm text-gray-500">履歴はありません</p>
-          <table v-else class="w-full border-collapse text-xs">
+          <table v-else class="w-full table-fixed border-collapse text-xs">
             <thead>
               <tr class="border-b-2 border-black">
-                <th class="w-px whitespace-nowrap border border-gray-400 px-2 py-1 text-left font-medium">日時</th>
-                <th class="w-px whitespace-nowrap border border-gray-400 px-2 py-1 text-left font-medium">変更</th>
+                <th class="w-36 border border-gray-400 px-2 py-1 text-left font-medium">日時</th>
+                <th class="w-40 border border-gray-400 px-2 py-1 text-left font-medium">変更</th>
                 <th class="border border-gray-400 px-2 py-1 text-left font-medium">コメント</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="h in statusHistory" :key="h.id" class="break-inside-avoid">
-                <td class="w-px border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ formatOccurredAt(h.created_at) }}</td>
-                <td class="w-px border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ stateLabel(h.from_state_id) }} → {{ stateLabel(h.to_state_id) }}</td>
+                <td class="w-36 border border-gray-400 px-2 py-1 align-top whitespace-nowrap">{{ formatOccurredAt(h.created_at) }}</td>
+                <td class="w-40 border border-gray-400 px-2 py-1 align-top">{{ stateLabel(h.from_state_id) }} → {{ stateLabel(h.to_state_id) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ h.comment || '-' }}</td>
               </tr>
             </tbody>
