@@ -121,7 +121,7 @@ const form = ref<Record<string, unknown>>({})
 const savingKeys = ref<Set<string>>(new Set())
 const fieldError = ref<string | null>(null)
 // 保存が一瞬で終わるとスピナーが点滅するだけで視認できないため、最低でもこの時間は表示する。
-const MIN_SAVING_SPINNER_MS = 1000
+const MIN_SAVING_SPINNER_MS = 500
 
 function buildFormFromTicket(t: TroubleTicket): Record<string, unknown> {
   return {

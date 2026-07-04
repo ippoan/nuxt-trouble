@@ -172,10 +172,10 @@ describe('TicketCompactOverview - inline auto-save form (展開表示)', () => {
       await flushPromises()
 
       // API 応答が一瞬で返ってもスピナーが点滅するだけで視認できないよう、
-      // 最低表示時間 (1秒) が経過するまでは保存中のまま維持される。
+      // 最低表示時間 (0.5秒) が経過するまでは保存中のまま維持される。
       expect(titleInput.attributes('data-loading')).toBe('true')
 
-      await vi.advanceTimersByTimeAsync(1000)
+      await vi.advanceTimersByTimeAsync(500)
       await flushPromises()
 
       expect(titleInput.attributes('data-loading')).toBe('false')
