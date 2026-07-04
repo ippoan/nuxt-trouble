@@ -87,7 +87,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 print:bg-white">
+  <div class="min-h-screen print:min-h-0 bg-gray-100 print:bg-white">
     <!-- Toolbar: screen only -->
     <div class="print:hidden sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
       <span class="text-sm text-gray-500">印刷プレビュー{{ ticket ? ` — No.${ticket.ticket_no}` : '' }}</span>
@@ -279,11 +279,26 @@ onMounted(() => {
 
 <style>
 /* 印刷時の用紙設定。都度印刷 (Ctrl+P / 印刷ボタン) の度に同じページ割りを再現するため
-   ページ区切りは要素の style/class 側 (break-after-page) にも重複指定してある。 */
+   ページ区切りは要素の style/class 側 (break-after-page) にも重複指定してある。
+   ダークモード時、鏡/詳細情報の実コンテンツ末尾より紙面が余ると @nuxt/ui の
+   --ui-bg (ダークモードでは neutral-900 = ほぼ黒) が html/body の背景として
+   透けて見え、印刷結果の余白部分が黒く出てしまう。print 時はライトモードの
+   背景で強制的に上書きする。 */
 @media print {
   @page {
     size: A4;
     margin: 15mm;
+  }
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  :root, .dark {
+    --ui-bg: #ffffff !important;
+    --ui-bg-muted: #ffffff !important;
+    --ui-bg-elevated: #ffffff !important;
+    --ui-bg-accented: #ffffff !important;
+    color-scheme: light !important;
   }
 }
 </style>
