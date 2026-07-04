@@ -58,6 +58,10 @@ async function saveRegistration(ticketId: string, event: Event) {
   }
 }
 
+function openPrintView(ticketId: string) {
+  window.open(`/tickets/print/${ticketId}`, '_blank')
+}
+
 onMounted(() => {
   loadStatusFilter()
   fetchTickets()
@@ -296,7 +300,8 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                 </UBadge>
                 <span v-else class="text-gray-400">-</span>
               </td>
-              <td class="py-2 px-2 text-right">
+              <td class="py-2 px-2 text-right whitespace-nowrap">
+                <UButton icon="i-lucide-printer" variant="ghost" size="xs" title="印刷" @click.stop="openPrintView(ticket.id)" />
                 <UButton icon="i-lucide-trash-2" variant="ghost" color="error" size="xs" @click.stop="confirmDelete(ticket)" />
               </td>
             </tr>
