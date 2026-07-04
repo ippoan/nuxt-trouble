@@ -16,6 +16,8 @@ import {
   createProgressStatus,
   deleteProgressStatus,
   updateProgressStatusSortOrder,
+  getFieldLayout,
+  updateFieldLayout,
   getFileBlobUrl,
   restoreFile,
   getTrashFiles,
@@ -113,6 +115,32 @@ describe('Trouble API Phase 4', () => {
         expect(url).toBe(`${API_BASE}/api/trouble/progress-statuses/p1`)
         expect(opts.method).toBe('PUT')
         expect(JSON.parse(opts.body)).toEqual({ sort_order: 5 })
+      })
+    })
+  })
+
+  // --- Field Layout ---
+  describe('getFieldLayout', () => {
+    it('fetches the field layout', async () => {
+      await verifyApi(() => getFieldLayout(), { settings: [] })
+      assertMock(() => {
+        expectMock(mockFetch).toHaveBeenCalledWith(
+          `${API_BASE}/api/trouble/field-layout`,
+          expect.objectContaining({ headers: expect.any(Object) }),
+        )
+      })
+    })
+  })
+
+  describe('updateFieldLayout', () => {
+    it('updates the field layout', async () => {
+      const layout = { settings: [{ key: 'title', visible: true, width: 'full', sort_order: 10, label: null }] }
+      await verifyApi(() => updateFieldLayout(layout), layout)
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/trouble/field-layout`)
+        expect(opts.method).toBe('PUT')
+        expect(JSON.parse(opts.body)).toEqual(layout)
       })
     })
   })
