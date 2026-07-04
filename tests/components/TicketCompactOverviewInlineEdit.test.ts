@@ -153,23 +153,35 @@ describe('TicketCompactOverview - inline auto-save form (展開表示)', () => {
   })
 
   it('shows a loading spinner on the field being saved, and clears it once saved', async () => {
-    let resolveUpdate!: (v: ReturnType<typeof makeTroubleTicket>) => void
-    updateTicketMock.mockImplementation(() => new Promise((resolve) => { resolveUpdate = resolve }))
-    const wrapper = mountOverview()
-    await flushPromises()
-    await expandDetail(wrapper)
+    vi.useFakeTimers()
+    try {
+      let resolveUpdate!: (v: ReturnType<typeof makeTroubleTicket>) => void
+      updateTicketMock.mockImplementation(() => new Promise((resolve) => { resolveUpdate = resolve }))
+      const wrapper = mountOverview()
+      await flushPromises()
+      await expandDetail(wrapper)
 
-    const titleInput = wrapper.find('input[placeholder="タイトル"]')
-    await titleInput.setValue('保存中タイトル')
-    await titleInput.trigger('blur')
-    await wrapper.vm.$nextTick()
+      const titleInput = wrapper.find('input[placeholder="タイトル"]')
+      await titleInput.setValue('保存中タイトル')
+      await titleInput.trigger('blur')
+      await wrapper.vm.$nextTick()
 
-    expect(titleInput.attributes('data-loading')).toBe('true')
+      expect(titleInput.attributes('data-loading')).toBe('true')
 
-    resolveUpdate(makeTroubleTicket({ title: '保存中タイトル' }))
-    await flushPromises()
+      resolveUpdate(makeTroubleTicket({ title: '保存中タイトル' }))
+      await flushPromises()
 
-    expect(titleInput.attributes('data-loading')).toBe('false')
+      // API 応答が一瞬で返ってもスピナーが点滅するだけで視認できないよう、
+      // 最低表示時間 (1秒) が経過するまでは保存中のまま維持される。
+      expect(titleInput.attributes('data-loading')).toBe('true')
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await flushPromises()
+
+      expect(titleInput.attributes('data-loading')).toBe('false')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('does not drop a field commit made while another field is still saving', async () => {

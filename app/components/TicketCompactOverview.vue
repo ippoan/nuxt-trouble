@@ -120,6 +120,8 @@ const form = ref<Record<string, unknown>>({})
 // 保存中に別フィールドを blur した時にその commit が黙って握り潰されてしまうため)。
 const savingKeys = ref<Set<string>>(new Set())
 const fieldError = ref<string | null>(null)
+// 保存が一瞬で終わるとスピナーが点滅するだけで視認できないため、最低でもこの時間は表示する。
+const MIN_SAVING_SPINNER_MS = 1000
 
 function buildFormFromTicket(t: TroubleTicket): Record<string, unknown> {
   return {
@@ -170,12 +172,15 @@ async function handleFieldCommitted(keys: string[]) {
   if (Object.keys(payload).length === 0) return
   for (const key of keys) savingKeys.value.add(key)
   fieldError.value = null
+  const startedAt = Date.now()
   try {
     const updated = await updateTicket(props.ticket.id, payload as UpdateTroubleTicket)
     emit('updated', updated)
   } catch (e) {
     fieldError.value = e instanceof Error ? e.message : '保存に失敗しました'
   } finally {
+    const remaining = MIN_SAVING_SPINNER_MS - (Date.now() - startedAt)
+    if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining))
     for (const key of keys) savingKeys.value.delete(key)
   }
 }

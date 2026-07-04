@@ -246,7 +246,7 @@ onMounted(() => {
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">確認書</th>
               <td class="border-r border-gray-400 px-3 py-2">{{ displayValue(ticket.confirmation_notice) }}</td>
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">賞罰委員会</th>
-              <td class="px-3 py-2">{{ ymd(ticket.due_date) }}</td>
+              <td class="px-3 py-2">{{ displayValue(ticket.disciplinary_committee) }}</td>
             </tr>
             <tr class="border-b border-gray-400">
               <th class="border-r border-gray-400 bg-gray-50 px-3 py-2 text-left font-medium">処分検討内容</th>
