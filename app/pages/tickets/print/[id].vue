@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TroubleTicket, TroubleWorkflowState, TroubleTask, TroubleStatusHistory } from '~/types'
-import { getTicket, getWorkflowStates, getTasks, getStatusHistory } from '~/utils/api'
+import { getTicket, getWorkflowStates, getTasks, getStatusHistory, updateTask } from '~/utils/api'
 import { formatOccurredAt, toDatetimeLocalInput, fromDatetimeLocalInput } from '~/utils/datetime'
 import { formatExpiry } from '~/utils/carInspection'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
@@ -112,6 +112,29 @@ async function load() {
     error.value = e instanceof Error ? e.message : 'チケットの取得に失敗しました'
   } finally {
     loading.value = false
+  }
+}
+
+// 状況管理の任意の行の直前に手動で改ページを指定する。チケットのタスクデータ
+// (trouble_tasks.print_page_break_before) としてサーバーに保存するため、
+// どの端末・ブラウザから開いても同じページ割りで印刷できる。
+const togglingBreakId = ref<string | null>(null)
+
+async function toggleManualBreak(t: TroubleTask) {
+  if (togglingBreakId.value) return
+  togglingBreakId.value = t.id
+  try {
+    const updated = await updateTask(t.id, { print_page_break_before: !t.print_page_break_before })
+    const idx = tasks.value.findIndex(x => x.id === t.id)
+    if (idx >= 0) {
+      const list = tasks.value.slice()
+      list[idx] = updated
+      tasks.value = list
+    }
+  } catch (e) {
+    console.error('改ページ設定の保存に失敗:', e)
+  } finally {
+    togglingBreakId.value = null
   }
 }
 
@@ -304,10 +327,16 @@ onMounted(() => {
                 <th class="border border-gray-400 px-2 py-1 text-left font-medium">次のアクション</th>
                 <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
                 <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
+                <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="t in filteredTasks" :key="t.id" class="break-inside-avoid">
+              <tr
+                v-for="t in filteredTasks"
+                :key="t.id"
+                class="break-inside-avoid"
+                :style="t.print_page_break_before ? { breakBefore: 'page', pageBreakBefore: 'always' } : undefined"
+              >
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">
                   <div class="font-medium">{{ t.title }}</div>
@@ -319,6 +348,17 @@ onMounted(() => {
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action_by) }}</td>
                 <td class="border border-gray-400 px-2 py-1 align-top">{{ taskStatusLabel(t.status) }}</td>
+                <td class="print:hidden border border-gray-400 px-2 py-1 align-top">
+                  <UButton
+                    :label="t.print_page_break_before ? '改ページ有' : '改ページ'"
+                    icon="i-lucide-scissors-line-dashed"
+                    size="xs"
+                    :variant="t.print_page_break_before ? 'solid' : 'outline'"
+                    :loading="togglingBreakId === t.id"
+                    title="この行の前で改ページする (サーバーに保存され、どの端末で開いても同じ位置で改ページされます)"
+                    @click="toggleManualBreak(t)"
+                  />
+                </td>
               </tr>
             </tbody>
           </table>

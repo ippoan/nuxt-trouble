@@ -214,6 +214,7 @@ export interface TroubleTask {
   next_action_by: string | null
   next_action_due: string | null
   occurred_at: string | null
+  print_page_break_before: boolean
   created_by: string | null
   created_at: string
   updated_at: string
@@ -247,6 +248,7 @@ export interface UpdateTroubleTask {
   next_action_by?: string | null
   next_action_due?: string | null
   occurred_at?: string | null
+  print_page_break_before?: boolean
 }
 
 export interface TroubleTaskType {
