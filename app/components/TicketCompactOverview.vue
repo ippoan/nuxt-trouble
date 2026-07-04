@@ -116,7 +116,9 @@ const counterpartyLine = computed(() => {
 // 展開表示に使い、フィールド確定 (blur / select 選択 / 日付確定) のたびに
 // そのフィールドだけ即保存する) ---
 const form = ref<Record<string, unknown>>({})
-const savingField = ref(false)
+// フィールドキー単位で保存中かどうかを追跡する (単一の boolean だと、あるフィールドの
+// 保存中に別フィールドを blur した時にその commit が黙って握り潰されてしまうため)。
+const savingKeys = ref<Set<string>>(new Set())
 const fieldError = ref<string | null>(null)
 
 function buildFormFromTicket(t: TroubleTicket): Record<string, unknown> {
@@ -156,7 +158,6 @@ watch(
 )
 
 async function handleFieldCommitted(keys: string[]) {
-  if (savingField.value) return
   const payload: Record<string, unknown> = {}
   for (const key of keys) {
     if (key === 'occurred_at') {
@@ -167,7 +168,7 @@ async function handleFieldCommitted(keys: string[]) {
     payload[key] = form.value[key]
   }
   if (Object.keys(payload).length === 0) return
-  savingField.value = true
+  for (const key of keys) savingKeys.value.add(key)
   fieldError.value = null
   try {
     const updated = await updateTicket(props.ticket.id, payload as UpdateTroubleTicket)
@@ -175,7 +176,7 @@ async function handleFieldCommitted(keys: string[]) {
   } catch (e) {
     fieldError.value = e instanceof Error ? e.message : '保存に失敗しました'
   } finally {
-    savingField.value = false
+    for (const key of keys) savingKeys.value.delete(key)
   }
 }
 </script>
@@ -290,6 +291,7 @@ async function handleFieldCommitted(keys: string[]) {
         :progress-statuses="progressStatuses"
         :employees="employees"
         :field-layout="fieldLayout"
+        :saving-keys="savingKeys"
         @field-committed="handleFieldCommitted"
       />
       <p v-if="fieldError" class="text-xs text-red-600 mt-2">{{ fieldError }}</p>
