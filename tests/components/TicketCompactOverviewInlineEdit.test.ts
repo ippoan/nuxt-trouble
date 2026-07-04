@@ -28,8 +28,8 @@ import TicketCompactOverview from '~/components/TicketCompactOverview.vue'
 // @blur は emits 宣言しないことで Vue の attribute fallthrough によりそのまま
 // input/textarea 要素の native blur イベントへ伝播する。
 const UInputWithAttrs = {
-  template: '<input :value="modelValue" :placeholder="placeholder" :type="type || \'text\'" @input="$emit(\'update:modelValue\', $event.target.value)" />',
-  props: ['modelValue', 'placeholder', 'type', 'size'],
+  template: '<input :value="modelValue" :placeholder="placeholder" :type="type || \'text\'" :data-loading="loading" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+  props: ['modelValue', 'placeholder', 'type', 'size', 'loading'],
   emits: ['update:modelValue'],
 }
 const UTextareaWithAttrs = {
@@ -150,6 +150,50 @@ describe('TicketCompactOverview - inline auto-save form (展開表示)', () => {
     await flushPromises()
 
     expect(updateTicketMock).toHaveBeenCalledWith('ticket-1', { due_date: expectedIso })
+  })
+
+  it('shows a loading spinner on the field being saved, and clears it once saved', async () => {
+    let resolveUpdate!: (v: ReturnType<typeof makeTroubleTicket>) => void
+    updateTicketMock.mockImplementation(() => new Promise((resolve) => { resolveUpdate = resolve }))
+    const wrapper = mountOverview()
+    await flushPromises()
+    await expandDetail(wrapper)
+
+    const titleInput = wrapper.find('input[placeholder="タイトル"]')
+    await titleInput.setValue('保存中タイトル')
+    await titleInput.trigger('blur')
+    await wrapper.vm.$nextTick()
+
+    expect(titleInput.attributes('data-loading')).toBe('true')
+
+    resolveUpdate(makeTroubleTicket({ title: '保存中タイトル' }))
+    await flushPromises()
+
+    expect(titleInput.attributes('data-loading')).toBe('false')
+  })
+
+  it('does not drop a field commit made while another field is still saving', async () => {
+    let resolveFirst!: (v: ReturnType<typeof makeTroubleTicket>) => void
+    updateTicketMock.mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+    updateTicketMock.mockResolvedValueOnce(makeTroubleTicket({ damage_amount: '5000' }))
+    const wrapper = mountOverview()
+    await flushPromises()
+    await expandDetail(wrapper)
+
+    const titleInput = wrapper.find('input[placeholder="タイトル"]')
+    await titleInput.setValue('タイトルA')
+    await titleInput.trigger('blur') // 1件目の保存が pending のまま残る
+
+    const damageInput = wrapper.find('input[type="number"]')
+    await damageInput.setValue('5000')
+    await damageInput.trigger('blur') // 1件目が保存中でも黙って握り潰されない
+    await flushPromises()
+
+    expect(updateTicketMock).toHaveBeenCalledTimes(2)
+    expect(updateTicketMock).toHaveBeenNthCalledWith(2, 'ticket-1', { damage_amount: 5000 })
+
+    resolveFirst(makeTroubleTicket({ title: 'タイトルA' }))
+    await flushPromises()
   })
 
   it('shows an error message when saving fails', async () => {

@@ -13,7 +13,12 @@ const props = defineProps<{
   progressStatuses?: TroubleProgressStatus[]
   employees?: Employee[]
   fieldLayout?: TroubleFieldLayout | null
+  savingKeys?: Set<string>
 }>()
+
+function isSaving(key: string): boolean {
+  return props.savingKeys?.has(key) ?? false
+}
 
 // mode === 'edit' で親が listen すると、各フィールド確定時 (select/checkbox/日付は
 // 即時、text/textarea は blur 時) に対象キーを通知する。親はこれを使って
@@ -133,6 +138,7 @@ function toggleExternal(checked: boolean) {
               :items="selectOptionsFor(field.key)"
               :placeholder="`${field.label}を選択`"
               :disabled="selectOptionsFor(field.key).length === 0"
+              :loading="isSaving(field.key)"
               @update:model-value="update(field.key, $event); commit(field.key)"
             />
 
@@ -143,8 +149,10 @@ function toggleExternal(checked: boolean) {
                 :model-value="(fieldValue('registration_number') as string) || ''"
                 placeholder="登録番号 (車検証と照合)"
                 list="ticket-form-registrations"
+                :loading="isSaving('registration_number')"
                 @update:model-value="(v: string | number) => update('registration_number', toHalfWidth(String(v ?? '')))"
                 @blur="commit('registration_number')"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
               />
               <datalist id="ticket-form-registrations">
                 <option v-for="reg in carInspectionRegistrations" :key="reg" :value="reg" />
@@ -157,8 +165,10 @@ function toggleExternal(checked: boolean) {
               class="w-full"
               :model-value="(fieldValue(field.key) as string) || ''"
               :placeholder="field.label"
+              :loading="isSaving(field.key)"
               @update:model-value="update(field.key, $event)"
               @blur="commit(field.key)"
+              @keydown.enter="($event.target as HTMLInputElement).blur()"
             />
 
             <!-- textarea -->
@@ -168,6 +178,7 @@ function toggleExternal(checked: boolean) {
               :model-value="(fieldValue(field.key) as string) || ''"
               :placeholder="field.label"
               :rows="field.key === 'description' ? 4 : 2"
+              :loading="isSaving(field.key)"
               @update:model-value="update(field.key, $event)"
               @blur="commit(field.key)"
             />
@@ -179,8 +190,10 @@ function toggleExternal(checked: boolean) {
               type="number"
               :model-value="String(fieldValue(field.key) ?? '')"
               placeholder="0"
+              :loading="isSaving(field.key)"
               @update:model-value="updateNumber(field.key, $event)"
               @blur="commit(field.key)"
+              @keydown.enter="($event.target as HTMLInputElement).blur()"
             />
 
             <!-- datetime (occurred_at) -->
@@ -204,8 +217,10 @@ function toggleExternal(checked: boolean) {
                 class="w-full"
                 :model-value="(model.person_name as string) || ''"
                 placeholder="外部当事者名（手入力）"
+                :loading="isSaving('person_name')"
                 @update:model-value="update('person_name', $event)"
                 @blur="commit('person_name')"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
               />
               <USelect
                 v-else
@@ -214,6 +229,7 @@ function toggleExternal(checked: boolean) {
                 :items="employeeOptions"
                 placeholder="従業員を選択"
                 :disabled="employeeOptions.length === 0"
+                :loading="isSaving('person_id')"
                 @update:model-value="updateEmployee($event as string)"
               />
               <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
