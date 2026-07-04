@@ -65,6 +65,13 @@ service = "auth-worker-staging"
 # backend は staging のものをそのまま再利用する (専用インフラは持たない)。
 [env.preview]
 name = "nuxt-trouble-preview"
+# custom_domain route を使うため workers.dev URL は明示的に無効化する
+# (routes 定義時は自動的に false 推論されるが、明示して確実にする)。
+workers_dev = false
+
+[[env.preview.routes]]
+pattern = "trouble-preview.ippoan.org"
+custom_domain = true
 
 [env.preview.vars]
 NUXT_PUBLIC_API_BASE = "https://rust-alc-api-staging-566bls5vfq-an.a.run.app"
