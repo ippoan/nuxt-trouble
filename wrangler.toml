@@ -58,3 +58,25 @@ secret_name = "INTERNAL_SHARED_SECRET"
 [[env.staging.services]]
 binding = "AUTH_WORKER"
 service = "auth-worker-staging"
+
+# push のたびに更新される軽量プレビュー環境 (Refs ippoan/secrets-inventory#85)。
+# staging とは別の Worker resource として固定 URL を持たせ、staging 自体は
+# 「PR がある時だけ更新される、DB 変更を伴う本格検証用」の位置づけを保つ。
+# backend は staging のものをそのまま再利用する (専用インフラは持たない)。
+[env.preview]
+name = "nuxt-trouble-preview"
+
+[env.preview.vars]
+NUXT_PUBLIC_API_BASE = "https://rust-alc-api-staging-566bls5vfq-an.a.run.app"
+NUXT_PUBLIC_AUTH_WORKER_URL = "https://auth-staging.ippoan.org"
+NUXT_PUBLIC_STAGING_TENANT_ID = ""
+NUXT_ALC_API_URL = "https://rust-alc-api-staging-566bls5vfq-an.a.run.app"
+
+[[env.preview.secrets_store_secrets]]
+binding = "INTERNAL_SHARED_SECRET"
+store_id = "bd7bc91a3e5f4111add4acf6cb4b8733"
+secret_name = "INTERNAL_SHARED_SECRET"
+
+[[env.preview.services]]
+binding = "AUTH_WORKER"
+service = "auth-worker-staging"
