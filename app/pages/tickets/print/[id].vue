@@ -50,6 +50,24 @@ function money(v: string | null | undefined): string {
   return `${Number(v).toLocaleString()}円`
 }
 
+// 状況管理を「改ページ」指定のある行の直前で複数のテーブルに分割する。
+// 1つのテーブル内で行だけ改ページするより、テーブルそのものを分けたほうが
+// 画面上でも別ページになることが分かりやすく、各テーブルが自分の thead を
+// 持てる (印刷でページをまたいだ時に見出し行が繰り返されるのと同じ効果)。
+const taskSegments = computed(() => {
+  const segments: TroubleTask[][] = []
+  let current: TroubleTask[] = []
+  for (const t of tasks.value) {
+    if (t.print_page_break_before && current.length > 0) {
+      segments.push(current)
+      current = []
+    }
+    current.push(t)
+  }
+  if (current.length > 0) segments.push(current)
+  return segments
+})
+
 async function load() {
   loading.value = true
   error.value = null
@@ -256,52 +274,56 @@ onMounted(() => {
           <p v-if="tasks.length === 0" class="text-sm text-gray-500">
             状況管理項目はありません
           </p>
-          <table v-else class="w-full border-collapse text-xs">
-            <thead>
-              <tr class="border-b-2 border-black">
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">種別</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">タイトル / 内容</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">発生日</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">期限</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">次のアクション</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
-                <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
-                <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="t in tasks"
-                :key="t.id"
-                class="break-inside-avoid"
-                :class="t.print_page_break_before ? 'border-t-4 border-t-emerald-500 print:border-t print:border-t-gray-400' : ''"
-                :style="t.print_page_break_before ? { breakBefore: 'page', pageBreakBefore: 'always' } : undefined"
-              >
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">
-                  <div class="font-medium">{{ t.title }}</div>
-                  <div v-if="t.description" class="text-gray-600">{{ t.description }}</div>
-                  <div v-if="t.next_action_detail" class="text-gray-600">次回詳細: {{ t.next_action_detail }}</div>
-                </td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.occurred_at) }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.due_date) }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action) }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action_by) }}</td>
-                <td class="border border-gray-400 px-2 py-1 align-top">{{ taskStatusLabel(t.status) }}</td>
-                <td class="print:hidden border border-gray-400 px-2 py-1 align-top">
-                  <UButton
-                    :label="t.print_page_break_before ? '改ページ有' : '改ページ'"
-                    icon="i-lucide-scissors-line-dashed"
-                    size="xs"
-                    :variant="t.print_page_break_before ? 'solid' : 'outline'"
-                    :loading="togglingBreakId === t.id"
-                    title="この行の前で改ページする (サーバーに保存され、どの端末で開いても同じ位置で改ページされます)"
-                    @click="toggleManualBreak(t)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <template v-for="(segment, si) in taskSegments" :key="si">
+            <div v-if="si > 0" class="print:hidden mt-4 mb-1 flex items-center gap-2 text-xs text-emerald-600">
+              <UIcon name="i-lucide-scissors-line-dashed" class="size-3.5" />
+              <span>ここから新しいページとして印刷されます</span>
+            </div>
+            <table
+              class="w-full border-collapse text-xs"
+              :class="si > 0 ? 'mt-4 print:mt-0' : ''"
+              :style="si > 0 ? { breakBefore: 'page', pageBreakBefore: 'always' } : undefined"
+            >
+              <thead>
+                <tr class="border-b-2 border-black">
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">種別</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">タイトル / 内容</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">発生日</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">期限</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">次のアクション</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
+                  <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="t in segment" :key="t.id" class="break-inside-avoid">
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">
+                    <div class="font-medium">{{ t.title }}</div>
+                    <div v-if="t.description" class="text-gray-600">{{ t.description }}</div>
+                    <div v-if="t.next_action_detail" class="text-gray-600">次回詳細: {{ t.next_action_detail }}</div>
+                  </td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.occurred_at) }}</td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.due_date) }}</td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action) }}</td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action_by) }}</td>
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ taskStatusLabel(t.status) }}</td>
+                  <td class="print:hidden border border-gray-400 px-2 py-1 align-top">
+                    <UButton
+                      :label="t.print_page_break_before ? '改ページ有' : '改ページ'"
+                      icon="i-lucide-scissors-line-dashed"
+                      size="xs"
+                      :variant="t.print_page_break_before ? 'solid' : 'outline'"
+                      :loading="togglingBreakId === t.id"
+                      title="この行の前で改ページする (サーバーに保存され、どの端末で開いても同じ位置で改ページされます)"
+                      @click="toggleManualBreak(t)"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
         </div>
 
         <!-- ステータス履歴 -->
