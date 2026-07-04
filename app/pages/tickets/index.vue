@@ -29,6 +29,17 @@ function handleBulkImportDone() {
   fetchTickets()
 }
 
+// staging 限定のダミーチケット生成 (rust-alc-api staging は揮発性のため都度呼び直せる形にしてある)
+const config = useRuntimeConfig()
+const isStaging = (config.public.apiBase as string).includes('staging')
+const dummySeedCount = ref('20')
+const { seeding: dummySeeding, progress: dummySeedProgress, error: dummySeedError, seedDummyTickets } = useDummySeed()
+
+async function handleSeedDummy() {
+  await seedDummyTickets(Number(dummySeedCount.value) || 20)
+  await fetchTickets()
+}
+
 // 保存中チケットID set（Enter + blur 重複発火を防ぐため in-flight 判定も兼ねる）
 const savingRegistrationIds = reactive(new Set<string>())
 
@@ -82,6 +93,24 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UButton label="CSV出力" icon="i-lucide-download" variant="outline" size="sm" @click="handleExportCsv" />
         <UButton label="一括登録" icon="i-lucide-upload" variant="outline" size="sm" @click="showBulkImport = true" />
       </div>
+    </div>
+
+    <!-- Dummy seed: staging only -->
+    <div v-if="isStaging" class="flex items-center gap-2 rounded-lg border border-dashed border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-sm">
+      <span class="font-medium text-yellow-800 dark:text-yellow-300">STAGING</span>
+      <UInput v-model="dummySeedCount" type="number" size="sm" class="w-20" />
+      <UButton
+        label="ダミーチケット生成"
+        icon="i-lucide-sparkles"
+        size="sm"
+        variant="outline"
+        :loading="dummySeeding"
+        @click="handleSeedDummy"
+      />
+      <span v-if="dummySeeding" class="text-yellow-700 dark:text-yellow-400">
+        生成中... {{ dummySeedProgress.done }}/{{ dummySeedProgress.total }}
+      </span>
+      <span v-if="dummySeedError" class="text-red-600">{{ dummySeedError }}</span>
     </div>
 
     <!-- Filters: single row -->
