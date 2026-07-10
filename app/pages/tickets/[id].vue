@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, TroubleSchedule, LineworksMember } from '~/types'
 import { getCategories, getOffices, getProgressStatuses, getEmployees, getTicketSchedules, createSchedule, cancelSchedule, getLineworksMembers, transitionTicket } from '~/utils/api'
+import { cancelScheduleErrorMessage } from '~/utils/scheduleError'
 
 const route = useRoute()
 const ticketId = route.params.id as string
@@ -32,6 +33,8 @@ const scheduleMembers = ref<LineworksMember[]>([])
 function openScheduleModal() {
   scheduleError.value = null
   showScheduleModal.value = true
+  // 開いている間に発火した予約 (送信済) を反映するため最新化する (Refs #190)
+  loadSchedules()
 }
 
 async function loadSchedules() {
@@ -83,9 +86,11 @@ async function handleCreateSchedule() {
 async function handleCancelSchedule(id: string) {
   try {
     await cancelSchedule(id)
-    await loadSchedules()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'キャンセルに失敗しました'
+    error.value = cancelScheduleErrorMessage(e)
+  } finally {
+    // 失敗時 (既に送信済み等) も実状態を UI に反映する (Refs #190)
+    await loadSchedules()
   }
 }
 

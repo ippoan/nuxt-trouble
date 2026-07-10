@@ -232,6 +232,133 @@ function isEditing(taskId: string, field: string) {
   return editingId.value === taskId && editingField.value === field
 }
 
+// --- Edit modal (1 件編集 + Alt+↑/↓ で前後の行に移動, Refs #191) ---
+// 未保存変更の扱い: Alt+↑/↓ 移動時は自動保存 (保存失敗時は移動しない)、
+// 「キャンセル」ボタン / モーダル外クリックでの close は破棄。
+const editModalOpen = ref(false)
+const editIndex = ref(-1)
+const editSaving = ref(false)
+const editError = ref<string | null>(null)
+const editForm = reactive({
+  task_type: '',
+  occurred_at: '',
+  title: '',
+  description: '',
+  assigned_name: '',
+  due_date: '',
+  next_action: '',
+  next_action_detail: '',
+  next_action_by: '',
+  next_action_due: '',
+  status: '',
+})
+const editSnapshot = ref('')
+
+const editDirty = computed(() => JSON.stringify(editForm) !== editSnapshot.value)
+
+function employeeNameById(id: string | null): string {
+  if (!id) return ''
+  return employees.value.find(e => e.id === id)?.name || ''
+}
+
+function openEditModal(index: number) {
+  const task = tasks.value[index]
+  if (!task) return
+  editIndex.value = index
+  editForm.task_type = task.task_type
+  editForm.occurred_at = task.occurred_at?.substring(0, 10) || ''
+  editForm.title = task.title
+  editForm.description = task.description || ''
+  editForm.assigned_name = employeeNameById(task.assigned_to)
+  editForm.due_date = task.due_date?.substring(0, 10) || ''
+  editForm.next_action = task.next_action || ''
+  editForm.next_action_detail = task.next_action_detail || ''
+  editForm.next_action_by = task.next_action_by || ''
+  editForm.next_action_due = task.next_action_due?.substring(0, 10) || ''
+  editForm.status = task.status
+  // 開くたびにエラークリア (#188 踏襲)
+  editError.value = null
+  editSnapshot.value = JSON.stringify(editForm)
+  editModalOpen.value = true
+}
+
+async function saveEditModal(): Promise<boolean> {
+  const task = tasks.value[editIndex.value]
+  if (!task) return false
+  if (!editForm.title.trim()) {
+    editError.value = 'タイトルを入力してください'
+    return false
+  }
+  editSaving.value = true
+  editError.value = null
+  try {
+    const name = editForm.assigned_name.trim()
+    const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
+    await updateTask(task.id, {
+      task_type: editForm.task_type,
+      title: editForm.title.trim(),
+      description: editForm.description.trim(),
+      status: editForm.status,
+      assigned_to: matchedEmployee?.id || null,
+      due_date: editForm.due_date ? new Date(editForm.due_date).toISOString() : null,
+      occurred_at: editForm.occurred_at ? new Date(editForm.occurred_at).toISOString() : null,
+      next_action: editForm.next_action.trim(),
+      next_action_detail: editForm.next_action_detail.trim(),
+      next_action_by: editForm.next_action_by.trim() || null,
+      next_action_due: editForm.next_action_due ? new Date(editForm.next_action_due).toISOString() : null,
+    })
+    editSnapshot.value = JSON.stringify(editForm)
+    await loadTasks()
+    emit('tasksChanged')
+    return true
+  } catch (e) {
+    console.error('Failed to save task edit:', e)
+    editError.value = '保存に失敗しました。時間をおいて再度お試しください'
+    return false
+  } finally {
+    editSaving.value = false
+  }
+}
+
+async function handleEditSaveAndClose() {
+  if (await saveEditModal()) {
+    editModalOpen.value = false
+  }
+}
+
+async function moveEditTo(delta: number) {
+  const nextIndex = editIndex.value + delta
+  // 端では停止
+  if (nextIndex < 0 || nextIndex >= tasks.value.length) return
+  if (editSaving.value) return
+  if (editDirty.value) {
+    const ok = await saveEditModal()
+    if (!ok) return
+  }
+  openEditModal(nextIndex)
+}
+
+// window レベルで listen するので入力欄フォーカス中でも Alt 修飾キーなら発火する
+function handleEditKeydown(e: KeyboardEvent) {
+  if (!editModalOpen.value || !e.altKey) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    moveEditTo(1)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    moveEditTo(-1)
+  }
+}
+
+watch(editModalOpen, (open) => {
+  if (open) window.addEventListener('keydown', handleEditKeydown)
+  else window.removeEventListener('keydown', handleEditKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEditKeydown)
+})
+
 // --- Reorder ---
 async function handleMoveUp(index: number) {
   if (index <= 0) return
@@ -373,8 +500,8 @@ onMounted(() => {
   loadTasks().then(() => loadAllFileCounts())
 })
 
-// Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
-const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
+// Unified 10-col grid: reorder / task_type / date / title / description / assignee / status / edit / file / delete
+const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem_2.5rem]'
 // Form grid: task_type / date / title / description / assignee / add-btn
 const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
 </script>
@@ -399,7 +526,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
       <!-- Horizontal scroll wrapper: keeps the dense grid from collapsing so the
            date inputs (YmdInput) never overflow into the neighbouring placeholders. -->
       <div class="overflow-x-auto">
-        <div class="min-w-[54rem]">
+        <div class="min-w-[57rem]">
           <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
             状況管理項目はありません
           </div>
@@ -442,6 +569,8 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           </span>
           <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
+          <!-- edit (1 件編集モーダル, Refs #191) -->
+          <UButton icon="i-lucide-pencil" variant="ghost" size="xs" data-testid="task-edit-button" @click="openEditModal(idx)" />
           <!-- file -->
           <button class="relative flex items-center justify-center" @click="toggleFilePanel(task.id)">
             <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200 transition-colors" />
@@ -480,6 +609,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">次担当:</span>{{ task.next_action_by || '-' }}
           </span>
+          <span />
           <span />
           <span />
           <span />
@@ -567,6 +697,89 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
         </div>
       </div>
     </template>
+
+    <!-- Task edit modal (1 件編集 + Alt+↑/↓ 移動, Refs #191) -->
+    <UModal v-model:open="editModalOpen">
+      <template #content>
+        <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold">状況を編集 ({{ editIndex + 1 }}/{{ tasks.length }})</h3>
+            <span class="text-xs text-gray-400">Alt+↑/↓ で前後の行に移動</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="種別">
+              <USelect v-model="editForm.task_type" :items="taskTypes" size="sm" class="w-full" />
+            </UFormField>
+            <UFormField label="ステータス">
+              <USelect v-model="editForm.status" :items="statusOptions" size="sm" class="w-full" />
+            </UFormField>
+          </div>
+
+          <UFormField label="発生日時">
+            <YmdInput
+              :model-value="editForm.occurred_at || undefined"
+              @update:model-value="(v: string | undefined) => { editForm.occurred_at = v ?? '' }"
+            />
+          </UFormField>
+
+          <UFormField label="タイトル">
+            <input v-model="editForm.title" data-testid="edit-title" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </UFormField>
+
+          <UFormField label="内容">
+            <UTextarea v-model="editForm.description" :rows="2" class="w-full" />
+          </UFormField>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="対応者">
+              <input v-model="editForm.assigned_name" list="task-employee-list" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </UFormField>
+            <UFormField label="期限">
+              <YmdInput
+                :model-value="editForm.due_date || undefined"
+                @update:model-value="(v: string | undefined) => { editForm.due_date = v ?? '' }"
+              />
+            </UFormField>
+          </div>
+
+          <UFormField label="次のアクション">
+            <input v-model="editForm.next_action" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </UFormField>
+
+          <UFormField label="次のアクション詳細">
+            <UTextarea v-model="editForm.next_action_detail" :rows="2" class="w-full" />
+          </UFormField>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="次のアクション対応者">
+              <input v-model="editForm.next_action_by" list="task-employee-list" data-testid="edit-next-action-by" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </UFormField>
+            <UFormField label="次のアクション期限">
+              <YmdInput
+                :model-value="editForm.next_action_due || undefined"
+                @update:model-value="(v: string | undefined) => { editForm.next_action_due = v ?? '' }"
+              />
+            </UFormField>
+          </div>
+
+          <div v-if="editError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {{ editError }}
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex gap-1">
+              <UButton icon="i-lucide-chevron-up" variant="outline" size="sm" :disabled="editIndex <= 0 || editSaving" @click="moveEditTo(-1)" />
+              <UButton icon="i-lucide-chevron-down" variant="outline" size="sm" :disabled="editIndex >= tasks.length - 1 || editSaving" @click="moveEditTo(1)" />
+            </div>
+            <div class="flex gap-2">
+              <UButton label="キャンセル" variant="outline" @click="editModalOpen = false" />
+              <UButton label="保存" :loading="editSaving" @click="handleEditSaveAndClose" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <!-- Delete confirmation modal -->
     <UModal v-model:open="deleteConfirm.show">
