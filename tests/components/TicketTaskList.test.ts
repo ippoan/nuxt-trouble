@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import TicketTaskList from '~/components/TicketTaskList.vue'
+
+// モーダルの window keydown listener がテスト間で残留しないよう毎テスト unmount する
+enableAutoUnmount(afterEach)
 
 const sampleTask = {
   id: 'task-1', tenant_id: 't1', ticket_id: 'ticket-1', task_type: 'レッカー対応',
@@ -347,6 +350,24 @@ describe('TicketTaskList', () => {
       document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
       expect(componentSide).toHaveBeenCalledTimes(1)
       document.body.removeEventListener('keydown', componentSide)
+    })
+
+    it('Alt+S で保存され、モーダルは閉じない', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      vm.editForm.title = 'Alt+S で保存'
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', code: 'KeyS', altKey: true }))
+      await flushPromises()
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1)
+      expect(mockUpdateTask.mock.calls[0]![1].title).toBe('Alt+S で保存')
+      expect(vm.editModalOpen).toBe(true)
+      expect(vm.editIndex).toBe(0)
+      // Alt 無しの s では保存しない
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', code: 'KeyS' }))
+      await flushPromises()
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1)
     })
 
     it('未保存変更がある状態の Ctrl+Shift+↓ は自動保存してから移動する', async () => {
