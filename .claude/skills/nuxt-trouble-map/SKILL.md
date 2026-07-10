@@ -1,6 +1,6 @@
 ---
 name: nuxt-trouble-map
-generated-from: nuxt-trouble:28fc12b6a8f57a90bfc7f2ecfeb1e3620796318f
+generated-from: nuxt-trouble:28fc12b26546c9582b98a5ecfacaa3f8ce4dccb2
 paths: [app/, server/]
 description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / Cloudflare Workers) の構造ナビゲーション。rust-alc-api `/api/troubles` を叩くチケット・タスク・ワークフロー管理 SPA。pages/composables/utils と ts-rs 生成型の配置、/api/proxy identity proxy、2 対応者フィールドの罠を 1 枚にまとめる。トリガー:「nuxt-trouble」「トラブル管理」「状況管理」「チケット」「trouble_tasks」「assigned_to」「next_action_by」「ワークフロー」「ガントチャート」「trouble.ippoan.org」「/api/proxy」等。
 ---
