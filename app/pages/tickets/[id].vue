@@ -2,6 +2,7 @@
 import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, Employee, TroubleSchedule, LineworksMember } from '~/types'
 import { getCategories, getOffices, getProgressStatuses, getEmployees, getTicketSchedules, createSchedule, cancelSchedule, getLineworksMembers, transitionTicket } from '~/utils/api'
 import { cancelScheduleErrorMessage } from '~/utils/scheduleError'
+import { SCHEDULE_DISPLAY_LIMIT, sortSchedulesDesc, visibleSchedules, filterLineworksMembers } from '~/utils/scheduleDisplay'
 
 const route = useRoute()
 const ticketId = route.params.id as string
@@ -30,8 +31,19 @@ const scheduleSaving = ref(false)
 const scheduleError = ref<string | null>(null)
 const scheduleMembers = ref<LineworksMember[]>([])
 
+// 一覧は降順 + 既定 5 件で折りたたみ (Refs #198)
+const showAllSchedules = ref(false)
+const sortedSchedules = computed(() => sortSchedulesDesc(schedules.value))
+const displayedSchedules = computed(() => visibleSchedules(sortedSchedules.value, showAllSchedules.value))
+const hiddenScheduleCount = computed(() => Math.max(0, sortedSchedules.value.length - SCHEDULE_DISPLAY_LIMIT))
+
+// 送信先の検索欄 (Refs #198)。チェック済みはフィルタで隠れても保持される
+const memberSearch = ref('')
+const filteredScheduleMembers = computed(() => filterLineworksMembers(scheduleMembers.value, memberSearch.value))
+
 function openScheduleModal() {
   scheduleError.value = null
+  memberSearch.value = ''
   showScheduleModal.value = true
   // 開いている間に発火した予約 (送信済) を反映するため最新化する (Refs #190)
   loadSchedules()
@@ -263,7 +275,7 @@ onMounted(() => {
 
         <div v-else class="space-y-3">
           <div
-            v-for="s in schedules"
+            v-for="s in displayedSchedules"
             :key="s.id"
             class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
           >
@@ -295,6 +307,19 @@ onMounted(() => {
               @click="handleCancelSchedule(s.id)"
             />
           </div>
+
+          <!-- 6 件以上ある時だけ開閉トグルを出す (Refs #198) -->
+          <div v-if="hiddenScheduleCount > 0" class="flex justify-center">
+            <button
+              type="button"
+              data-testid="schedule-toggle"
+              class="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 transition-colors"
+              @click="showAllSchedules = !showAllSchedules"
+            >
+              <UIcon :name="showAllSchedules ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3.5" />
+              {{ showAllSchedules ? '折りたたむ' : `残り ${hiddenScheduleCount} 件を表示` }}
+            </button>
+          </div>
         </div>
       </UCard>
     </template>
@@ -321,9 +346,16 @@ onMounted(() => {
           </UFormField>
 
           <UFormField label="送信先">
+            <input
+              v-model="memberSearch"
+              type="search"
+              placeholder="名前・メールで検索"
+              data-testid="member-search"
+              class="w-full mb-2 text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
             <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
               <label
-                v-for="m in scheduleMembers"
+                v-for="m in filteredScheduleMembers"
                 :key="m.user_id"
                 class="flex items-center gap-2 text-sm cursor-pointer"
               >
@@ -338,7 +370,14 @@ onMounted(() => {
               <p v-if="scheduleMembers.length === 0" class="text-sm text-gray-400">
                 LINE WORKS メンバーが取得できません
               </p>
+              <p v-else-if="filteredScheduleMembers.length === 0" class="text-sm text-gray-400">
+                「{{ memberSearch }}」に一致するメンバーがいません
+              </p>
             </div>
+            <!-- フィルタで隠れてもチェックは保持される。選択中の人数を常に見せる -->
+            <p v-if="scheduleForm.lineworks_user_ids.length > 0" class="mt-1 text-xs text-gray-400">
+              選択中: {{ scheduleForm.lineworks_user_ids.length }} 名
+            </p>
           </UFormField>
 
           <div v-if="scheduleError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
