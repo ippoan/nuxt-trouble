@@ -151,12 +151,25 @@ describe('TicketTaskList', () => {
       return wrapper
     }
 
-    it('編集ボタンでモーダルが開き、対象 task の値がフォームに入る', async () => {
+    it('見出し右の編集ボタンは 1 個だけで、先頭行の値がフォームに入る', async () => {
       const wrapper = await mountWithTwoTasks()
-      await wrapper.findAll('[data-testid="task-edit-button"]')[1]!.trigger('click')
+      const buttons = wrapper.findAll('[data-testid="task-edit-button"]')
+      expect(buttons.length).toBe(1)
+      await buttons[0]!.trigger('click')
       await flushPromises()
       const vm = wrapper.vm as any
       expect(vm.editModalOpen).toBe(true)
+      expect(vm.editIndex).toBe(0)
+      expect(vm.editForm.title).toBe('テストタスク')
+    })
+
+    it('2 行目に移動すると assigned_to は名前に解決され next_action_by はそのまま入る', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true }))
+      await flushPromises()
       expect(vm.editIndex).toBe(1)
       expect(vm.editForm.title).toBe('2件目タスク')
       // Row1 assigned_to (employee id) は名前に解決して表示する
@@ -205,34 +218,34 @@ describe('TicketTaskList', () => {
       expect(vm.editModalOpen).toBe(true)
     })
 
-    it('Alt+↓/↑ で前後の行に移動し、端では停止する', async () => {
+    it('Ctrl+Shift+↓/↑ で前後の行に移動し、端では停止する', async () => {
       const wrapper = await mountWithTwoTasks()
       await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
       await flushPromises()
       const vm = wrapper.vm as any
       expect(vm.editIndex).toBe(0)
 
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(1)
       expect(vm.editForm.title).toBe('2件目タスク')
 
       // 末尾では停止
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(1)
 
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(0)
 
       // 先頭では停止
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(0)
     })
 
-    it('Alt 無しの ↓ では移動しない', async () => {
+    it('修飾キー無し / Alt+↓ (旧ショートカット) では移動しない', async () => {
       const wrapper = await mountWithTwoTasks()
       await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
       await flushPromises()
@@ -240,15 +253,54 @@ describe('TicketTaskList', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }))
       await flushPromises()
       expect(vm.editIndex).toBe(0)
+      // Alt+↓ は select のドロップダウンを開くため移動キーから外した (回帰ガード)
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true }))
+      await flushPromises()
+      expect(vm.editIndex).toBe(0)
+      // Ctrl のみ / Shift のみでも移動しない
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true }))
+      await flushPromises()
+      expect(vm.editIndex).toBe(0)
     })
 
-    it('未保存変更がある状態の Alt+↓ は自動保存してから移動する', async () => {
+    it('モーダル左のタスク一覧に全行が並び、クリックでその行の編集に切り替わる', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      const items = wrapper.findAll('[data-testid="edit-list-item"]')
+      expect(items.length).toBe(2)
+      // 種別 / 発生日時 / タイトルが表示される
+      expect(items[0]!.text()).toContain('レッカー対応')
+      expect(items[0]!.text()).toContain('テストタスク')
+      expect(items[1]!.text()).toContain('2件目タスク')
+      await items[1]!.trigger('click')
+      await flushPromises()
+      expect(vm.editIndex).toBe(1)
+      expect(vm.editForm.title).toBe('2件目タスク')
+    })
+
+    it('一覧クリックでも未保存変更は自動保存してから移動する', async () => {
       const wrapper = await mountWithTwoTasks()
       await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
       await flushPromises()
       const vm = wrapper.vm as any
       vm.editForm.title = '変更あり'
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true }))
+      await wrapper.findAll('[data-testid="edit-list-item"]')[1]!.trigger('click')
+      await flushPromises()
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1)
+      expect(mockUpdateTask.mock.calls[0]![0]).toBe('task-1')
+      expect(vm.editIndex).toBe(1)
+    })
+
+    it('未保存変更がある状態の Ctrl+Shift+↓ は自動保存してから移動する', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      vm.editForm.title = '変更あり'
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(mockUpdateTask).toHaveBeenCalledTimes(1)
       expect(mockUpdateTask.mock.calls[0]![0]).toBe('task-1')
@@ -262,7 +314,7 @@ describe('TicketTaskList', () => {
       const vm = wrapper.vm as any
       vm.editForm.title = '変更あり'
       mockUpdateTask.mockRejectedValueOnce(new Error('API エラー (500): boom'))
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(0)
       expect(vm.editError).toBeTruthy()

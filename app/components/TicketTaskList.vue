@@ -232,8 +232,10 @@ function isEditing(taskId: string, field: string) {
   return editingId.value === taskId && editingField.value === field
 }
 
-// --- Edit modal (1 件編集 + Alt+↑/↓ で前後の行に移動, Refs #191) ---
-// 未保存変更の扱い: Alt+↑/↓ 移動時は自動保存 (保存失敗時は移動しない)、
+// --- Edit modal (1 件編集 + Ctrl+Shift+↑/↓ で前後の行に移動, Refs #191) ---
+// ショートカットは Alt+↑/↓ から変更: select (combobox) は Alt+↓ でドロップダウンが
+// 開いてしまうため。Ctrl+Shift+矢印はフォーム部品ともブラウザとも衝突しない。
+// 未保存変更の扱い: ショートカット移動時は自動保存 (保存失敗時は移動しない)、
 // 「キャンセル」ボタン / モーダル外クリックでの close は破棄。
 const editModalOpen = ref(false)
 const editIndex = ref(-1)
@@ -326,21 +328,30 @@ async function handleEditSaveAndClose() {
   }
 }
 
-async function moveEditTo(delta: number) {
-  const nextIndex = editIndex.value + delta
-  // 端では停止
-  if (nextIndex < 0 || nextIndex >= tasks.value.length) return
+/** 左のタスク一覧クリック / ショートカットで指定行の編集へ切り替える。
+ * 未保存変更は自動保存し、保存失敗時は移動しない。 */
+async function jumpEditTo(index: number) {
+  // 端 / 同一行では何もしない
+  if (index < 0 || index >= tasks.value.length || index === editIndex.value) return
   if (editSaving.value) return
   if (editDirty.value) {
     const ok = await saveEditModal()
     if (!ok) return
   }
-  openEditModal(nextIndex)
+  openEditModal(index)
 }
 
-// window レベルで listen するので入力欄フォーカス中でも Alt 修飾キーなら発火する
+function statusLabel(key: string): string {
+  return statusOptions.value.find(o => o.value === key)?.label || key
+}
+
+async function moveEditTo(delta: number) {
+  await jumpEditTo(editIndex.value + delta)
+}
+
+// window レベルで listen するので入力欄フォーカス中でも Ctrl+Shift 修飾なら発火する
 function handleEditKeydown(e: KeyboardEvent) {
-  if (!editModalOpen.value || !e.altKey) return
+  if (!editModalOpen.value || !e.ctrlKey || !e.shiftKey) return
   if (e.key === 'ArrowDown') {
     e.preventDefault()
     moveEditTo(1)
@@ -500,8 +511,8 @@ onMounted(() => {
   loadTasks().then(() => loadAllFileCounts())
 })
 
-// Unified 10-col grid: reorder / task_type / date / title / description / assignee / status / edit / file / delete
-const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem_2.5rem]'
+// Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
+const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
 // Form grid: task_type / date / title / description / assignee / add-btn
 const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
 </script>
@@ -514,6 +525,17 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
         <UBadge v-if="tasks.length > 0" variant="subtle" size="xs">
           {{ completionCount.done }}/{{ completionCount.total }} 完了
         </UBadge>
+        <!-- 1 件編集モーダル (Refs #191)。行ごとではなく見出しの右に 1 個。
+             先頭行から開き、Ctrl+Shift+↑/↓ かモーダル内 ↑/↓ で行を移動する。 -->
+        <UButton
+          icon="i-lucide-pencil"
+          label="編集"
+          size="xs"
+          variant="outline"
+          data-testid="task-edit-button"
+          :disabled="tasks.length === 0"
+          @click="openEditModal(0)"
+        />
       </div>
       <slot name="actions" />
     </div>
@@ -526,7 +548,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
       <!-- Horizontal scroll wrapper: keeps the dense grid from collapsing so the
            date inputs (YmdInput) never overflow into the neighbouring placeholders. -->
       <div class="overflow-x-auto">
-        <div class="min-w-[57rem]">
+        <div class="min-w-[54rem]">
           <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
             状況管理項目はありません
           </div>
@@ -569,8 +591,6 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           </span>
           <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
-          <!-- edit (1 件編集モーダル, Refs #191) -->
-          <UButton icon="i-lucide-pencil" variant="ghost" size="xs" data-testid="task-edit-button" @click="openEditModal(idx)" />
           <!-- file -->
           <button class="relative flex items-center justify-center" @click="toggleFilePanel(task.id)">
             <UIcon name="i-lucide-paperclip" class="size-4 text-gray-400 hover:text-gray-200 transition-colors" />
@@ -609,7 +629,6 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">次担当:</span>{{ task.next_action_by || '-' }}
           </span>
-          <span />
           <span />
           <span />
           <span />
@@ -698,13 +717,37 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
       </div>
     </template>
 
-    <!-- Task edit modal (1 件編集 + Alt+↑/↓ 移動, Refs #191) -->
-    <UModal v-model:open="editModalOpen">
+    <!-- Task edit modal (1 件編集 + Ctrl+Shift+↑/↓ 移動, Refs #191) -->
+    <UModal v-model:open="editModalOpen" :ui="{ content: 'sm:max-w-4xl' }">
       <template #content>
-        <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div class="flex max-h-[85vh]">
+          <!-- 左: タスク一覧 (種別 / ステータス / 発生日時 / タイトル)。クリックでその行の編集へ -->
+          <div class="w-56 shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-2 space-y-1">
+            <button
+              v-for="(t, i) in tasks"
+              :key="t.id"
+              type="button"
+              data-testid="edit-list-item"
+              class="w-full text-left rounded p-2 space-y-0.5 transition-colors"
+              :class="i === editIndex
+                ? 'bg-blue-50 dark:bg-blue-950 ring-1 ring-blue-400'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
+              @click="jumpEditTo(i)"
+            >
+              <div class="flex items-center gap-1 min-w-0">
+                <span class="text-[10px] px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 truncate">{{ t.task_type }}</span>
+                <span class="text-[10px] text-gray-500 shrink-0">{{ statusLabel(t.status) }}</span>
+              </div>
+              <div class="text-[10px] text-gray-400">{{ t.occurred_at?.substring(0, 10) || '-' }}</div>
+              <div class="text-xs font-medium truncate">{{ t.title }}</div>
+            </button>
+          </div>
+
+          <!-- 右: 編集フォーム -->
+          <div class="flex-1 p-6 space-y-4 overflow-y-auto">
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-bold">状況を編集 ({{ editIndex + 1 }}/{{ tasks.length }})</h3>
-            <span class="text-xs text-gray-400">Alt+↑/↓ で前後の行に移動</span>
+            <span class="text-xs text-gray-400">Ctrl+Shift+↑/↓ で前後の行に移動</span>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -776,6 +819,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
               <UButton label="キャンセル" variant="outline" @click="editModalOpen = false" />
               <UButton label="保存" :loading="editSaving" @click="handleEditSaveAndClose" />
             </div>
+          </div>
           </div>
         </div>
       </template>
