@@ -26,7 +26,13 @@ const scheduleForm = ref({
   lineworks_user_ids: [] as string[],
 })
 const scheduleSaving = ref(false)
+const scheduleError = ref<string | null>(null)
 const scheduleMembers = ref<LineworksMember[]>([])
+
+function openScheduleModal() {
+  scheduleError.value = null
+  showScheduleModal.value = true
+}
 
 async function loadSchedules() {
   try {
@@ -39,8 +45,20 @@ async function loadSchedules() {
   } catch { /* ignore */ }
 }
 
+function validateScheduleForm(): string | null {
+  if (!scheduleForm.value.scheduled_at) return '通知日時を入力してください'
+  const at = new Date(scheduleForm.value.scheduled_at)
+  if (Number.isNaN(at.getTime())) return '通知日時の形式が不正です'
+  if (at.getTime() <= Date.now()) return '通知日時には現在より後の日時を指定してください'
+  if (at.getTime() > Date.now() + 30 * 24 * 60 * 60 * 1000) return '通知日時は30日先まで指定できます'
+  if (!scheduleForm.value.message.trim()) return 'メッセージを入力してください'
+  if (scheduleForm.value.lineworks_user_ids.length === 0) return '送信先を選択してください'
+  return null
+}
+
 async function handleCreateSchedule() {
-  if (!scheduleForm.value.scheduled_at || !scheduleForm.value.message.trim()) return
+  scheduleError.value = validateScheduleForm()
+  if (scheduleError.value) return
   scheduleSaving.value = true
   try {
     await createSchedule({
@@ -53,7 +71,10 @@ async function handleCreateSchedule() {
     scheduleForm.value = { scheduled_at: '', message: '', lineworks_user_ids: [] }
     await loadSchedules()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'スケジュール作成に失敗しました'
+    const msg = e instanceof Error ? e.message : 'スケジュール作成に失敗しました'
+    scheduleError.value = msg.includes('(400)')
+      ? '予約できませんでした。通知日時が過去になっていないか確認してください'
+      : msg
   } finally {
     scheduleSaving.value = false
   }
@@ -227,7 +248,7 @@ onMounted(() => {
             icon="i-lucide-clock"
             size="sm"
             variant="outline"
-            @click="showScheduleModal = true"
+            @click="openScheduleModal"
           />
         </div>
 
@@ -315,12 +336,15 @@ onMounted(() => {
             </div>
           </UFormField>
 
+          <div v-if="scheduleError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {{ scheduleError }}
+          </div>
+
           <div class="flex justify-end gap-2">
             <UButton label="キャンセル" variant="outline" @click="showScheduleModal = false" />
             <UButton
               label="予約"
               :loading="scheduleSaving"
-              :disabled="!scheduleForm.scheduled_at || !scheduleForm.message.trim() || scheduleForm.lineworks_user_ids.length === 0"
               @click="handleCreateSchedule"
             />
           </div>
