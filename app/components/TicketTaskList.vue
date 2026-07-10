@@ -353,7 +353,16 @@ async function moveEditTo(delta: number) {
 
 // window レベルで listen するので入力欄フォーカス中でも Ctrl+Shift 修飾なら発火する
 function handleEditKeydown(e: KeyboardEvent) {
-  if (!editModalOpen.value || !e.ctrlKey || !e.shiftKey) return
+  if (!editModalOpen.value) return
+  // Alt+S: 保存 (モーダルは閉じない)。e.key はレイアウトで揺れる (macOS の
+  // Option+S = ß 等) ため物理キー e.code で判定する
+  if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyS') {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!editSaving.value) saveEditModal()
+    return
+  }
+  if (!e.ctrlKey || !e.shiftKey) return
   if (e.key === 'ArrowDown') {
     // capture phase で横取りし、フォーカス中の select (combobox) 自身の
     // ArrowDown ハンドラ (= ドロップダウンが開く) までイベントを流さない
@@ -756,7 +765,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           <div class="flex-1 p-6 space-y-4 overflow-y-auto">
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-bold">状況を編集 ({{ editIndex + 1 }}/{{ tasks.length }})</h3>
-            <span class="text-xs text-gray-400">Ctrl+Shift+↑/↓ で前後の行に移動</span>
+            <span class="text-xs text-gray-400">Ctrl+Shift+↑/↓: 前後の行に移動 ／ Alt+S: 保存</span>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
