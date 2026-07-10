@@ -12,6 +12,10 @@ permissions:
   packages: read
   pull-requests: write
   id-token: write
+  # ci-workflows#170 で auto-merge.yml の job が checks: read を宣言した
+  # (全 check green 検証ガード)。nested (frontend-ci 経由) でも leaf caller の
+  # 許可が無いと startup_failure になる (Refs ippoan/ci-workflows#169)。
+  checks: read
 
 jobs:
   ci:

@@ -22,6 +22,9 @@ permissions:
   packages: read
   pull-requests: write
   id-token: write
+  # ci-workflows#170: auto-merge.yml の checks: read 宣言に leaf caller も追随
+  # (無いと startup_failure、Refs ippoan/ci-workflows#169)
+  checks: read
 
 jobs:
   retest:
