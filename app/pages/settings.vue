@@ -257,10 +257,16 @@ const notifLoading = ref(false)
 const notifError = ref<string | null>(null)
 const notifSaving = ref(false)
 const showAddNotifModal = ref(false)
+const addNotifError = ref<string | null>(null)
 const newNotifPref = ref({
   event_type: '',
   lineworks_user_ids: [] as string[],
 })
+
+function openAddNotifModal() {
+  addNotifError.value = null
+  showAddNotifModal.value = true
+}
 
 async function fetchNotifications() {
   notifLoading.value = true
@@ -289,9 +295,16 @@ function eventLabel(eventType: string): string {
 }
 
 async function handleAddNotif() {
-  if (!newNotifPref.value.event_type || newNotifPref.value.lineworks_user_ids.length === 0) return
+  if (!newNotifPref.value.event_type) {
+    addNotifError.value = 'イベント種別を選択してください'
+    return
+  }
+  if (newNotifPref.value.lineworks_user_ids.length === 0) {
+    addNotifError.value = '送信先を選択してください'
+    return
+  }
   notifSaving.value = true
-  notifError.value = null
+  addNotifError.value = null
   try {
     await upsertNotificationPref({
       event_type: newNotifPref.value.event_type,
@@ -303,7 +316,7 @@ async function handleAddNotif() {
     newNotifPref.value = { event_type: '', lineworks_user_ids: [] }
     await fetchNotifications()
   } catch (e) {
-    notifError.value = e instanceof Error ? e.message : '保存に失敗しました'
+    addNotifError.value = e instanceof Error ? e.message : '保存に失敗しました'
   } finally {
     notifSaving.value = false
   }
@@ -448,7 +461,7 @@ onMounted(() => {
             icon="i-lucide-plus"
             size="sm"
             :disabled="availableEventTypes.length === 0"
-            @click="showAddNotifModal = true"
+            @click="openAddNotifModal"
           />
         </div>
 
@@ -541,12 +554,15 @@ onMounted(() => {
             </div>
           </UFormField>
 
+          <div v-if="addNotifError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {{ addNotifError }}
+          </div>
+
           <div class="flex justify-end gap-2">
             <UButton label="キャンセル" variant="outline" @click="showAddNotifModal = false" />
             <UButton
               label="追加"
               :loading="notifSaving"
-              :disabled="!newNotifPref.event_type || newNotifPref.lineworks_user_ids.length === 0"
               @click="handleAddNotif"
             />
           </div>
