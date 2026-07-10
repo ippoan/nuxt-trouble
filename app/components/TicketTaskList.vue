@@ -3,6 +3,7 @@ import type { TroubleTask, TroubleWorkflowState, TroubleWorkflowTransition, Empl
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
 import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
+import { toDatetimeLocalInput } from '~/utils/datetime'
 
 const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
 
@@ -268,7 +269,8 @@ function openEditModal(index: number) {
   if (!task) return
   editIndex.value = index
   editForm.task_type = task.task_type
-  editForm.occurred_at = task.occurred_at?.substring(0, 10) || ''
+  // 発生日時は時刻込みで編集する (YmdtInput、local YYYY-MM-DDTHH:mm)
+  editForm.occurred_at = toDatetimeLocalInput(task.occurred_at)
   editForm.title = task.title
   editForm.description = task.description || ''
   editForm.assigned_name = employeeNameById(task.assigned_to)
@@ -727,6 +729,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
               v-for="(t, i) in tasks"
               :key="t.id"
               type="button"
+              tabindex="-1"
               data-testid="edit-list-item"
               class="w-full text-left rounded p-2 space-y-0.5 transition-colors"
               :class="i === editIndex
@@ -760,7 +763,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           </div>
 
           <UFormField label="発生日時">
-            <YmdInput
+            <YmdtInput
               :model-value="editForm.occurred_at || undefined"
               @update:model-value="(v: string | undefined) => { editForm.occurred_at = v ?? '' }"
             />

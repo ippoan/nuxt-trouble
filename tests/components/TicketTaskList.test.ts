@@ -62,6 +62,11 @@ const stubs = {
     props: ['modelValue'],
     emits: ['update:modelValue'],
   },
+  YmdtInput: {
+    template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value || undefined)" />',
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+  },
 }
 
 describe('TicketTaskList', () => {
@@ -262,6 +267,37 @@ describe('TicketTaskList', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true }))
       await flushPromises()
       expect(vm.editIndex).toBe(0)
+    })
+
+    it('発生日時は時刻込みで編集・保存される (occurred_at round-trip)', async () => {
+      mockGetTasks.mockResolvedValue([
+        { ...sampleTask, occurred_at: '2026-06-23T05:30:00Z' },
+        task2,
+      ])
+      mockGetEmployees.mockResolvedValue(employees)
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      // local YYYY-MM-DDTHH:mm 形式 (時刻を落とさない)
+      expect(vm.editForm.occurred_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+      await vm.handleEditSaveAndClose()
+      expect(vm.editError).toBeNull()
+      const payload = mockUpdateTask.mock.calls[0]![1]
+      // ISO に戻して分単位まで保存される (TZ 非依存の round-trip 検証)
+      expect(payload.occurred_at).toBe(new Date('2026-06-23T05:30:00Z').toISOString())
+    })
+
+    it('タスク一覧の項目は Tab フォーカス対象外 (tabindex=-1)', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const item = wrapper.find('[data-testid="edit-list-item"]')
+      expect(item.attributes('tabindex')).toBe('-1')
     })
 
     it('モーダル左のタスク一覧に全行が並び、クリックでその行の編集に切り替わる', async () => {
