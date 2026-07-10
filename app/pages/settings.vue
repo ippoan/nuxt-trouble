@@ -509,7 +509,7 @@ onMounted(() => {
     <!-- Add notification modal -->
     <UModal v-model:open="showAddNotifModal">
       <template #content>
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <h3 class="text-lg font-bold">通知設定を追加</h3>
 
           <UFormField label="イベント種別">
@@ -521,7 +521,7 @@ onMounted(() => {
           </UFormField>
 
           <UFormField label="送信先 (LINE WORKS メンバー)">
-            <div class="space-y-2">
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
               <label
                 v-for="m in notifMemberOptions"
                 :key="m.value"

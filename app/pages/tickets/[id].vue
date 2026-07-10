@@ -276,7 +276,7 @@ onMounted(() => {
     <!-- Schedule modal -->
     <UModal v-model:open="showScheduleModal">
       <template #content>
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <h3 class="text-lg font-bold">通知を予約</h3>
 
           <UFormField label="通知日時">
@@ -295,7 +295,7 @@ onMounted(() => {
           </UFormField>
 
           <UFormField label="送信先">
-            <div class="space-y-2">
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
               <label
                 v-for="m in scheduleMembers"
                 :key="m.user_id"
