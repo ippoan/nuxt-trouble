@@ -4,6 +4,13 @@ compatibility_date = "2025-03-10"
 compatibility_flags = ["nodejs_compat"]
 main = ".output/server/index.mjs"
 assets = { directory = ".output/public/", binding = "ASSETS" }
+# release tag の `wrangler versions upload` (no-traffic) が version ごとの
+# preview URL (`<hash>-nuxt-trouble.<subdomain>.workers.dev`) を出力するよう
+# opt-in する (auth-worker と同型)。frontend-ci がこの URL を pending-release
+# webhook で ci-dashboard に報告し、/release-wave の Pending releases と
+# preview-trouble.ippoan.org router (flip 前 E2E) が使う。production traffic
+# は下の custom domain route のままで独立 (Refs ippoan/ci-dashboard#472)。
+preview_urls = true
 
 [[routes]]
 pattern = "trouble.ippoan.org"
