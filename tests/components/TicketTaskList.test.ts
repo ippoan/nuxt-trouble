@@ -330,6 +330,25 @@ describe('TicketTaskList', () => {
       expect(vm.editIndex).toBe(1)
     })
 
+    it('ショートカットは capture で横取りされ、フォーカス中の部品側へは届かない', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      // select にフォーカスがある状況を模して、body (部品側) の listener が
+      // イベントを受け取らないこと = ドロップダウンが開かないことを確認する
+      const componentSide = vi.fn()
+      document.body.addEventListener('keydown', componentSide)
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', ctrlKey: true, shiftKey: true, bubbles: true }))
+      await flushPromises()
+      expect(vm.editIndex).toBe(1)
+      expect(componentSide).not.toHaveBeenCalled()
+      // ショートカット以外のキーは素通しする (通常入力を妨げない)
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }))
+      expect(componentSide).toHaveBeenCalledTimes(1)
+      document.body.removeEventListener('keydown', componentSide)
+    })
+
     it('未保存変更がある状態の Ctrl+Shift+↓ は自動保存してから移動する', async () => {
       const wrapper = await mountWithTwoTasks()
       await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
