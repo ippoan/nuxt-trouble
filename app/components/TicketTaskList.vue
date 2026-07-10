@@ -355,21 +355,27 @@ async function moveEditTo(delta: number) {
 function handleEditKeydown(e: KeyboardEvent) {
   if (!editModalOpen.value || !e.ctrlKey || !e.shiftKey) return
   if (e.key === 'ArrowDown') {
+    // capture phase で横取りし、フォーカス中の select (combobox) 自身の
+    // ArrowDown ハンドラ (= ドロップダウンが開く) までイベントを流さない
     e.preventDefault()
+    e.stopPropagation()
     moveEditTo(1)
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
+    e.stopPropagation()
     moveEditTo(-1)
   }
 }
 
+// capture: true — select 等のフォーム部品より先に処理する (removeEventListener も
+// 同じ capture flag を渡さないと解除されない)
 watch(editModalOpen, (open) => {
-  if (open) window.addEventListener('keydown', handleEditKeydown)
-  else window.removeEventListener('keydown', handleEditKeydown)
+  if (open) window.addEventListener('keydown', handleEditKeydown, { capture: true })
+  else window.removeEventListener('keydown', handleEditKeydown, { capture: true })
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleEditKeydown)
+  window.removeEventListener('keydown', handleEditKeydown, { capture: true })
 })
 
 // --- Reorder ---
