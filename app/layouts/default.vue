@@ -39,7 +39,7 @@ const navigation: { label: string; icon: string; to: string; target?: string; de
     description: '進捗状況が「待機」のチケットのみ抽出',
   },
   {
-    label: '状況管理',
+    label: '経過記録',
     icon: 'i-lucide-list-checks',
     to: '/tasks',
     target: '_blank',

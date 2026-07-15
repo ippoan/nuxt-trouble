@@ -230,7 +230,7 @@ describe('tasks page', () => {
     await flushPromises()
 
     // Page still renders even if masters fail
-    expect(wrapper.text()).toContain('状況管理 一覧')
+    expect(wrapper.text()).toContain('経過記録 一覧')
     errSpy.mockRestore()
   })
 

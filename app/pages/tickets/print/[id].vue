@@ -276,10 +276,10 @@ onMounted(() => {
         <!-- 状況管理 (タスク) -->
         <div class="mt-8">
           <h3 class="mb-2 border-b border-black pb-1 text-base font-semibold">
-            状況管理
+            経過記録
           </h3>
           <p v-if="tasks.length === 0" class="text-sm text-gray-500">
-            状況管理項目はありません
+            経過記録項目はありません
           </p>
           <template v-for="(segment, si) in taskSegments" :key="si">
             <div v-if="si > 0" class="print:hidden mt-4 mb-1 flex items-center gap-2 text-xs text-emerald-600">

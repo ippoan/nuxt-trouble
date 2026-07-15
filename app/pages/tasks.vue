@@ -204,7 +204,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-bold">状況管理 一覧</h2>
+      <h2 class="text-xl font-bold">経過記録 一覧</h2>
       <UButton label="再読み込み" icon="i-lucide-refresh-cw" variant="outline" size="sm" :loading="loading" @click="load" />
     </div>
 
@@ -284,7 +284,7 @@ onMounted(async () => {
               <th class="text-left py-2 px-2 font-medium">種類</th>
               <th class="text-left py-2 px-2 font-medium">題名</th>
               <th class="text-left py-2 px-2 font-medium">内容</th>
-              <th class="text-left py-2 px-2 font-medium">担当</th>
+              <th class="text-left py-2 px-2 font-medium">対応者</th>
               <th class="text-left py-2 px-2 font-medium">発生日</th>
               <th class="text-left py-2 px-2 font-medium">期限</th>
               <th class="text-left py-2 px-2 font-medium">次のアクション</th>

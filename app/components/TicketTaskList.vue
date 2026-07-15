@@ -558,7 +558,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
   <div>
     <div class="flex items-center justify-between mb-3">
       <div class="flex items-center gap-2">
-        <h3 class="text-base font-semibold">状況管理</h3>
+        <h3 class="text-base font-semibold">経過記録</h3>
         <UBadge v-if="tasks.length > 0" variant="subtle" size="xs">
           {{ completionCount.done }}/{{ completionCount.total }} 完了
         </UBadge>
@@ -587,7 +587,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
       <div class="overflow-x-auto">
         <div class="min-w-[54rem]">
           <div v-if="tasks.length === 0" class="text-sm text-gray-500 text-center py-4">
-            状況管理項目はありません
+            経過記録項目はありません
           </div>
 
       <!-- Task rows (2 rows per task, same 9-col grid) -->
@@ -624,7 +624,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <!-- next_action_by (対応者) -->
           <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
-            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">担当:</span>{{ task.next_action_by || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">対応者:</span>{{ task.next_action_by || '-' }}
           </span>
           <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
@@ -706,7 +706,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           </div>
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="担当者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
         </div>
         <!-- Form Row 2: (empty) / due_date / next_action / detail / next_action_by / add-btn -->
