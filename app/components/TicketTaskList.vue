@@ -3,7 +3,7 @@ import type { TroubleTask, TroubleWorkflowState, TroubleWorkflowTransition, Empl
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
 import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
-import { toDatetimeLocalInput } from '~/utils/datetime'
+import { toDatetimeLocalInput, formatOccurredAt } from '~/utils/datetime'
 
 const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
 
@@ -215,8 +215,18 @@ async function saveEdit(taskId: string, field: string) {
     : ((original as any)[field] || '')
   if (editingValue.value === oldVal) return
   const payload: Record<string, any> = {}
-  if (field === 'occurred_at' || field === 'due_date') {
-    payload[field] = editingValue.value ? new Date(editingValue.value).toISOString() : null
+  if (field === 'occurred_at') {
+    // インラインは日付のみ編集。既存の時刻部分 (追加/編集モーダルで入れた HH:mm)
+    // を保持して合成する。日付を消したら null。
+    if (editingValue.value) {
+      const prev = toDatetimeLocalInput((original as any).occurred_at)
+      const time = prev ? prev.substring(11, 16) : '00:00'
+      payload.occurred_at = new Date(`${editingValue.value}T${time}`).toISOString()
+    } else {
+      payload.occurred_at = null
+    }
+  } else if (field === 'due_date') {
+    payload.due_date = editingValue.value ? new Date(editingValue.value).toISOString() : null
   } else {
     payload[field] = editingValue.value || null
   }
@@ -529,9 +539,10 @@ onMounted(() => {
 })
 
 // Unified 9-col grid: reorder / task_type / date / title / description / assignee / status / file / delete
-const GRID = 'grid-cols-[2.5rem_6rem_12rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
+const GRID = 'grid-cols-[2.5rem_6rem_13rem_1fr_1fr_8rem_6rem_2.5rem_2.5rem]'
 // Form grid: task_type / date / title / description / assignee / add-btn
-const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
+// date 列は Row1 が YmdtInput (時刻セル込み) を持つため広めに取る
+const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
 </script>
 
 <template>
@@ -589,7 +600,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
             @update:model-value="(v: string | undefined) => { editingValue = v ?? ''; saveEdit(task.id, 'occurred_at') }"
           />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'occurred_at')">
-            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">発生:</span>{{ task.occurred_at?.substring(0, 10) || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">発生:</span>{{ formatOccurredAt(task.occurred_at) }}
           </span>
           <!-- title -->
           <input v-if="isEditing(task.id, 'title')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'title')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
@@ -678,7 +689,7 @@ const FORM_GRID = 'grid-cols-[6rem_14rem_1fr_1fr_8rem_2.5rem]'
           <USelect v-model="newTask.task_type" :items="taskTypes" size="xs" class="min-w-0" />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">日時</span>
-            <YmdInput
+            <YmdtInput
               :model-value="newTask.occurred_at || undefined"
               class="min-w-0 flex-1"
               @update:model-value="(v: string | undefined) => { newTask.occurred_at = v ?? '' }"
