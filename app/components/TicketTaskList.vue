@@ -226,7 +226,15 @@ async function saveEdit(taskId: string, field: string) {
       payload.occurred_at = null
     }
   } else if (field === 'due_date') {
-    payload.due_date = editingValue.value ? new Date(editingValue.value).toISOString() : null
+    // インラインは日付のみ編集。既存の時刻部分 (追加/編集モーダルで入れた HH:mm)
+    // を保持して合成する。日付を消したら null。
+    if (editingValue.value) {
+      const prev = toDatetimeLocalInput((original as any).due_date)
+      const time = prev ? prev.substring(11, 16) : '00:00'
+      payload.due_date = new Date(`${editingValue.value}T${time}`).toISOString()
+    } else {
+      payload.due_date = null
+    }
   } else {
     payload[field] = editingValue.value || null
   }
@@ -284,7 +292,8 @@ function openEditModal(index: number) {
   editForm.title = task.title
   editForm.description = task.description || ''
   editForm.assigned_name = employeeNameById(task.assigned_to)
-  editForm.due_date = task.due_date?.substring(0, 10) || ''
+  // 期限も時刻込みで編集する (YmdtInput、local YYYY-MM-DDTHH:mm)
+  editForm.due_date = toDatetimeLocalInput(task.due_date)
   editForm.next_action = task.next_action || ''
   editForm.next_action_detail = task.next_action_detail || ''
   editForm.next_action_by = task.next_action_by || ''
@@ -640,7 +649,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
             @update:model-value="(v: string | undefined) => { editingValue = v ?? ''; saveEdit(task.id, 'due_date') }"
           />
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'due_date')">
-            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">期限:</span>{{ task.due_date?.substring(0, 10) || '-' }}
+            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">期限:</span>{{ formatOccurredAt(task.due_date) }}
           </span>
           <!-- next_action (aligned under title) -->
           <input v-if="isEditing(task.id, 'next_action')" v-model="editingValue" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
@@ -705,7 +714,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <span />
           <div class="flex items-center gap-1 min-w-0">
             <span class="text-[10px] text-gray-500 shrink-0">期限</span>
-            <YmdInput
+            <YmdtInput
               :model-value="newTask.due_date || undefined"
               class="min-w-0 flex-1"
               @update:model-value="(v: string | undefined) => { newTask.due_date = v ?? '' }"
@@ -808,7 +817,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
               <input v-model="editForm.assigned_name" list="task-employee-list" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </UFormField>
             <UFormField label="期限">
-              <YmdInput
+              <YmdtInput
                 :model-value="editForm.due_date || undefined"
                 @update:model-value="(v: string | undefined) => { editForm.due_date = v ?? '' }"
               />
