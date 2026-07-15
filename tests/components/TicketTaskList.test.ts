@@ -89,7 +89,7 @@ describe('TicketTaskList', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('状況管理')
+    expect(wrapper.text()).toContain('経過記録')
   })
 
   it('shows empty message when no tasks', async () => {
@@ -99,7 +99,7 @@ describe('TicketTaskList', () => {
       global: { stubs },
     })
     await flushPromises()
-    expect(wrapper.text()).toContain('状況管理項目はありません')
+    expect(wrapper.text()).toContain('経過記録項目はありません')
   })
 
   it('renders task list when tasks exist', async () => {

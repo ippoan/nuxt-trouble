@@ -19,7 +19,7 @@ describe('default layout', () => {
     expect(wrapper.text()).toContain('チケット一覧')
     expect(wrapper.text()).toContain('ステータス管理')
     expect(wrapper.text()).toContain('待機一覧')
-    expect(wrapper.text()).toContain('状況管理')
+    expect(wrapper.text()).toContain('経過記録')
     expect(wrapper.text()).toContain('設定')
     expect(wrapper.find('[data-testid="auth-toolbar"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('content')
