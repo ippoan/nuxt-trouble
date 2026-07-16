@@ -3,7 +3,6 @@ import type { TroubleTask, TroubleWorkflowState, TroubleWorkflowTransition, Empl
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
 import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
-import { useTicketFieldLayout } from '~/composables/useTicketFieldLayout'
 import { toDatetimeLocalInput, formatOccurredAt } from '~/utils/datetime'
 
 const { load: loadTaskStatuses, statuses: taskStatusList, byKey: taskStatusByKey, loaded: taskStatusesLoaded } = useTaskStatuses()
@@ -28,33 +27,21 @@ const addError = ref(false)
 
 // Row2 (期限/次回/詳細/次担当) 表示トグル。次担当 (next_action_by) 自体は
 // Row1 の「対応者」欄・編集モーダルにも表示されるため非表示にしても編集手段は残る。
-// テナント全体で共有される設定 (trouble_field_layouts を流用、新規 migration 不要)。
-// ticket 入力フォーム用の key 群 (FIELD_METAS) とは名前空間を分ける。
-const ROW2_VISIBLE_KEY = 'task_row2_visible'
-const { fieldLayout, saving: row2Saving, fetchFieldLayout, saveFieldLayout } = useTicketFieldLayout()
+// 個人のブラウザ単位の設定 (localStorage)。
+const ROW2_VISIBLE_KEY = 'trouble-task-row2-visible'
 const showRow2 = ref(true)
 
-async function loadRow2Visibility() {
-  await fetchFieldLayout()
-  const entry = fieldLayout.value?.settings.find(e => e.key === ROW2_VISIBLE_KEY)
-  if (entry) showRow2.value = entry.visible
+function loadRow2Visibility() {
+  if (typeof window === 'undefined') return
+  const saved = localStorage.getItem(ROW2_VISIBLE_KEY)
+  if (saved !== null) showRow2.value = saved === 'true'
 }
 
-async function toggleRow2() {
-  const next = !showRow2.value
-  showRow2.value = next
-  const settings = fieldLayout.value?.settings ?? []
-  const idx = settings.findIndex(e => e.key === ROW2_VISIBLE_KEY)
-  const entry = { key: ROW2_VISIBLE_KEY, visible: next, width: 'full', sort_order: 0, label: null }
-  const nextSettings = idx >= 0
-    ? settings.map((e, i) => i === idx ? entry : e)
-    : [...settings, entry]
-  try {
-    await saveFieldLayout({ settings: nextSettings })
-  } catch (e) {
-    console.error('Failed to save row2 visibility:', e)
-    showRow2.value = !next
-  }
+function toggleRow2() {
+  showRow2.value = !showRow2.value
+  /* v8 ignore next */
+  if (typeof window === 'undefined') return
+  localStorage.setItem(ROW2_VISIBLE_KEY, String(showRow2.value))
 }
 
 const newTask = reactive({
@@ -611,9 +598,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           :label="showRow2 ? '下段を隠す' : '下段を表示'"
           size="xs"
           variant="outline"
-          :loading="row2Saving"
           data-testid="task-row2-toggle"
-          title="組織全体で共有される表示設定です"
           @click="toggleRow2"
         />
       </div>
