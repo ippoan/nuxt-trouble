@@ -846,7 +846,19 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
 
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="対応者">
-              <input v-model="editForm.assigned_name" list="task-employee-list" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <div class="relative">
+                <input v-model="editForm.assigned_name" list="task-employee-list" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:hidden" />
+                <button
+                  v-if="editForm.assigned_name"
+                  type="button"
+                  data-testid="edit-assigned-clear"
+                  aria-label="対応者をクリア"
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                  @click="editForm.assigned_name = ''"
+                >
+                  <UIcon name="i-lucide-x" class="size-4" />
+                </button>
+              </div>
             </UFormField>
             <UFormField label="期限">
               <YmdtInput
@@ -866,7 +878,19 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
 
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="次のアクション対応者">
-              <input v-model="editForm.next_action_by" list="task-employee-list" data-testid="edit-next-action-by" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <div class="relative">
+                <input v-model="editForm.next_action_by" list="task-employee-list" data-testid="edit-next-action-by" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:hidden" />
+                <button
+                  v-if="editForm.next_action_by"
+                  type="button"
+                  data-testid="edit-next-action-by-clear"
+                  aria-label="次のアクション対応者をクリア"
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                  @click="editForm.next_action_by = ''"
+                >
+                  <UIcon name="i-lucide-x" class="size-4" />
+                </button>
+              </div>
             </UFormField>
             <UFormField label="次のアクション期限">
               <YmdInput

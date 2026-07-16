@@ -254,6 +254,30 @@ describe('TicketTaskList', () => {
       expect(wrapper.find('[data-testid="edit-next-action-by"]').exists()).toBe(true)
     })
 
+    it('対応者欄のクリアボタンは値がある時だけ表示され、クリックで空にする (Refs #211)', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      // task-1 (先頭行) は assigned_to/next_action_by が無いので初期状態でクリアボタン非表示
+      expect(wrapper.find('[data-testid="edit-assigned-clear"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="edit-next-action-by-clear"]').exists()).toBe(false)
+
+      const vm = wrapper.vm as any
+      vm.editForm.assigned_name = '松江 寛人'
+      vm.editForm.next_action_by = '山田'
+      await flushPromises()
+      expect(wrapper.find('[data-testid="edit-assigned-clear"]').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="edit-next-action-by-clear"]').exists()).toBe(true)
+
+      await wrapper.find('[data-testid="edit-assigned-clear"]').trigger('click')
+      expect(vm.editForm.assigned_name).toBe('')
+      expect(wrapper.find('[data-testid="edit-assigned-clear"]').exists()).toBe(false)
+
+      await wrapper.find('[data-testid="edit-next-action-by-clear"]').trigger('click')
+      expect(vm.editForm.next_action_by).toBe('')
+      expect(wrapper.find('[data-testid="edit-next-action-by-clear"]').exists()).toBe(false)
+    })
+
     it('保存で updateTask が呼ばれ、対応者名は employee id に変換される', async () => {
       const wrapper = await mountWithTwoTasks()
       await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
