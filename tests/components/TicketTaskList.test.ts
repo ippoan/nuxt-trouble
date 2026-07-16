@@ -22,8 +22,6 @@ const mockUpdateTask = vi.fn().mockResolvedValue(sampleTask)
 const mockDeleteTask = vi.fn().mockResolvedValue(undefined)
 const mockGetEmployees = vi.fn().mockResolvedValue([])
 const mockGetTaskStatuses = vi.fn().mockResolvedValue([])
-const mockGetFieldLayout = vi.fn().mockResolvedValue({ settings: [] })
-const mockUpdateFieldLayout = vi.fn().mockImplementation((layout: any) => Promise.resolve(layout))
 
 vi.mock('~/utils/api', () => ({
   getTasks: (...args: any[]) => mockGetTasks(...args),
@@ -39,8 +37,6 @@ vi.mock('~/utils/api', () => ({
   deleteTaskFile: vi.fn().mockResolvedValue(undefined),
   restoreTaskFile: vi.fn().mockResolvedValue(undefined),
   getTrashFiles: vi.fn().mockResolvedValue([]),
-  getFieldLayout: (...args: any[]) => mockGetFieldLayout(...args),
-  updateFieldLayout: (...args: any[]) => mockUpdateFieldLayout(...args),
 }))
 
 const stubs = {
@@ -80,14 +76,13 @@ const stubs = {
 describe('TicketTaskList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockGetTasks.mockResolvedValue([sampleTask])
     mockGetTaskTypes.mockResolvedValue([
       { id: '1', name: 'レッカー対応', sort_order: 0, tenant_id: 't1', created_at: '' },
     ])
     mockGetEmployees.mockResolvedValue([])
     mockGetTaskStatuses.mockResolvedValue([])
-    mockGetFieldLayout.mockResolvedValue({ settings: [] })
-    mockUpdateFieldLayout.mockImplementation((layout: any) => Promise.resolve(layout))
   })
 
   it('renders heading', async () => {
@@ -165,71 +160,28 @@ describe('TicketTaskList', () => {
       expect(toggle.exists()).toBe(true)
 
       await toggle.trigger('click')
-      await flushPromises()
       expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(false)
-      expect(mockUpdateFieldLayout).toHaveBeenCalledWith({
-        settings: [{ key: 'task_row2_visible', visible: false, width: 'full', sort_order: 0, label: null }],
-      })
 
       await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
-      await flushPromises()
       expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(true)
     })
 
-    it('reverts optimistic update when save fails', async () => {
-      mockUpdateFieldLayout.mockRejectedValueOnce(new Error('network error'))
-      const wrapper = mount(TicketTaskList, {
-        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
-        global: { stubs },
-      })
-      await flushPromises()
-
-      await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
-      await flushPromises()
-      expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(true)
-    })
-
-    it('persists row2 visibility across mounts via tenant field-layout setting (org 設定)', async () => {
+    it('persists row2 visibility across mounts via localStorage', async () => {
       const wrapper1 = mount(TicketTaskList, {
         props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
         global: { stubs },
       })
       await flushPromises()
       await wrapper1.find('[data-testid="task-row2-toggle"]').trigger('click')
-      await flushPromises()
       expect(wrapper1.find('[data-testid="task-row2"]').exists()).toBe(false)
       wrapper1.unmount()
 
-      // 2 回目の mount は別ブラウザ (= localStorage を共有しない) を模す。
-      // 保存済みのテナント設定を API 経由で返すようモックし直す。
-      mockGetFieldLayout.mockResolvedValue({
-        settings: [{ key: 'task_row2_visible', visible: false, width: 'full', sort_order: 0, label: null }],
-      })
       const wrapper2 = mount(TicketTaskList, {
         props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
         global: { stubs },
       })
       await flushPromises()
       expect(wrapper2.find('[data-testid="task-row2"]').exists()).toBe(false)
-    })
-
-    it('preserves other tenant field-layout settings when saving row2 visibility', async () => {
-      mockGetFieldLayout.mockResolvedValue({
-        settings: [{ key: 'title', visible: false, width: 'half', sort_order: 5, label: 'カスタムタイトル' }],
-      })
-      const wrapper = mount(TicketTaskList, {
-        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
-        global: { stubs },
-      })
-      await flushPromises()
-      await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
-      await flushPromises()
-      expect(mockUpdateFieldLayout).toHaveBeenCalledWith({
-        settings: [
-          { key: 'title', visible: false, width: 'half', sort_order: 5, label: 'カスタムタイトル' },
-          { key: 'task_row2_visible', visible: false, width: 'full', sort_order: 0, label: null },
-        ],
-      })
     })
 
     it('keeps next_action_by editable via row1 when row2 is hidden', async () => {
@@ -239,7 +191,6 @@ describe('TicketTaskList', () => {
       })
       await flushPromises()
       await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
-      await flushPromises()
       expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(false)
       // Row1 の「対応者」(next_action_by) 表示は Row2 非表示でも残る
       expect(wrapper.text()).toContain('対応者:')
