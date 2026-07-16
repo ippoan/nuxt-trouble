@@ -25,6 +25,24 @@ const adding = ref(false)
 const employees = ref<Employee[]>([])
 const addError = ref(false)
 
+// Row2 (期限/次回/詳細/次担当) 表示トグル。次担当 (next_action_by) 自体は
+// Row1 の「対応者」欄・編集モーダルにも表示されるため非表示にしても編集手段は残る。
+const ROW2_VISIBLE_KEY = 'trouble-task-row2-visible'
+const showRow2 = ref(true)
+
+function loadRow2Visibility() {
+  if (typeof window === 'undefined') return
+  const saved = localStorage.getItem(ROW2_VISIBLE_KEY)
+  if (saved !== null) showRow2.value = saved === 'true'
+}
+
+function toggleRow2() {
+  showRow2.value = !showRow2.value
+  /* v8 ignore next */
+  if (typeof window === 'undefined') return
+  localStorage.setItem(ROW2_VISIBLE_KEY, String(showRow2.value))
+}
+
 const newTask = reactive({
   task_type: '',
   title: '',
@@ -540,6 +558,7 @@ function formatFileSize(bytes: number | bigint): string {
 }
 
 onMounted(() => {
+  loadRow2Visibility()
   fetchTaskTypes()
   fetchEmployees()
   loadTaskStatuses()
@@ -572,6 +591,14 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           data-testid="task-edit-button"
           :disabled="tasks.length === 0"
           @click="openEditModal(0)"
+        />
+        <UButton
+          :icon="showRow2 ? 'i-lucide-rows-3' : 'i-lucide-rows-2'"
+          :label="showRow2 ? '下段を隠す' : '下段を表示'"
+          size="xs"
+          variant="outline"
+          data-testid="task-row2-toggle"
+          @click="toggleRow2"
         />
       </div>
       <slot name="actions" />
@@ -638,7 +665,11 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
         </div>
 
         <!-- Row 2: _ / _ / due_date / next_action / next_action_detail / next_action_by / _ / _ / _ -->
-        <div :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
+        <div
+          v-if="showRow2"
+          data-testid="task-row2"
+          :class="['grid gap-1 pb-2 px-1 mb-0.5 border-b border-gray-100 dark:border-gray-800 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]"
+        >
           <span />
           <span />
           <!-- due_date (aligned under occurred_at) -->

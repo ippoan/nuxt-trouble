@@ -293,9 +293,9 @@ onMounted(() => {
             >
               <thead>
                 <tr class="border-b-2 border-black">
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">日付</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">種別</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">タイトル / 内容</th>
-                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">日付</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
                   <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
@@ -303,13 +303,13 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-for="t in segment" :key="t.id" class="break-inside-avoid">
+                  <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.occurred_at) }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ t.task_type }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">
                     <div class="font-medium">{{ t.title }}</div>
                     <div v-if="t.description" class="text-gray-600">{{ t.description }}</div>
                     <div v-if="t.next_action_detail" class="text-gray-600">次回詳細: {{ t.next_action_detail }}</div>
                   </td>
-                  <td class="border border-gray-400 px-2 py-1 align-top">{{ ymd(t.occurred_at) }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ displayValue(t.next_action_by) }}</td>
                   <td class="border border-gray-400 px-2 py-1 align-top">{{ taskStatusLabel(t.status) }}</td>
                   <td class="print:hidden border border-gray-400 px-2 py-1 align-top">

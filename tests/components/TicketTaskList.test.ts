@@ -43,6 +43,7 @@ const stubs = {
   UButton: {
     template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot />{{ label }}</button>',
     props: ['label', 'icon', 'loading', 'disabled', 'size', 'variant', 'color'],
+    emits: ['click'],
   },
   UIcon: { template: '<span />', props: ['name'] },
   UBadge: { template: '<span><slot /></span>', props: ['variant', 'size'] },
@@ -75,6 +76,7 @@ const stubs = {
 describe('TicketTaskList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     mockGetTasks.mockResolvedValue([sampleTask])
     mockGetTaskTypes.mockResolvedValue([
       { id: '1', name: 'レッカー対応', sort_order: 0, tenant_id: 't1', created_at: '' },
@@ -135,6 +137,64 @@ describe('TicketTaskList', () => {
     const vm = wrapper.vm as unknown as { statusOptions: Array<{ label: string; value: string }> }
     expect(vm.statusOptions.some(o => o.value === 'open')).toBe(true)
     expect(vm.statusOptions.some(o => o.value === 'done')).toBe(true)
+  })
+
+  describe('row2 visibility toggle (Refs #205)', () => {
+    it('shows row2 fields by default', async () => {
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(true)
+      expect(wrapper.text()).toContain('次回:')
+    })
+
+    it('hides row2 when toggle is clicked and shows again on second click', async () => {
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      const toggle = wrapper.find('[data-testid="task-row2-toggle"]')
+      expect(toggle.exists()).toBe(true)
+
+      await toggle.trigger('click')
+      expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(false)
+
+      await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
+      expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(true)
+    })
+
+    it('persists row2 visibility across mounts via localStorage', async () => {
+      const wrapper1 = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      await wrapper1.find('[data-testid="task-row2-toggle"]').trigger('click')
+      expect(wrapper1.find('[data-testid="task-row2"]').exists()).toBe(false)
+      wrapper1.unmount()
+
+      const wrapper2 = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      expect(wrapper2.find('[data-testid="task-row2"]').exists()).toBe(false)
+    })
+
+    it('keeps next_action_by editable via row1 when row2 is hidden', async () => {
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
+      expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(false)
+      // Row1 の「対応者」(next_action_by) 表示は Row2 非表示でも残る
+      expect(wrapper.text()).toContain('対応者:')
+    })
   })
 
   describe('edit modal (Refs #191)', () => {
