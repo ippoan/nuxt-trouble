@@ -10,21 +10,8 @@
  * X-Alc-Proxy-Secret を constant-time 検証してから JWT 検証 + ACL + OIDC mint +
  * X-Tenant-ID/X-User-* 注入を行う。AUTH_WORKER は方式 B で必須 (未設定は 503)。
  */
-import type { H3Event } from 'h3'
 import { createAuthWorkerProxyHandler } from '@ippoan/auth-client/server'
-
-function cfEnv(event: H3Event): Record<string, unknown> {
-  return (event.context.cloudflare as { env?: Record<string, unknown> } | undefined)?.env ?? {}
-}
-
-/** Secrets Store binding (`.get()`) / 文字列 のいずれでも値を取り出す。 */
-async function resolveSecret(binding: unknown): Promise<string | null> {
-  if (typeof binding === 'string') return binding
-  if (binding && typeof (binding as { get?: unknown }).get === 'function') {
-    return (await (binding as { get(): Promise<string> }).get()) ?? null
-  }
-  return null
-}
+import { cfEnv, resolveSecret } from '../../utils/cfBindings'
 
 export default defineEventHandler(async (event) => {
   const env = cfEnv(event)

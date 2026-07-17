@@ -42,6 +42,14 @@ secret_name = "INTERNAL_SHARED_SECRET"
 binding = "AUTH_WORKER"
 service = "auth-worker"
 
+# 一番星 (nuxt-ichibanboshi) の /api/employees を叩く service binding。
+# 担当者マスタの手動同期 (Refs #220) 用。CF Access Service Token は
+# nuxt-ichibanboshi 側が保持するため本 worker は secret を持たない。
+# nuxt-ichibanboshi は single-env (staging = prod) なので全 env 同じ worker を指す。
+[[services]]
+binding = "ICHIBAN_WORKER"
+service = "nuxt-ichibanboshi"
+
 [env.staging]
 name = "nuxt-trouble-staging"
 
@@ -65,6 +73,10 @@ secret_name = "INTERNAL_SHARED_SECRET"
 [[env.staging.services]]
 binding = "AUTH_WORKER"
 service = "auth-worker-staging"
+
+[[env.staging.services]]
+binding = "ICHIBAN_WORKER"
+service = "nuxt-ichibanboshi"
 
 # push のたびに更新される軽量プレビュー環境 (Refs ippoan/secrets-inventory#85)。
 # staging とは別の Worker resource として固定 URL を持たせ、staging 自体は
@@ -94,3 +106,7 @@ secret_name = "INTERNAL_SHARED_SECRET"
 [[env.preview.services]]
 binding = "AUTH_WORKER"
 service = "auth-worker-staging"
+
+[[env.preview.services]]
+binding = "ICHIBAN_WORKER"
+service = "nuxt-ichibanboshi"

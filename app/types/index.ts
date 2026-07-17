@@ -153,6 +153,22 @@ export interface CreateEmployeeInput {
   code?: string | null
 }
 
+// rust-alc-api PUT /api/employees/{id} の body (alc_core::models::UpdateEmployee)。
+// role を省略 (undefined) すると既存値が維持される (backend は COALESCE)。
+export interface UpdateEmployeeInput {
+  name: string
+  code?: string | null
+  role?: string[] | null
+}
+
+// 一番星 (rust-ichibanboshi GET /api/employees) の社員ﾏｽﾀ 1 件。
+// 担当者名としては employee_r (社員R) を使う (Refs #220)。
+export interface IchibanEmployee {
+  employee_code: string
+  employee_name: string
+  employee_r: string
+}
+
 // Re-export generated types used by new components
 export type { CreateWorkflowState, CreateWorkflowTransition } from './generated'
 
