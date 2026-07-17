@@ -16,6 +16,8 @@ import type {
   CreateTroubleProgressStatus,
   Employee,
   CreateEmployeeInput,
+  UpdateEmployeeInput,
+  IchibanEmployee,
   CreateWorkflowState,
   CreateWorkflowTransition,
   TransitionRequest,
@@ -248,6 +250,35 @@ export async function createEmployee(data: CreateEmployeeInput): Promise<Employe
     method: 'POST',
     body: JSON.stringify(data),
   })
+}
+
+export async function updateEmployee(id: string, data: UpdateEmployeeInput): Promise<Employee> {
+  return request<Employee>(`/api/employees/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+// --- 一番星 社員ﾏｽﾀ (Refs #220) ---
+
+/**
+ * 一番星 [社員ﾏｽﾀ] の一覧を取得する。
+ * rust-alc-api ではなく同一 Worker の server route (/api/ichiban/employees、
+ * service binding 経由) を叩くため、apiBase (= /api/proxy) を通る request() は
+ * 使わない。認証は共有 cookie に加えて Bearer も明示で送る。
+ */
+export async function getIchibanEmployees(): Promise<IchibanEmployee[]> {
+  const res = await fetch('/api/ichiban/employees', { headers: buildAuthHeaders() })
+  if (res.status === 401) {
+    onUnauthorized?.()
+    throw new Error('Unauthorized')
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`API エラー (${res.status}): ${body || res.statusText}`)
+  }
+  const json = (await res.json()) as { data: IchibanEmployee[] }
+  return json.data
 }
 
 // --- Car Inspection (車検証) ---

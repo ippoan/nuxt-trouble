@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember, TroubleTaskType, TroubleTaskStatus } from '~/types'
+import type { TroubleCategory, TroubleOffice, TroubleProgressStatus, TroubleNotificationPref, LineworksMember, TroubleTaskType, TroubleTaskStatus, Employee } from '~/types'
 import { TICKET_CATEGORIES, DEFAULT_TASK_TYPES, NOTIFICATION_EVENT_TYPES } from '~/types'
 import {
   getCategories, createCategory, deleteCategory, updateCategorySortOrder,
@@ -8,6 +8,7 @@ import {
   getTaskTypes, createTaskType, deleteTaskType, updateTaskTypeSortOrder,
   getTaskStatuses, createTaskStatus, deleteTaskStatus, updateTaskStatusSortOrder,
   getNotificationPrefs, upsertNotificationPref, deleteNotificationPref, getLineworksMembers,
+  getEmployees,
 } from '~/utils/api'
 
 const { authWorkerUrl } = useRuntimeConfig().public
@@ -20,9 +21,37 @@ const tabs = [
   { label: '営業所', value: 'offices' },
   { label: '進捗状況', value: 'progress' },
   { label: 'ワークフロー', value: 'workflow' },
+  { label: '担当者', value: 'employees' },
   { label: '通知', value: 'notifications' },
   { label: '入力フォーム表示', value: 'fieldLayout' },
 ]
+
+// Employees (担当者マスタ、一番星 [社員ﾏｽﾀ] からの手動同期。Refs #220)
+const employees = ref<Employee[]>([])
+const employeesLoading = ref(false)
+const {
+  syncing: ichibanSyncing,
+  progress: ichibanProgress,
+  error: ichibanError,
+  summary: ichibanSummary,
+  syncEmployees,
+} = useIchibanSync()
+
+async function fetchEmployees() {
+  employeesLoading.value = true
+  try {
+    employees.value = await getEmployees()
+  } catch (e) {
+    console.error('担当者取得エラー:', e)
+  } finally {
+    employeesLoading.value = false
+  }
+}
+
+async function handleIchibanSync() {
+  const refreshed = await syncEmployees()
+  if (refreshed) employees.value = refreshed
+}
 
 // Field layout
 const { fieldLayout, loading: fieldLayoutLoading, saving: fieldLayoutSaving, error: fieldLayoutError, fetchFieldLayout, saveFieldLayout } = useTicketFieldLayout()
@@ -364,6 +393,7 @@ onMounted(() => {
   fetchProgressStatuses()
   fetchNotifications()
   fetchFieldLayout()
+  fetchEmployees()
 })
 </script>
 
@@ -439,6 +469,41 @@ onMounted(() => {
       />
 
       <WorkflowManager v-if="activeTab === 'workflow'" />
+
+      <div v-if="activeTab === 'employees'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold">担当者マスタ</h3>
+          <UButton
+            label="一番星から同期"
+            icon="i-lucide-refresh-cw"
+            size="sm"
+            :loading="ichibanSyncing"
+            data-testid="ichiban-sync-button"
+            @click="handleIchibanSync"
+          />
+        </div>
+        <p class="text-xs text-gray-500">
+          一番星の社員マスタ (社員R) を取り込みます。社員コード (社員C) で突合し、
+          既存の担当者は名前のみ更新されます (削除はしません)。
+        </p>
+        <div v-if="ichibanSyncing" class="text-sm text-gray-500">
+          同期中... {{ ichibanProgress.done }}/{{ ichibanProgress.total }}
+        </div>
+        <div v-if="ichibanError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm" data-testid="ichiban-sync-error">
+          {{ ichibanError }}
+        </div>
+        <div v-if="ichibanSummary" class="p-3 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded-lg text-sm" data-testid="ichiban-sync-summary">
+          同期完了: 追加 {{ ichibanSummary.created }} 件 / 更新 {{ ichibanSummary.updated }} 件 / 変更なし {{ ichibanSummary.skipped }} 件
+        </div>
+        <div v-if="employeesLoading" class="text-sm text-gray-500">読み込み中...</div>
+        <ul v-else class="divide-y divide-gray-100 dark:divide-gray-800 text-sm" data-testid="employee-list">
+          <li v-for="e in employees" :key="e.id" class="py-1.5 flex items-center gap-2">
+            <span>{{ e.name }}</span>
+            <span v-if="e.code" class="text-xs text-gray-400">({{ e.code }})</span>
+          </li>
+          <li v-if="employees.length === 0" class="py-1.5 text-gray-400">担当者が登録されていません</li>
+        </ul>
+      </div>
 
       <div v-if="activeTab === 'fieldLayout'" class="space-y-4">
         <div v-if="fieldLayoutError" class="p-3 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg text-sm">
