@@ -252,15 +252,61 @@ describe('TicketTaskList', () => {
       expect((input.element as HTMLInputElement).value).toBe('松江 寛人')
     })
 
-    it('一致しない名前で保存すると assigned_to は null になる', async () => {
+    it('一致しない名前では保存せず、入力を保持してエラーを表示する (Refs #217)', async () => {
       const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
       await wrapper.find('[data-testid="task-assigned"]').trigger('click')
       const input = wrapper.find('[data-testid="task-assigned-edit"]')
       await input.setValue('存在しない名前')
       await input.trigger('blur')
       await flushPromises()
+      expect(mockUpdateTask).not.toHaveBeenCalled()
+      // 編集状態と入力値が維持され、エラーが表示される
+      const kept = wrapper.find('[data-testid="task-assigned-edit"]')
+      expect(kept.exists()).toBe(true)
+      expect((kept.element as HTMLInputElement).value).toBe('存在しない名前')
+      expect(wrapper.find('[data-testid="task-inline-error"]').text()).toContain('従業員マスタ')
+    })
+
+    it('空にして保存すると assigned_to は null になる (意図的なクリアは許可)', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      await input.setValue('')
+      await input.trigger('blur')
+      await flushPromises()
       expect(mockUpdateTask).toHaveBeenCalledTimes(1)
       expect(mockUpdateTask.mock.calls[0]![1]).toEqual({ assigned_to: null })
+      expect(wrapper.find('[data-testid="task-inline-error"]').exists()).toBe(false)
+    })
+
+    it('追加フォームの対応者がマスタ不一致なら createTask を呼ばずエラー表示、入力は保持 (Refs #217)', async () => {
+      const wrapper = await mountWithAssignees({})
+      await wrapper.find('input[placeholder="タイトル"]').setValue('新タスク')
+      const assigned = wrapper.find('[data-testid="add-assigned"]')
+      await assigned.setValue('存在しない名前')
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(mockCreateTask).not.toHaveBeenCalled()
+      expect(wrapper.find('[data-testid="add-assigned-error"]').text()).toContain('存在しない名前')
+      expect((wrapper.find('[data-testid="add-assigned"]').element as HTMLInputElement).value).toBe('存在しない名前')
+    })
+
+    it('追加フォームの対応者がマスタ一致なら assigned_to を id で送りエラーをクリアする', async () => {
+      const wrapper = await mountWithAssignees({})
+      await wrapper.find('input[placeholder="タイトル"]').setValue('新タスク')
+      const assigned = wrapper.find('[data-testid="add-assigned"]')
+      await assigned.setValue('存在しない名前')
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="add-assigned-error"]').exists()).toBe(true)
+
+      await wrapper.find('[data-testid="add-assigned"]').setValue('松江 寛人')
+      mockCreateTask.mockResolvedValue({ ...sampleTask, id: 'task-new' })
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(mockCreateTask).toHaveBeenCalledTimes(1)
+      expect(mockCreateTask.mock.calls[0]![1].assigned_to).toBe('emp-1')
+      expect(wrapper.find('[data-testid="add-assigned-error"]').exists()).toBe(false)
     })
 
     it('値が変わらなければ updateTask を呼ばない', async () => {
@@ -372,6 +418,19 @@ describe('TicketTaskList', () => {
       expect(payload.next_action_by).toBe('山田')
       expect(payload.due_date).toBeNull()
       expect(vm.editModalOpen).toBe(false)
+    })
+
+    it('編集モーダルの対応者がマスタ不一致なら保存せずエラー表示、入力は保持 (Refs #217)', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      vm.editForm.assigned_name = '存在しない名前'
+      await vm.handleEditSaveAndClose()
+      expect(mockUpdateTask).not.toHaveBeenCalled()
+      expect(vm.editError).toContain('従業員マスタ')
+      expect(vm.editModalOpen).toBe(true)
+      expect(vm.editForm.assigned_name).toBe('存在しない名前')
     })
 
     it('タイトル空では保存せずモーダル内にエラーを出す', async () => {

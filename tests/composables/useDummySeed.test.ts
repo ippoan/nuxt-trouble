@@ -10,6 +10,8 @@ const createTicketMock = vi.fn()
 const updateTicketMock = vi.fn()
 const transitionTicketMock = vi.fn()
 const createTaskMock = vi.fn()
+const getEmployeesMock = vi.fn()
+const createEmployeeMock = vi.fn()
 
 vi.mock('~/utils/api', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -23,6 +25,8 @@ vi.mock('~/utils/api', async (importOriginal) => ({
   updateTicket: (...args: unknown[]) => updateTicketMock(...args),
   transitionTicket: (...args: unknown[]) => transitionTicketMock(...args),
   createTask: (...args: unknown[]) => createTaskMock(...args),
+  getEmployees: (...args: unknown[]) => getEmployeesMock(...args),
+  createEmployee: (...args: unknown[]) => createEmployeeMock(...args),
 }))
 
 import { useDummySeed } from '~/composables/useDummySeed'
@@ -47,7 +51,13 @@ function resetMocks() {
   updateTicketMock.mockReset()
   transitionTicketMock.mockReset()
   createTaskMock.mockReset()
+  getEmployeesMock.mockReset()
+  createEmployeeMock.mockReset()
 
+  getEmployeesMock.mockResolvedValue([])
+  createEmployeeMock.mockImplementation(async ({ name }: { name: string }) => ({
+    id: `emp-${name}`, tenant_id: 't', name, code: null,
+  }))
   getWorkflowStatesMock.mockResolvedValue(STATES)
   getWorkflowTransitionsMock.mockResolvedValue(TRANSITIONS)
   getCategoriesMock.mockResolvedValue([{ id: 'c1', tenant_id: 't', name: '貨物事故', sort_order: 0, created_at: '' }])
@@ -165,6 +175,58 @@ describe('useDummySeed', () => {
 
     expect(error.value).toBe('boom')
     expect(seeding.value).toBe(false)
+  })
+
+  it('seeds missing employees before creating tickets (existing names are skipped)', async () => {
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    getEmployeesMock.mockResolvedValue([
+      { id: 'emp-x', tenant_id: 't', name: '田中太郎', code: null },
+    ])
+
+    const { seedDummyTickets } = useDummySeed()
+    await seedDummyTickets(1)
+
+    // PERSONS 6 名のうち既存の 田中太郎 を除く 5 名が投入される
+    expect(createEmployeeMock).toHaveBeenCalledTimes(5)
+    const createdNames = createEmployeeMock.mock.calls.map(c => (c[0] as { name: string }).name)
+    expect(createdNames).not.toContain('田中太郎')
+  })
+
+  it('assigns a seeded employee id to dummy tasks when random < 0.7', async () => {
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5)
+
+    const { seedDummyTickets } = useDummySeed()
+    await seedDummyTickets(1)
+
+    expect(createTaskMock).toHaveBeenCalled()
+    const payload = createTaskMock.mock.calls[0]![1] as { assigned_to: string | null }
+    expect(payload.assigned_to).toMatch(/^emp-/)
+  })
+
+  it('leaves assigned_to null on dummy tasks when random >= 0.7', async () => {
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99)
+
+    const { seedDummyTickets } = useDummySeed()
+    await seedDummyTickets(1)
+
+    expect(createTaskMock).toHaveBeenCalled()
+    const payload = createTaskMock.mock.calls[0]![1] as { assigned_to: string | null }
+    expect(payload.assigned_to).toBeNull()
+  })
+
+  it('tolerates getEmployees / createEmployee failures without aborting the seed', async () => {
+    randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5)
+    getEmployeesMock.mockRejectedValue(new Error('boom'))
+    createEmployeeMock.mockRejectedValue(new Error('boom'))
+
+    const { error, seedDummyTickets } = useDummySeed()
+    await seedDummyTickets(1)
+
+    expect(error.value).toBeNull()
+    expect(createTicketMock).toHaveBeenCalledTimes(1)
+    // 従業員が 1 人も出来なかったので assigned_to は null
+    const payload = createTaskMock.mock.calls[0]![1] as { assigned_to: string | null }
+    expect(payload.assigned_to).toBeNull()
   })
 
   it('records a fallback error message for non-Error rejections', async () => {

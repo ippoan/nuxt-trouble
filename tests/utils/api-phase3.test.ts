@@ -22,6 +22,7 @@ import {
   deleteOffice,
   updateOfficeSortOrder,
   getEmployees,
+  createEmployee,
   getWorkflowStates,
   getWorkflowTransitions,
   createWorkflowState,
@@ -199,6 +200,21 @@ describe('Trouble API Phase 3', () => {
           `${API_BASE}/api/employees`,
           expect.objectContaining({ headers: expect.any(Object) }),
         )
+      })
+    })
+  })
+
+  describe('createEmployee', () => {
+    it('creates an employee', async () => {
+      // live では従業員マスタを汚さないため mock のみで検証する
+      if (isLive) return
+      const mockData = { id: 'e1', tenant_id: 't1', name: '田中太郎', code: null }
+      await verifyApi(() => createEmployee({ name: '田中太郎' }), mockData)
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/employees`)
+        expect(opts.method).toBe('POST')
+        expect(JSON.parse(opts.body)).toEqual({ name: '田中太郎' })
       })
     })
   })

@@ -146,6 +146,13 @@ export interface Employee {
   code: string | null
 }
 
+// rust-alc-api POST /api/employees の body (alc_core::models::CreateEmployee)。
+// code / nfc_id は省略可、role は backend 側 default ["driver"]
+export interface CreateEmployeeInput {
+  name: string
+  code?: string | null
+}
+
 // Re-export generated types used by new components
 export type { CreateWorkflowState, CreateWorkflowTransition } from './generated'
 

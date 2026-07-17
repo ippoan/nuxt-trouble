@@ -15,6 +15,7 @@ import type {
   TroubleProgressStatus,
   CreateTroubleProgressStatus,
   Employee,
+  CreateEmployeeInput,
   CreateWorkflowState,
   CreateWorkflowTransition,
   TransitionRequest,
@@ -240,6 +241,13 @@ export async function updateFieldLayout(data: TroubleFieldLayout): Promise<Troub
 
 export async function getEmployees(): Promise<Employee[]> {
   return request<Employee[]>('/api/employees')
+}
+
+export async function createEmployee(data: CreateEmployeeInput): Promise<Employee> {
+  return request<Employee>('/api/employees', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
 }
 
 // --- Car Inspection (車検証) ---

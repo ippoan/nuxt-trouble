@@ -1,10 +1,10 @@
 import {
   getWorkflowStates, setupDefaultWorkflow, getWorkflowTransitions,
-  getCategories, getOffices, getTaskTypes,
+  getCategories, getOffices, getTaskTypes, getEmployees, createEmployee,
   createTicket, updateTicket, transitionTicket, createTask,
 } from '~/utils/api'
 import { TICKET_CATEGORIES, DEFAULT_TASK_TYPES } from '~/types'
-import type { CreateTroubleTicket, TroubleWorkflowState, TroubleWorkflowTransition } from '~/types'
+import type { CreateTroubleTicket, Employee, TroubleWorkflowState, TroubleWorkflowTransition } from '~/types'
 
 // staging 用ダミーチケット生成 (rust-alc-api 側の変更は不要、既存 REST API を
 // ループで叩くだけ)。rust-alc-api staging はアイドル時に DB が揮発するため、
@@ -86,7 +86,28 @@ async function randomizeStatus(
   }
 }
 
-async function addDummyTasks(ticketId: string, taskTypes: string[]): Promise<void> {
+// 従業員マスタが空だと Row1 対応者 (assigned_to) の表示・保存を検証できない
+// (Refs #218)。PERSONS を employee として投入する。既存名はスキップ (冪等)。
+async function ensureEmployees(): Promise<Employee[]> {
+  let existing: Employee[] = []
+  try {
+    existing = await getEmployees()
+  } catch {
+    existing = []
+  }
+  const names = new Set(existing.map(e => e.name))
+  for (const name of PERSONS) {
+    if (names.has(name)) continue
+    try {
+      existing.push(await createEmployee({ name }))
+    } catch {
+      // 個別失敗は無視して次の名前へ (シード全体は止めない)
+    }
+  }
+  return existing
+}
+
+async function addDummyTasks(ticketId: string, taskTypes: string[], employees: Employee[]): Promise<void> {
   const count = randomInt(0, 2)
   for (let i = 0; i < count; i++) {
     const { occurred_at } = randomPastDate(30)
@@ -98,7 +119,8 @@ async function addDummyTasks(ticketId: string, taskTypes: string[]): Promise<voi
       next_action_detail: '',
       due_date: null,
       occurred_at,
-      assigned_to: null,
+      // Row1 対応者 (employee id)。7 割で設定し、未設定行も混ぜる
+      assigned_to: employees.length > 0 && Math.random() < 0.7 ? pick(employees).id : null,
       next_action_by: pick(PERSONS),
     })
   }
@@ -127,6 +149,7 @@ export function useDummySeed() {
       const categoryNames = categories.length > 0 ? categories.map(c => c.name) : [...TICKET_CATEGORIES]
       const officeNames = offices.length > 0 ? offices.map(o => o.name) : OFFICES
       const taskTypeNames = taskTypes.length > 0 ? taskTypes.map(t => t.name) : [...DEFAULT_TASK_TYPES]
+      const employees = await ensureEmployees()
 
       for (let i = 0; i < count; i++) {
         const ticket = await createTicket(buildDummyTicket(categoryNames, officeNames))
@@ -134,7 +157,7 @@ export function useDummySeed() {
           await updateTicket(ticket.id, { progress_notes: pick(PROGRESS_NOTES) })
         }
         await randomizeStatus(ticket.id, states, transitions)
-        await addDummyTasks(ticket.id, taskTypeNames)
+        await addDummyTasks(ticket.id, taskTypeNames, employees)
         progress.value = { done: i + 1, total: count }
       }
     } catch (e) {
