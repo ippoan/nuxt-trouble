@@ -184,7 +184,7 @@ describe('TicketTaskList', () => {
       expect(wrapper2.find('[data-testid="task-row2"]').exists()).toBe(false)
     })
 
-    it('keeps next_action_by editable via row1 when row2 is hidden', async () => {
+    it('keeps assigned_to (対応者) visible via row1 when row2 is hidden', async () => {
       const wrapper = mount(TicketTaskList, {
         props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
         global: { stubs },
@@ -192,8 +192,130 @@ describe('TicketTaskList', () => {
       await flushPromises()
       await wrapper.find('[data-testid="task-row2-toggle"]').trigger('click')
       expect(wrapper.find('[data-testid="task-row2"]').exists()).toBe(false)
-      // Row1 の「対応者」(next_action_by) 表示は Row2 非表示でも残る
+      // Row1 の「対応者」(assigned_to) 表示は Row2 非表示でも残る
       expect(wrapper.text()).toContain('対応者:')
+    })
+  })
+
+  describe('Row1 対応者 = assigned_to / Row2 次担当 = next_action_by (テレコ修正, Refs #214)', () => {
+    const employees = [
+      { id: 'emp-1', tenant_id: 't1', name: '松江 寛人', code: null },
+      { id: 'emp-2', tenant_id: 't1', name: '青井 健', code: null },
+    ]
+
+    async function mountWithAssignees(taskOverrides: Record<string, unknown> = {}) {
+      mockGetTasks.mockResolvedValue([{ ...sampleTask, ...taskOverrides }])
+      mockGetEmployees.mockResolvedValue(employees)
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    it('Row1 対応者は assigned_to を名前解決して表示し、Row2 次担当は next_action_by を表示する', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1', next_action_by: '青井 健' })
+      const row1 = wrapper.find('[data-testid="task-assigned"]')
+      expect(row1.text()).toContain('対応者:')
+      expect(row1.text()).toContain('松江 寛人')
+      expect(row1.text()).not.toContain('青井 健')
+      const row2 = wrapper.find('[data-testid="task-next-action-by"]')
+      expect(row2.text()).toContain('次担当:')
+      expect(row2.text()).toContain('青井 健')
+    })
+
+    it('assigned_to が空なら Row1 対応者は "-" 表示 (next_action_by の値が漏れない)', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: null, next_action_by: '青井 健' })
+      const row1 = wrapper.find('[data-testid="task-assigned"]')
+      expect(row1.text()).toContain('-')
+      expect(row1.text()).not.toContain('青井 健')
+    })
+
+    it('Row1 対応者のインライン編集は名前を employee id に変換して assigned_to を保存する', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: null })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      expect(input.exists()).toBe(true)
+      await input.setValue('松江 寛人')
+      await input.trigger('blur')
+      await flushPromises()
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1)
+      expect(mockUpdateTask.mock.calls[0]![0]).toBe('task-1')
+      expect(mockUpdateTask.mock.calls[0]![1]).toEqual({ assigned_to: 'emp-1' })
+    })
+
+    it('Row1 対応者のインライン編集開始時は既存 assigned_to を名前に解決して入れる', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      expect((input.element as HTMLInputElement).value).toBe('松江 寛人')
+    })
+
+    it('一致しない名前では保存せず、入力を保持してエラーを表示する (Refs #217)', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      await input.setValue('存在しない名前')
+      await input.trigger('blur')
+      await flushPromises()
+      expect(mockUpdateTask).not.toHaveBeenCalled()
+      // 編集状態と入力値が維持され、エラーが表示される
+      const kept = wrapper.find('[data-testid="task-assigned-edit"]')
+      expect(kept.exists()).toBe(true)
+      expect((kept.element as HTMLInputElement).value).toBe('存在しない名前')
+      expect(wrapper.find('[data-testid="task-inline-error"]').text()).toContain('従業員マスタ')
+    })
+
+    it('空にして保存すると assigned_to は null になる (意図的なクリアは許可)', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      await input.setValue('')
+      await input.trigger('blur')
+      await flushPromises()
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1)
+      expect(mockUpdateTask.mock.calls[0]![1]).toEqual({ assigned_to: null })
+      expect(wrapper.find('[data-testid="task-inline-error"]').exists()).toBe(false)
+    })
+
+    it('追加フォームの対応者がマスタ不一致なら createTask を呼ばずエラー表示、入力は保持 (Refs #217)', async () => {
+      const wrapper = await mountWithAssignees({})
+      await wrapper.find('input[placeholder="タイトル"]').setValue('新タスク')
+      const assigned = wrapper.find('[data-testid="add-assigned"]')
+      await assigned.setValue('存在しない名前')
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(mockCreateTask).not.toHaveBeenCalled()
+      expect(wrapper.find('[data-testid="add-assigned-error"]').text()).toContain('存在しない名前')
+      expect((wrapper.find('[data-testid="add-assigned"]').element as HTMLInputElement).value).toBe('存在しない名前')
+    })
+
+    it('追加フォームの対応者がマスタ一致なら assigned_to を id で送りエラーをクリアする', async () => {
+      const wrapper = await mountWithAssignees({})
+      await wrapper.find('input[placeholder="タイトル"]').setValue('新タスク')
+      const assigned = wrapper.find('[data-testid="add-assigned"]')
+      await assigned.setValue('存在しない名前')
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(wrapper.find('[data-testid="add-assigned-error"]').exists()).toBe(true)
+
+      await wrapper.find('[data-testid="add-assigned"]').setValue('松江 寛人')
+      mockCreateTask.mockResolvedValue({ ...sampleTask, id: 'task-new' })
+      await wrapper.find('input[placeholder="タイトル"]').trigger('keydown.enter')
+      await flushPromises()
+      expect(mockCreateTask).toHaveBeenCalledTimes(1)
+      expect(mockCreateTask.mock.calls[0]![1].assigned_to).toBe('emp-1')
+      expect(wrapper.find('[data-testid="add-assigned-error"]').exists()).toBe(false)
+    })
+
+    it('値が変わらなければ updateTask を呼ばない', async () => {
+      const wrapper = await mountWithAssignees({ assigned_to: 'emp-1' })
+      await wrapper.find('[data-testid="task-assigned"]').trigger('click')
+      const input = wrapper.find('[data-testid="task-assigned-edit"]')
+      await input.trigger('blur')
+      await flushPromises()
+      expect(mockUpdateTask).not.toHaveBeenCalled()
     })
   })
 
@@ -296,6 +418,19 @@ describe('TicketTaskList', () => {
       expect(payload.next_action_by).toBe('山田')
       expect(payload.due_date).toBeNull()
       expect(vm.editModalOpen).toBe(false)
+    })
+
+    it('編集モーダルの対応者がマスタ不一致なら保存せずエラー表示、入力は保持 (Refs #217)', async () => {
+      const wrapper = await mountWithTwoTasks()
+      await wrapper.find('[data-testid="task-edit-button"]').trigger('click')
+      await flushPromises()
+      const vm = wrapper.vm as any
+      vm.editForm.assigned_name = '存在しない名前'
+      await vm.handleEditSaveAndClose()
+      expect(mockUpdateTask).not.toHaveBeenCalled()
+      expect(vm.editError).toContain('従業員マスタ')
+      expect(vm.editModalOpen).toBe(true)
+      expect(vm.editForm.assigned_name).toBe('存在しない名前')
     })
 
     it('タイトル空では保存せずモーダル内にエラーを出す', async () => {

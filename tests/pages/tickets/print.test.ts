@@ -66,9 +66,9 @@ describe('print/[id] page', () => {
 
     const table = wrapper.findAll('table').find(t => t.text().includes('経過記録') || t.find('th').exists())
     const headers = wrapper.findAll('thead th').map(th => th.text())
-    // 経過記録テーブルのヘッダーを特定 (種別/対応者を含む方)
+    // 経過記録テーブルのヘッダーを特定 (種別/次の対応者を含む方)
     const taskTableHeaders = wrapper.findAll('table').map(t => t.findAll('th').map(th => th.text()))
-      .find(hs => hs.includes('種別') && hs.includes('対応者'))
+      .find(hs => hs.includes('種別') && hs.includes('次の対応者'))
     expect(taskTableHeaders).toBeDefined()
     expect(taskTableHeaders![0]).toBe('日付')
     expect(headers.length).toBeGreaterThan(0)
@@ -81,7 +81,7 @@ describe('print/[id] page', () => {
 
     const taskTable = wrapper.findAll('table').find(t => {
       const hs = t.findAll('th').map(th => th.text())
-      return hs.includes('種別') && hs.includes('対応者')
+      return hs.includes('種別') && hs.includes('次の対応者')
     })
     expect(taskTable).toBeDefined()
     const firstDataRow = taskTable!.findAll('tbody tr')[0]!

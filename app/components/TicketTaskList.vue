@@ -24,9 +24,17 @@ const taskTypes = ref<string[]>([])
 const adding = ref(false)
 const employees = ref<Employee[]>([])
 const addError = ref(false)
+// 対応者 (assigned_to) にマスタ不一致の名前が入った時のエラー。保存せず入力を
+// 保持してユーザーに知らせる (無言で null に落とさない、Refs #217)
+const addAssignedError = ref<string | null>(null)
 
-// Row2 (期限/次回/詳細/次担当) 表示トグル。次担当 (next_action_by) 自体は
-// Row1 の「対応者」欄・編集モーダルにも表示されるため非表示にしても編集手段は残る。
+function assignedMismatchMessage(name: string): string {
+  return `対応者「${name}」は従業員マスタに登録がありません。候補から選択するか空にしてください`
+}
+
+// Row2 (期限/次回/詳細/次担当) 表示トグル。次担当 (next_action_by) は Row2 を
+// 非表示にしても編集モーダルで編集できる。Row1 の「対応者」は assigned_to
+// (タスク対応者) であり next_action_by とは別フィールド (Refs #214)。
 // 個人のブラウザ単位の設定 (localStorage)。
 const ROW2_VISIBLE_KEY = 'trouble-task-row2-visible'
 const showRow2 = ref(true)
@@ -66,6 +74,7 @@ function resetForm() {
   newTask.assigned_name = ''
   newTask.next_action_by_name = ''
   addError.value = false
+  addAssignedError.value = null
 }
 
 async function fetchEmployees() {
@@ -155,11 +164,17 @@ function checkSuggestions() {
 
 async function handleAddTask() {
   if (!newTask.title.trim()) return
+  const name = newTask.assigned_name.trim()
+  const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
+  if (name && !matchedEmployee) {
+    // 保存せず入力を保持してエラー表示 (Refs #217)
+    addAssignedError.value = assignedMismatchMessage(name)
+    return
+  }
+  addAssignedError.value = null
   adding.value = true
   addError.value = false
   try {
-    const name = newTask.assigned_name.trim()
-    const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
     await createTask(props.ticketId, {
       task_type: newTask.task_type,
       title: newTask.title.trim(),
@@ -213,26 +228,39 @@ const statusOptions = computed<{ label: string; value: string }[]>(() => {
 const editingId = ref<string | null>(null)
 const editingField = ref<string | null>(null)
 const editingValue = ref('')
+const inlineEditError = ref<string | null>(null)
 
 function startEdit(task: TroubleTask, field: string) {
   editingId.value = task.id
   editingField.value = field
+  inlineEditError.value = null
   const val = (task as any)[field]
   if (field === 'occurred_at' || field === 'due_date') {
     editingValue.value = val?.substring(0, 10) || ''
+  } else if (field === 'assigned_to') {
+    // assigned_to は employee id で持つため、インライン編集は名前で行い保存時に id へ戻す
+    editingValue.value = employeeNameById(val)
   } else {
     editingValue.value = val || ''
   }
 }
 
 async function saveEdit(taskId: string, field: string) {
-  editingId.value = null
   const original = tasks.value.find(t => t.id === taskId)
-  if (!original) return
+  if (!original) {
+    editingId.value = null
+    return
+  }
   const oldVal = (field === 'occurred_at' || field === 'due_date')
     ? ((original as any)[field]?.substring(0, 10) || '')
-    : ((original as any)[field] || '')
-  if (editingValue.value === oldVal) return
+    : field === 'assigned_to'
+      ? employeeNameById((original as any)[field])
+      : ((original as any)[field] || '')
+  if (editingValue.value === oldVal) {
+    editingId.value = null
+    inlineEditError.value = null
+    return
+  }
   const payload: Record<string, any> = {}
   if (field === 'occurred_at') {
     // インラインは日付のみ編集。既存の時刻部分 (追加/編集モーダルで入れた HH:mm)
@@ -254,9 +282,21 @@ async function saveEdit(taskId: string, field: string) {
     } else {
       payload.due_date = null
     }
+  } else if (field === 'assigned_to') {
+    // 名前 → employee id 変換 (追加フォーム・編集モーダルと同じ規則)。
+    // マスタ不一致は保存せず入力を保持してエラー表示 (Refs #217)
+    const name = editingValue.value.trim()
+    const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
+    if (name && !matchedEmployee) {
+      inlineEditError.value = assignedMismatchMessage(name)
+      return
+    }
+    payload.assigned_to = matchedEmployee?.id || null
   } else {
     payload[field] = editingValue.value || null
   }
+  editingId.value = null
+  inlineEditError.value = null
   try {
     await updateTask(taskId, payload)
     await loadTasks()
@@ -331,11 +371,16 @@ async function saveEditModal(): Promise<boolean> {
     editError.value = 'タイトルを入力してください'
     return false
   }
+  const name = editForm.assigned_name.trim()
+  const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
+  if (name && !matchedEmployee) {
+    // 保存せず入力を保持してエラー表示 (Refs #217)
+    editError.value = assignedMismatchMessage(name)
+    return false
+  }
   editSaving.value = true
   editError.value = null
   try {
-    const name = editForm.assigned_name.trim()
-    const matchedEmployee = name ? employees.value.find(e => e.name === name) : null
     await updateTask(task.id, {
       task_type: editForm.task_type,
       title: editForm.title.trim(),
@@ -620,7 +665,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
 
       <!-- Task rows (2 rows per task, same 9-col grid) -->
       <template v-for="(task, idx) in tasks" :key="task.id">
-        <!-- Row 1: reorder / task_type / occurred_at / title / description / next_action_by / status / file / delete -->
+        <!-- Row 1: reorder / task_type / occurred_at / title / description / assigned_to / status / file / delete -->
         <div :data-task-id="task.id" :class="['grid gap-1 pt-2 pb-0.5 px-1 items-center hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors', GRID]">
           <div class="flex flex-col items-center">
             <button class="text-gray-400 hover:text-gray-200 disabled:opacity-20 transition-colors" :disabled="idx === 0" @click="handleMoveUp(idx)"><UIcon name="i-lucide-chevron-up" class="size-3" /></button>
@@ -649,10 +694,10 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'description')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">内容:</span>{{ task.description || '-' }}
           </span>
-          <!-- next_action_by (対応者) -->
-          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
-            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">対応者:</span>{{ task.next_action_by || '-' }}
+          <!-- assigned_to (対応者。インライン編集は名前入力 → employee id 変換、Refs #214) -->
+          <EmployeeNameInput v-if="isEditing(task.id, 'assigned_to')" v-model="editingValue" :employees="employees" data-testid="task-assigned-edit" class="w-full text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @select="saveEdit(task.id, 'assigned_to')" @blur="saveEdit(task.id, 'assigned_to')" />
+          <span v-else data-testid="task-assigned" class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'assigned_to')">
+            <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">対応者:</span>{{ employeeNameById(task.assigned_to) || '-' }}
           </span>
           <!-- status -->
           <USelect :model-value="task.status" :items="statusOptions" size="xs" class="min-w-0" @update:model-value="handleStatusChange(task.id, $event)" />
@@ -693,14 +738,19 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_detail')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">詳細:</span>{{ task.next_action_detail || '-' }}
           </span>
-          <!-- next_action_by (aligned under 対応者) -->
-          <input v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" list="task-employee-list" class="min-w-0 text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @blur="saveEdit(task.id, 'next_action_by')" @keydown.enter="($event.target as HTMLInputElement).blur()" />
-          <span v-else class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
+          <!-- next_action_by (次担当、対応者の下に揃える。自由テキスト + 従業員サジェスト) -->
+          <EmployeeNameInput v-if="isEditing(task.id, 'next_action_by')" v-model="editingValue" :employees="employees" class="w-full text-xs border border-blue-500 rounded px-1 py-0.5 bg-transparent" @select="saveEdit(task.id, 'next_action_by')" @blur="saveEdit(task.id, 'next_action_by')" />
+          <span v-else data-testid="task-next-action-by" class="text-xs text-gray-400 truncate cursor-pointer hover:text-gray-200 transition-colors" @click="startEdit(task, 'next_action_by')">
             <span class="text-[10px] text-gray-500 inline-block w-8 mr-0.5 [text-align-last:justify]">次担当:</span>{{ task.next_action_by || '-' }}
           </span>
           <span />
           <span />
           <span />
+        </div>
+
+        <!-- インライン編集の対応者マスタ不一致エラー (保存せず入力保持、Refs #217) -->
+        <div v-if="editingId === task.id && inlineEditError" data-testid="task-inline-error" class="px-1 pb-1 text-xs text-red-500">
+          {{ inlineEditError }}
         </div>
 
         <!-- File panel -->
@@ -738,7 +788,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           </div>
           <input v-model="newTask.title" placeholder="タイトル" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" @keydown.enter="handleAddTask" />
           <input v-model="newTask.description" placeholder="内容" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.assigned_name" list="task-employee-list" placeholder="対応者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <EmployeeNameInput v-model="newTask.assigned_name" :employees="employees" data-testid="add-assigned" placeholder="対応者" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <span />
         </div>
         <!-- Form Row 2: (empty) / due_date / next_action / detail / next_action_by / add-btn -->
@@ -754,12 +804,13 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           </div>
           <input v-model="newTask.next_action" placeholder="次のアクション" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <input v-model="newTask.next_action_detail" placeholder="詳細" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
-          <input v-model="newTask.next_action_by_name" list="task-employee-list" placeholder="次の対応者" class="min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <EmployeeNameInput v-model="newTask.next_action_by_name" :employees="employees" placeholder="次の対応者" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <UButton icon="i-lucide-plus" size="xs" :loading="adding" :disabled="!newTask.title.trim()" @click="handleAddTask" />
         </div>
-        <datalist id="task-employee-list">
-          <option v-for="e in employees" :key="e.id" :value="e.name" />
-        </datalist>
+        <!-- 追加フォームの対応者マスタ不一致エラー (保存せず入力保持、Refs #217) -->
+        <div v-if="addAssignedError" data-testid="add-assigned-error" class="px-1 mt-1 text-xs text-red-500">
+          {{ addAssignedError }}
+        </div>
       </div>
         </div>
       </div>
@@ -847,7 +898,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="対応者">
               <div class="relative">
-                <input v-model="editForm.assigned_name" list="task-employee-list" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:hidden" />
+                <EmployeeNameInput v-model="editForm.assigned_name" :employees="employees" data-testid="edit-assigned" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 <button
                   v-if="editForm.assigned_name"
                   type="button"
@@ -879,7 +930,7 @@ const FORM_GRID = 'grid-cols-[6rem_17rem_1fr_1fr_8rem_2.5rem]'
           <div class="grid grid-cols-2 gap-3">
             <UFormField label="次のアクション対応者">
               <div class="relative">
-                <input v-model="editForm.next_action_by" list="task-employee-list" data-testid="edit-next-action-by" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:hidden" />
+                <EmployeeNameInput v-model="editForm.next_action_by" :employees="employees" data-testid="edit-next-action-by" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 pr-7 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 <button
                   v-if="editForm.next_action_by"
                   type="button"

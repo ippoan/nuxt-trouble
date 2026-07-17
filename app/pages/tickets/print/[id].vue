@@ -296,7 +296,7 @@ onMounted(() => {
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">日付</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">種別</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">タイトル / 内容</th>
-                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">対応者</th>
+                  <th class="border border-gray-400 px-2 py-1 text-left font-medium">次の対応者</th>
                   <th class="border border-gray-400 px-2 py-1 text-left font-medium">状況</th>
                   <th class="print:hidden border border-gray-400 px-2 py-1 text-left font-medium">改ページ</th>
                 </tr>
