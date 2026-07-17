@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, enableAutoUnmount } from '@vue/test-utils'
 import EmployeeNameInput from '~/components/EmployeeNameInput.vue'
 
@@ -113,5 +113,29 @@ describe('EmployeeNameInput', () => {
     const wrapper = mountInput('', [])
     await wrapper.find('input').trigger('focus')
     expect(menu()).toBeNull()
+  })
+
+  // モーダル (Reka UI Dialog) 内で使われるケースの回帰ガード (Refs #215):
+  // body に pointer-events: none が付いても menu 側で継承を断ってクリック可能にし、
+  // pointerdown が document (= Dialog の外側クリック判定) まで伝播しないこと。
+  describe('モーダル内での利用 (body pointer-events: none 環境)', () => {
+    it('menu は pointer-events-auto で継承を断つ', async () => {
+      const wrapper = mountInput()
+      await wrapper.find('input').trigger('focus')
+      expect(menu()!.className).toContain('pointer-events-auto')
+    })
+
+    it('menu 上の pointerdown は document へ伝播しない (モーダルが閉じない)', async () => {
+      const wrapper = mountInput()
+      await wrapper.find('input').trigger('focus')
+      const outsideDetector = vi.fn()
+      document.addEventListener('pointerdown', outsideDetector)
+      menu()!.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+      expect(outsideDetector).not.toHaveBeenCalled()
+      // input 自身への pointerdown は素通しされる (通常のフォーカス動作を妨げない)
+      wrapper.find('input').element.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+      expect(outsideDetector).toHaveBeenCalledTimes(1)
+      document.removeEventListener('pointerdown', outsideDetector)
+    })
   })
 })

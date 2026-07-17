@@ -123,11 +123,17 @@ onUnmounted(() => {
       @blur="onBlur"
     />
     <Teleport to="body">
+      <!-- pointer-events-auto: モーダル (Reka UI Dialog) が open の間 body には
+           pointer-events: none が付くため、body 直下に Teleport する menu は明示的に
+           継承を断たないとクリックが素通りする (Refs #215)。
+           @pointerdown.stop: Dialog の「外側クリックで閉じる」判定 (document の
+           pointerdown listener) に届かせず、候補クリックでモーダルが閉じるのを防ぐ。 -->
       <div
         v-if="open && candidates.length > 0"
         data-testid="employee-name-menu"
         :style="menuStyle"
-        class="z-[60] max-h-48 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg py-0.5"
+        class="z-[60] pointer-events-auto max-h-48 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg py-0.5"
+        @pointerdown.stop
       >
         <!-- mousedown.prevent: 選択クリックで input の blur を発火させない -->
         <button
