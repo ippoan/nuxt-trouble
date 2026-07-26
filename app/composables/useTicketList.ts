@@ -1,7 +1,7 @@
 import { getTickets, getWorkflowStates, deleteTicket, exportTicketsCsv, createTicket, setupDefaultWorkflow, getCategories, getOffices, getProgressStatuses } from '~/utils/api'
-import { TICKET_CATEGORIES } from '~/types'
 import type { TroubleTicket, TroubleWorkflowState, TroubleCategory, TroubleOffice, TroubleProgressStatus, CreateTroubleTicket } from '~/types'
 import { fromDatetimeLocalInput } from '~/utils/datetime'
+import { buildCategoryOptions } from '~/utils/ticketFieldOptions'
 
 const STORAGE_KEY = 'trouble_filter_status'
 
@@ -18,7 +18,24 @@ export function useTicketList() {
     q: undefined as string | undefined,
     page: 1,
     per_page: 20,
+    // 発生日時ソート (Refs #225 ③)。undefined = 既定 (ticket_no DESC)
+    sort_by: undefined as string | undefined,
+    sort_desc: undefined as boolean | undefined,
   })
+
+  // 発生日時ヘッダクリックで 降順 → 昇順 → 既定 (解除) をトグルする
+  function toggleOccurredSort() {
+    if (filter.sort_by !== 'occurred') {
+      filter.sort_by = 'occurred'
+      filter.sort_desc = true
+    } else if (filter.sort_desc) {
+      filter.sort_desc = false
+    } else {
+      filter.sort_by = undefined
+      filter.sort_desc = undefined
+    }
+    filter.page = 1
+  }
 
   // Status filter (checkbox, localStorage)
   const selectedStatuses = ref<Set<string>>(new Set())
@@ -82,25 +99,11 @@ export function useTicketList() {
   const offices = shallowRef<TroubleOffice[]>([])
   const progressStatuses = shallowRef<TroubleProgressStatus[]>([])
 
-  const categoryOptions = computed(() => {
-    const dbNames = new Set(categories.value.map(c => c.name))
-    const hardcoded = TICKET_CATEGORIES.filter(c => !dbNames.has(c))
-    const allCats = [
-      ...categories.value.map(c => c.name),
-      ...hardcoded,
-    ]
-    return allCats.map(c => ({ label: c, value: c }))
-  })
+  // 独自カテゴリがあれば既定 (ハードコード) を混ぜない (Refs #225 ⑤、
+  // ロジックは buildCategoryOptions に集約)
+  const categoryOptions = computed(() => buildCategoryOptions(categories.value))
 
-  const createCategoryOptions = computed(() => {
-    const dbNames = new Set(categories.value.map(c => c.name))
-    const hardcoded = TICKET_CATEGORIES.filter(c => !dbNames.has(c))
-    const allCats = [
-      ...categories.value.map(c => c.name),
-      ...hardcoded,
-    ]
-    return allCats.map(c => ({ label: c, value: c }))
-  })
+  const createCategoryOptions = computed(() => buildCategoryOptions(categories.value))
 
   const officeOptions = computed(() =>
     offices.value.map(o => ({ label: o.name, value: o.name })),
@@ -282,7 +285,7 @@ export function useTicketList() {
     categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
     showInlineCreate, creating, createError, newTicket,
     categories, offices, progressStatuses,
-    loadStatusFilter, toggleStatus, toggleAllStatuses,
+    loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort,
     resetNewTicket, handleInlineCreate,
     fetchTickets, fetchWorkflowStates, fetchMasterData,
     clearFilter, confirmDelete, handleDelete, handleExportCsv,

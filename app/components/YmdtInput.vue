@@ -58,13 +58,14 @@ function emitModel() {
   const yOk = year.value.length === 4
   const mOk = month.value.length >= 1
   const dOk = day.value.length >= 1
-  const hOk = hour.value.length >= 1
-  const minOk = minute.value.length >= 1
-  if (yOk && mOk && dOk && hOk && minOk) {
+  // 時・分は未入力なら 00 として扱う。以前は全 5 欄が埋まらないと日時全体を
+  // undefined にしていたため、時刻を入れずに保存すると「入力した日付が反映
+  // されない」不具合になっていた (Refs #225 ⑦)。
+  if (yOk && mOk && dOk) {
     const mm = month.value.padStart(2, '0')
     const dd = day.value.padStart(2, '0')
-    const hh = hour.value.padStart(2, '0')
-    const mi = minute.value.padStart(2, '0')
+    const hh = (hour.value || '0').padStart(2, '0')
+    const mi = (minute.value || '0').padStart(2, '0')
     emit('update:modelValue', `${year.value}-${mm}-${dd}T${hh}:${mi}`)
   }
   else {

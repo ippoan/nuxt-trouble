@@ -78,6 +78,9 @@ export interface TroubleTicketFilter {
   q?: string | null
   page?: number | null
   per_page?: number | null
+  // whitelist: 'occurred' | 'ticket_no' (未指定は ticket_no DESC、Refs #225 ③)
+  sort_by?: string | null
+  sort_desc?: boolean | null
 }
 
 export interface TroubleTicketsResponse {

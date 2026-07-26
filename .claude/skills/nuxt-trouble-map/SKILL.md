@@ -1,6 +1,6 @@
 ---
 name: nuxt-trouble-map
-generated-from: nuxt-trouble:1be50ddd779fc5bdbde95edb2b5227f81155d92e
+generated-from: nuxt-trouble:ff4ee0f440ce5aa47ed40f70422d9435bee73d95
 paths: [app/, server/]
 description: ippoan/nuxt-trouble (トラブル/状況管理 Nuxt 4 アプリ / Cloudflare Workers) の構造ナビゲーション。rust-alc-api `/api/troubles` を叩くチケット・タスク・ワークフロー管理 SPA。pages/composables/utils と ts-rs 生成型の配置、/api/proxy identity proxy、2 対応者フィールドの罠を 1 枚にまとめる。トリガー:「nuxt-trouble」「トラブル管理」「状況管理」「チケット」「trouble_tasks」「assigned_to」「next_action_by」「ワークフロー」「ガントチャート」「trouble.ippoan.org」「/api/proxy」等。
 ---
@@ -37,6 +37,7 @@ introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker �
 
 ## gotcha
 
+- **#225 ユーザー要望対応 (2026-07-26)**: ① `YmdtInput` は年月日が揃えば時分未入力でも `00` 補完で emit する (全 5 欄必須に戻すと「日付を入れたのに保存されない」不具合が再発する)。② 営業所欄 (フォーム / インライン作成) は datalist 付き `UInput` 直接入力 (`USelect` に戻さない)。③ 一覧の発生日時ソートは `filter.sort_by`(`"occurred"`|`"ticket_no"`) + `sort_desc` を backend whitelist に渡す (`toggleOccurredSort` で 降順→昇順→既定)。④ カテゴリ / 経過記録タイプの既定 (ハードコード) は独自項目が 1 件でもあれば非表示 (`hasCustomEntries`、ticketFieldOptions.ts / MasterDataManager.vue で同一規則。既定行の「リストへ追加」で個別 DB 化)。
 - **`trouble_tasks` の対応者は 2 フィールド**: Row1 = タスク対応者 (`assigned_to`)、Row2 = 次のアクション対応者 (`next_action_by`)。**両 row に対応者欄が必要**。テーブルレイアウト変更時に片方を消さない (user が複数回指摘した経緯、CLAUDE.md `feedback_two_assignees`)。`TicketTaskList.vue` の 1 件編集モーダル (Refs #191) にも両欄あり — 消さない。
 - **`TicketTaskList.vue` の 1 件編集モーダル** (Refs #191): 「状況管理」見出し右の「編集」ボタン 1 個で開く (行ごとの鉛筆ボタンは廃止、grid は 9 列に戻した)。2 ペイン構成: 左にタスク一覧 (種別/ステータス/発生日時/タイトル、クリックでその行へ)、右に全フィールド編集フォーム (発生日時は `YmdtInput` で時刻込み編集、一覧項目は `tabindex=-1` で Tab 対象外)。行移動は **Ctrl+Shift+↑/↓** (Alt+↓ は select のドロップダウンが開くため不採用。window keydown を capture: true + stopPropagation で listen — select 自身の ArrowDown でドロップダウンが開くのを防ぐ。端では停止)。**Alt+S** で保存のみ (モーダルは閉じない、e.code 判定)。未保存変更は移動時に自動保存 (失敗時は移動しない)、キャンセルは破棄。`assigned_to` は employee 名 ⇄ id 変換 (追加フォームと同じ)。モーダル幅は `:ui="{ content: 'sm:max-w-4xl' }"`。
 - **通知予約キャンセルの 409** (Refs #190): 送信済み予約への cancel は backend が 409 (body 無し) を返す仕様。`[id].vue` の `handleCancelSchedule` は `cancelScheduleErrorMessage` で文言化し、成否によらず `loadSchedules()` で実状態を反映する。生の「API エラー (NNN):」を UI に出さない。

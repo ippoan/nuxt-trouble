@@ -88,7 +88,8 @@ async function fetchEmployees() {
 async function fetchTaskTypes() {
   try {
     const types = await getTaskTypes()
-    taskTypes.value = types.map(t => t.name)
+    // マスタ未整備 (0 件) は既定リストで埋める — settings 画面の既定表示と同じ規則 (Refs #225 ⑤)
+    taskTypes.value = types.length > 0 ? types.map(t => t.name) : [...DEFAULT_TASK_TYPES]
   } catch {
     taskTypes.value = [...DEFAULT_TASK_TYPES]
   }

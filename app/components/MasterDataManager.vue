@@ -21,15 +21,28 @@ function handleCreate() {
   newName.value = ''
 }
 
+// 独自項目 (既定以外の名前) が 1 件でもあれば既定 (builtin) は表示しない —
+// 既定はマスタ未整備テナントの初期リストとしてのみ使う。既定を「リストへ追加」
+// で順に DB 化している途中 (全項目が既定由来) は残りの既定を表示し続ける
+// (Refs #225 ⑤)。判定は ticketFieldOptions.hasCustomEntries と同じ規則。
+const showBuiltins = computed(() => {
+  const builtins = props.builtinItems || []
+  if (builtins.length === 0) return false
+  const b = new Set(builtins)
+  return props.items.every(item => b.has(item.name))
+})
+
 const mergedItems = computed(() => {
-  const builtins = (props.builtinItems || [])
-    .filter(name => !props.items.some(item => item.name === name))
-    .map((name, i) => ({
-      id: '',
-      name,
-      sort_order: 1000 + i,
-      isBuiltin: true,
-    }))
+  const builtins = showBuiltins.value
+    ? (props.builtinItems || [])
+        .filter(name => !props.items.some(item => item.name === name))
+        .map((name, i) => ({
+          id: '',
+          name,
+          sort_order: 1000 + i,
+          isBuiltin: true,
+        }))
+    : []
   const dbItems = props.items.map(item => ({ ...item, isBuiltin: false }))
   return [...dbItems, ...builtins].sort((a, b) => a.sort_order - b.sort_order)
 })
@@ -89,6 +102,11 @@ function moveDown(index: number) {
       />
     </div>
 
+    <p v-if="showBuiltins && mergedItems.some(i => i.isBuiltin)" class="text-xs text-gray-500 dark:text-gray-400">
+      「既定」の項目は独自の項目を追加すると表示されなくなります。残したい既定項目は
+      先に「リストへ追加」で取り込んでください。
+    </p>
+
     <div v-if="loading" class="text-sm text-gray-500">読み込み中...</div>
 
     <div v-else-if="mergedItems.length === 0" class="text-sm text-gray-500">
@@ -106,6 +124,14 @@ function moveDown(index: number) {
           <UBadge v-if="item.isBuiltin" size="xs" variant="subtle" color="neutral">既定</UBadge>
         </div>
         <div class="flex items-center gap-1">
+          <UButton
+            v-if="item.isBuiltin"
+            label="リストへ追加"
+            icon="i-lucide-plus"
+            variant="outline"
+            size="xs"
+            @click="emit('create', item.name)"
+          />
           <UButton
             icon="i-lucide-chevron-up"
             variant="ghost"

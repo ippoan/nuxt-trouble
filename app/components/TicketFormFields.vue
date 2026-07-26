@@ -130,9 +130,26 @@ function toggleExternal(checked: boolean) {
       <div class="grid grid-cols-6 gap-4">
         <div v-for="field in group.fields" :key="field.key" :class="widthColSpanClass(field.width)">
           <UFormField :label="field.label" :required="field.key === 'category'">
-            <!-- select (category / office_name / progress_notes) -->
+            <!-- text: office_name (datalist 付き直接入力。リスト選択より手入力が速い、Refs #225 ④) -->
+            <template v-if="field.key === 'office_name'">
+              <UInput
+                class="w-full"
+                :model-value="(fieldValue('office_name') as string) || ''"
+                placeholder="営業所名"
+                list="ticket-form-offices"
+                :loading="isSaving('office_name')"
+                @update:model-value="update('office_name', $event)"
+                @blur="commit('office_name')"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
+              />
+              <datalist id="ticket-form-offices">
+                <option v-for="opt in officeOptions" :key="opt.value" :value="opt.value" />
+              </datalist>
+            </template>
+
+            <!-- select (category / progress_notes) -->
             <USelect
-              v-if="field.type === 'select'"
+              v-else-if="field.type === 'select'"
               class="w-full"
               :model-value="(fieldValue(field.key) as string) || ''"
               :items="selectOptionsFor(field.key)"
