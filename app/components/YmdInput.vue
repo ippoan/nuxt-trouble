@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CalendarDate } from '@internationalized/date'
 import { computed, nextTick, ref, watch } from 'vue'
+import { toHalfWidth } from '~/utils/normalize'
 
 const props = defineProps<{
   modelValue: string | undefined
@@ -66,8 +67,25 @@ function clearAll() {
   nextTick(() => yearRef.value?.focus())
 }
 
+// 全角数字も受け付けて半角化する。全角を捨てると IME をかなのまま日付が
+// 打てず、ユーザーが IME を英数へ手動で切り替える → 次のかな欄で戻らない、
+// という IME モード汚染の引き金になる (Refs #225 ②)。
 function sanitize(s: string): string {
-  return s.replace(/\D/g, '')
+  return toHalfWidth(s).replace(/\D/g, '')
+}
+
+/**
+ * input / compositionend 共通のセル読み取り。IME 変換中 (isComposing) は
+ * state を触らない — かなモードの全角数字は composition として入力され、
+ * 確定時の compositionend で半角化して取り込む。半角化した値は DOM にも
+ * 強制反映する (state が同値だと Vue が patch せず全角が残るため)。
+ */
+function readCell(e: Event, max: number): string | null {
+  if ((e as InputEvent).isComposing) return null
+  const el = e.target as HTMLInputElement
+  const v = sanitize(el.value).slice(0, max)
+  if (el.value !== v) el.value = v
+  return v
 }
 
 // 入力中は内部状態のみ更新する。保存 (emit) は blur / Enter / カレンダー選択
@@ -75,15 +93,18 @@ function sanitize(s: string): string {
 // 移動も廃止 (4 桁打って勝手に次へ飛ぶのが手入力では不快)。セル間移動は
 // Tab / `/` / 矢印キーで行える (keydown ハンドラ参照)。
 function onYearInput(e: Event) {
-  year.value = sanitize((e.target as HTMLInputElement).value).slice(0, 4)
+  const v = readCell(e, 4)
+  if (v !== null) year.value = v
 }
 
 function onMonthInput(e: Event) {
-  month.value = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v !== null) month.value = v
 }
 
 function onDayInput(e: Event) {
-  day.value = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v !== null) day.value = v
 }
 
 /** root の外へフォーカスが抜けたときだけ確定 (セル間移動では確定しない)。 */
@@ -229,6 +250,7 @@ function onCalendarSelect(v: unknown) {
       class="w-12 text-center outline-none bg-transparent"
       @focus="selectOnFocus"
       @input="onYearInput"
+      @compositionend="onYearInput"
       @keydown="onYearKeydown"
     >
     <span class="text-gray-400">/</span>
@@ -242,6 +264,7 @@ function onCalendarSelect(v: unknown) {
       class="w-6 text-center outline-none bg-transparent"
       @focus="selectOnFocus"
       @input="onMonthInput"
+      @compositionend="onMonthInput"
       @keydown="onMonthKeydown"
     >
     <span class="text-gray-400">/</span>
@@ -255,6 +278,7 @@ function onCalendarSelect(v: unknown) {
       class="w-6 text-center outline-none bg-transparent"
       @focus="selectOnFocus"
       @input="onDayInput"
+      @compositionend="onDayInput"
       @keydown="onDayKeydown"
     >
     <button
