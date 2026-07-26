@@ -6,13 +6,29 @@ export interface SelectOption {
   value: string
 }
 
+/**
+ * 独自項目 (builtin 以外の名前) が 1 件でも登録されているか。
+ * true になったテナントには既定 (ハードコード) リストを表示しない —
+ * 既定はマスタ未整備テナントの初期リストとしてのみ使う (Refs #225 ⑤)。
+ * 既定を「リストへ追加」で順に DB 化している途中 (全項目が builtin 由来) は
+ * まだ既定扱いで、残りの既定もマージして選択肢が欠けないようにする。
+ */
+export function hasCustomEntries(names: string[], builtins: readonly string[]): boolean {
+  const b = new Set(builtins as string[])
+  return names.some(n => !b.has(n))
+}
+
 export function buildCategoryOptions(categories: TroubleCategory[] | undefined): SelectOption[] {
-  if (categories && categories.length > 0) {
-    const dbNames = new Set(categories.map(c => c.name))
-    const hardcoded = ([...TICKET_CATEGORIES] as string[]).filter(c => !dbNames.has(c))
-    return [...categories.map(c => c.name), ...hardcoded].map(c => ({ label: c, value: c }))
+  if (!categories || categories.length === 0) {
+    return TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
   }
-  return TICKET_CATEGORIES.map(c => ({ label: c, value: c as string }))
+  const names = categories.map(c => c.name)
+  if (hasCustomEntries(names, TICKET_CATEGORIES)) {
+    return names.map(c => ({ label: c, value: c }))
+  }
+  const dbNames = new Set(names)
+  const rest = ([...TICKET_CATEGORIES] as string[]).filter(c => !dbNames.has(c))
+  return [...names, ...rest].map(c => ({ label: c, value: c }))
 }
 
 export function buildOfficeOptions(offices: TroubleOffice[] | undefined): SelectOption[] {

@@ -110,10 +110,54 @@ describe('MasterDataManager', () => {
     })
     const listItems = wrapper.findAll('li')
     expect(listItems.length).toBe(1)
-    // Builtin item should have up/down buttons but no delete
+    // Builtin item should have add-to-list + up/down buttons but no delete
     const buttons = listItems[0].findAll('button')
-    // Up + Down only (no delete for builtin)
-    expect(buttons.length).toBe(2)
+    // リストへ追加 + Up + Down (no delete for builtin)
+    expect(buttons.length).toBe(3)
+  })
+
+  it('emits create when builtin "リストへ追加" button is clicked', async () => {
+    const wrapper = mount(MasterDataManager, {
+      props: { title: 'テスト', items: [], builtinItems: ['苦情'], loading: false },
+      global: { stubs },
+    })
+    const listItems = wrapper.findAll('li')
+    // 先頭ボタンが「リストへ追加」
+    await listItems[0]!.findAll('button')[0]!.trigger('click')
+    expect(wrapper.emitted('create')).toEqual([['苦情']])
+  })
+
+  it('hides builtins once a custom (non-builtin) item exists', () => {
+    const wrapper = mount(MasterDataManager, {
+      props: {
+        title: 'テスト',
+        items: [{ id: '1', name: 'カスタム', sort_order: 1 }],
+        builtinItems: ['苦情', '事故'],
+        loading: false,
+      },
+      global: { stubs },
+    })
+    const listItems = wrapper.findAll('li')
+    expect(listItems.length).toBe(1)
+    expect(wrapper.text()).not.toContain('苦情')
+    expect(wrapper.text()).not.toContain('既定')
+  })
+
+  it('keeps showing remaining builtins while all items are builtin-derived', () => {
+    const wrapper = mount(MasterDataManager, {
+      props: {
+        title: 'テスト',
+        items: [{ id: '1', name: '苦情', sort_order: 1 }],
+        builtinItems: ['苦情', '事故'],
+        loading: false,
+      },
+      global: { stubs },
+    })
+    // 苦情 (DB 化済み) + 事故 (残り builtin)
+    const listItems = wrapper.findAll('li')
+    expect(listItems.length).toBe(2)
+    expect(wrapper.text()).toContain('事故')
+    expect(wrapper.text()).toContain('既定')
   })
 
   // --- Reorder ---
@@ -289,11 +333,12 @@ describe('MasterDataManager', () => {
   })
 
   it('does not reorder when moveUp target is builtin', async () => {
+    // items が builtin 由来のみ (= builtin 表示が続く) 状態で builtin 行を跨ぐ移動を試みる
     const wrapper = mount(MasterDataManager, {
       props: {
         title: 'テスト',
         items: [{ id: '1', name: 'A', sort_order: 1001 }],
-        builtinItems: ['B'],
+        builtinItems: ['B', 'A'],
         loading: false,
       },
       global: { stubs },

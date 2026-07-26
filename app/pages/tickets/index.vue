@@ -10,7 +10,7 @@ const {
   deleteTarget, showDeleteModal, stateMap, totalPages,
   categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
   showInlineCreate, creating, createError, newTicket, workflowStates, total,
-  loadStatusFilter, toggleStatus, toggleAllStatuses,
+  loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort,
   resetNewTicket, handleInlineCreate,
   fetchTickets, fetchWorkflowStates, fetchMasterData,
   clearFilter, confirmDelete, handleDelete, handleExportCsv,
@@ -184,7 +184,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
           @update:model-value="(v: string | undefined) => { newTicket.occurred_at = v ?? '' }"
         />
         <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
-        <USelect v-model="newTicket.office_name" :items="officeOptions" placeholder="営業所" size="sm" class="w-24" :disabled="officeOptions.length === 0" />
+        <UInput v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" list="ticket-office-names" />
         <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
         <div class="flex flex-col gap-0.5 w-24">
           <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" />
@@ -231,7 +231,18 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
             <tr class="border-b border-gray-200 dark:border-gray-700">
               <th class="text-left py-2 px-2 font-medium" />
               <th class="text-left py-2 px-2 font-medium">No</th>
-              <th class="text-left py-2 px-2 font-medium">発生日時</th>
+              <th
+                class="text-left py-2 px-2 font-medium cursor-pointer select-none hover:text-blue-600 dark:hover:text-blue-400"
+                title="クリックで発生日時ソート (降順→昇順→解除)"
+                @click="toggleOccurredSort"
+              >
+                発生日時
+                <UIcon
+                  v-if="filter.sort_by === 'occurred'"
+                  :name="filter.sort_desc ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'"
+                  class="inline size-3.5 align-middle"
+                />
+              </th>
               <th class="text-left py-2 px-2 font-medium">所属会社名</th>
               <th class="text-left py-2 px-2 font-medium">営業所名</th>
               <th class="text-left py-2 px-2 font-medium">運行課</th>
@@ -349,6 +360,11 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
         <UPagination v-model="filter.page" :total="total" :items-per-page="filter.per_page || 20" />
       </div>
     </UCard>
+
+    <!-- Office names for autocomplete (inline create の営業所直接入力用、Refs #225 ④) -->
+    <datalist id="ticket-office-names">
+      <option v-for="opt in officeOptions" :key="opt.value" :value="opt.value" />
+    </datalist>
 
     <!-- Car inspection registrations for autocomplete (shared datalist) -->
     <datalist id="car-inspection-registrations">

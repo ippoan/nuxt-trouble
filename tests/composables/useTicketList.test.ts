@@ -398,11 +398,40 @@ describe('useTicketList', () => {
     expect(l.createCategoryOptions.value.length).toBe(7)
   })
 
-  it('createCategoryOptions merges DB and hardcoded', () => {
+  it('createCategoryOptions uses DB only once a custom category exists (Refs #225 ⑤)', () => {
     const l = useTicketList()
     l.categories.value = [{ id: 'c1', tenant_id: 't1', name: 'カスタム', sort_order: 1, created_at: '' }]
-    // 1 DB (カスタム) + 7 hardcoded = 8
-    expect(l.createCategoryOptions.value.length).toBe(8)
+    // 独自カテゴリがあれば既定 (hardcoded) は混ぜない
+    expect(l.createCategoryOptions.value.length).toBe(1)
     expect(l.createCategoryOptions.value[0]).toEqual({ label: 'カスタム', value: 'カスタム' })
+    expect(l.categoryOptions.value.length).toBe(1)
+  })
+
+  it('createCategoryOptions merges remaining builtins while all DB categories are builtin-derived', () => {
+    const l = useTicketList()
+    l.categories.value = [{ id: 'c1', tenant_id: 't1', name: '貨物事故', sort_order: 1, created_at: '' }]
+    // DB 1 (貨物事故) + 残り hardcoded 6 = 7 (取り込み途中でも選択肢が欠けない)
+    expect(l.createCategoryOptions.value.length).toBe(7)
+    expect(l.createCategoryOptions.value[0]).toEqual({ label: '貨物事故', value: '貨物事故' })
+  })
+
+  it('toggleOccurredSort cycles desc → asc → default and resets page', async () => {
+    const l = useTicketList()
+    l.filter.page = 3
+
+    l.toggleOccurredSort()
+    expect(l.filter.sort_by).toBe('occurred')
+    expect(l.filter.sort_desc).toBe(true)
+    expect(l.filter.page).toBe(1)
+
+    l.filter.page = 2
+    l.toggleOccurredSort()
+    expect(l.filter.sort_by).toBe('occurred')
+    expect(l.filter.sort_desc).toBe(false)
+    expect(l.filter.page).toBe(1)
+
+    l.toggleOccurredSort()
+    expect(l.filter.sort_by).toBeUndefined()
+    expect(l.filter.sort_desc).toBeUndefined()
   })
 })
