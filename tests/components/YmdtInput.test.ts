@@ -67,6 +67,44 @@ describe('YmdtInput', () => {
     expect(lastEmitted(wrapper)).toBeUndefined()
   })
 
+  it('accepts full-width digits and converts them to half-width (Refs #225 ②)', async () => {
+    // IME かなモードのまま「２０２６」等を打っても半角化して受け付ける。
+    // 全角を捨てるとユーザーが IME を英数へ切り替えざるを得ず、次のかな欄で
+    // IME モードが戻らない問題の引き金になる。
+    const wrapper = mount(YmdtInput, {
+      props: { modelValue: undefined },
+      global: { stubs },
+    })
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('２０２６')
+    await inputs[1]!.setValue('０７')
+    await inputs[2]!.setValue('２６')
+    expect(lastEmitted(wrapper)).toBe('2026-07-26T00:00')
+    // DOM 側も半角化されている
+    expect((inputs[0]!.element as HTMLInputElement).value).toBe('2026')
+  })
+
+  it('ignores input events while IME composition is in progress', async () => {
+    const wrapper = mount(YmdtInput, {
+      props: { modelValue: undefined },
+      global: { stubs },
+    })
+    const inputs = wrapper.findAll('input')
+    const yearEl = inputs[0]!.element as HTMLInputElement
+
+    // 変換中 (isComposing=true) は state を取り込まない
+    yearEl.value = '２０２６'
+    await inputs[0]!.trigger('input', { isComposing: true })
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    // 確定 (compositionend) で半角化して取り込む
+    await inputs[0]!.trigger('compositionend')
+    expect(yearEl.value).toBe('2026')
+    await inputs[1]!.setValue('7')
+    await inputs[2]!.setValue('26')
+    expect(lastEmitted(wrapper)).toBe('2026-07-26T00:00')
+  })
+
   it('parses modelValue back into fields', () => {
     const wrapper = mount(YmdtInput, {
       props: { modelValue: '2026-07-26T14:30' },

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CalendarDate } from '@internationalized/date'
 import { computed, nextTick, ref, watch } from 'vue'
+import { toHalfWidth } from '~/utils/normalize'
 
 const props = defineProps<{
   modelValue: string | undefined
@@ -83,19 +84,38 @@ function clearAll() {
   nextTick(() => yearRef.value?.focus())
 }
 
+// 全角数字も受け付けて半角化する。全角を捨てると IME をかなのまま日付が
+// 打てず、ユーザーが IME を英数へ手動で切り替える → 次のかな欄で戻らない、
+// という IME モード汚染の引き金になる (Refs #225 ②)。
 function sanitize(s: string): string {
-  return s.replace(/\D/g, '')
+  return toHalfWidth(s).replace(/\D/g, '')
+}
+
+/**
+ * input / compositionend 共通のセル読み取り。IME 変換中 (isComposing) は
+ * state を触らない — かなモードの全角数字は composition として入力され、
+ * 確定時の compositionend で半角化して取り込む。半角化した値は DOM にも
+ * 強制反映する (state が同値だと Vue が patch せず全角が残るため)。
+ */
+function readCell(e: Event, max: number): string | null {
+  if ((e as InputEvent).isComposing) return null
+  const el = e.target as HTMLInputElement
+  const v = sanitize(el.value).slice(0, max)
+  if (el.value !== v) el.value = v
+  return v
 }
 
 function onYearInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 4)
+  const v = readCell(e, 4)
+  if (v === null) return
   year.value = v
   if (v.length === 4) nextTick(() => monthRef.value?.focus())
   emitModel()
 }
 
 function onMonthInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v === null) return
   month.value = v
   const advance = v.length === 2 || (v.length === 1 && Number(v) > 1)
   if (advance) nextTick(() => dayRef.value?.focus())
@@ -103,7 +123,8 @@ function onMonthInput(e: Event) {
 }
 
 function onDayInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v === null) return
   day.value = v
   const advance = v.length === 2 || (v.length === 1 && Number(v) > 3)
   if (advance) nextTick(() => hourRef.value?.focus())
@@ -111,7 +132,8 @@ function onDayInput(e: Event) {
 }
 
 function onHourInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v === null) return
   hour.value = v
   const advance = v.length === 2 || (v.length === 1 && Number(v) > 2)
   if (advance) nextTick(() => minuteRef.value?.focus())
@@ -119,7 +141,8 @@ function onHourInput(e: Event) {
 }
 
 function onMinuteInput(e: Event) {
-  const v = sanitize((e.target as HTMLInputElement).value).slice(0, 2)
+  const v = readCell(e, 2)
+  if (v === null) return
   minute.value = v
   emitModel()
 }
@@ -307,6 +330,7 @@ function setNowAndClose() {
       placeholder="YYYY"
       class="w-12 text-center outline-none bg-transparent"
       @input="onYearInput"
+      @compositionend="onYearInput"
       @keydown="onYearKeydown"
     >
     <span class="text-gray-400">/</span>
@@ -319,6 +343,7 @@ function setNowAndClose() {
       placeholder="MM"
       class="w-6 text-center outline-none bg-transparent"
       @input="onMonthInput"
+      @compositionend="onMonthInput"
       @keydown="onMonthKeydown"
     >
     <span class="text-gray-400">/</span>
@@ -331,6 +356,7 @@ function setNowAndClose() {
       placeholder="DD"
       class="w-6 text-center outline-none bg-transparent"
       @input="onDayInput"
+      @compositionend="onDayInput"
       @keydown="onDayKeydown"
     >
     <span class="mx-1 text-gray-300">|</span>
@@ -343,6 +369,7 @@ function setNowAndClose() {
       placeholder="HH"
       class="w-6 text-center outline-none bg-transparent"
       @input="onHourInput"
+      @compositionend="onHourInput"
       @keydown="onHourKeydown"
     >
     <span class="text-gray-400">:</span>
@@ -355,6 +382,7 @@ function setNowAndClose() {
       placeholder="MM"
       class="w-6 text-center outline-none bg-transparent"
       @input="onMinuteInput"
+      @compositionend="onMinuteInput"
       @keydown="onMinuteKeydown"
     >
     <button
