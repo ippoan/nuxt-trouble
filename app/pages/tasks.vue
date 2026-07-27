@@ -339,7 +339,8 @@ onMounted(async () => {
 
     <!-- Pagination -->
     <div v-if="total > perPage" class="flex justify-center">
-      <UPagination v-model="page" :total="total" :items-per-page="perPage" />
+      <!-- Nuxt UI 4 の UPagination のモデルは page (v-model:page)。素の v-model では動かない (Refs #230) -->
+      <UPagination v-model:page="page" :total="total" :items-per-page="perPage" />
     </div>
   </div>
 </template>

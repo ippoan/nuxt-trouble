@@ -231,19 +231,19 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
             <tr class="border-b border-gray-200 dark:border-gray-700">
               <th class="text-left py-2 px-2 font-medium" />
               <th class="text-left py-2 px-2 font-medium">No</th>
-              <th
-                class="text-left py-2 px-2 font-medium cursor-pointer select-none hover:text-blue-600 dark:hover:text-blue-400"
-                title="クリックで発生日時ソート (降順→昇順→解除)"
-                @click="toggleOccurredSort"
-              >
-                発生日時
-                <!-- ソート可能列であることを常時示す (未ソート時はグレーの ↕、Refs #225 ③) -->
-                <UIcon
-                  :name="filter.sort_by === 'occurred'
+              <th class="text-left py-2 px-2 font-medium">
+                <!-- Nuxt UI UTable の sortable 列標準に合わせた UButton ヘッダ (Refs #230) -->
+                <UButton
+                  label="発生日時"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="-mx-2.5 font-medium"
+                  title="クリックで発生日時ソート (降順→昇順→解除)"
+                  :trailing-icon="filter.sort_by === 'occurred'
                     ? (filter.sort_desc ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up')
                     : 'i-lucide-arrow-up-down'"
-                  class="inline size-3.5 align-middle"
-                  :class="filter.sort_by === 'occurred' ? 'text-blue-500' : 'text-gray-400'"
+                  @click="toggleOccurredSort"
                 />
               </th>
               <th class="text-left py-2 px-2 font-medium">所属会社名</th>
@@ -360,7 +360,8 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       </div>
 
       <div v-if="totalPages > 1" class="flex justify-center pt-4">
-        <UPagination v-model="filter.page" :total="total" :items-per-page="filter.per_page || 20" />
+        <!-- Nuxt UI 4 の UPagination のモデルは page (v-model:page)。素の v-model では動かない (Refs #230) -->
+        <UPagination v-model:page="filter.page" :total="total" :items-per-page="filter.per_page || 20" />
       </div>
     </UCard>
 
