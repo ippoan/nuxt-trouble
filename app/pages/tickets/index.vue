@@ -237,10 +237,13 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                 @click="toggleOccurredSort"
               >
                 発生日時
+                <!-- ソート可能列であることを常時示す (未ソート時はグレーの ↕、Refs #225 ③) -->
                 <UIcon
-                  v-if="filter.sort_by === 'occurred'"
-                  :name="filter.sort_desc ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up'"
+                  :name="filter.sort_by === 'occurred'
+                    ? (filter.sort_desc ? 'i-lucide-arrow-down' : 'i-lucide-arrow-up')
+                    : 'i-lucide-arrow-up-down'"
                   class="inline size-3.5 align-middle"
+                  :class="filter.sort_by === 'occurred' ? 'text-blue-500' : 'text-gray-400'"
                 />
               </th>
               <th class="text-left py-2 px-2 font-medium">所属会社名</th>
