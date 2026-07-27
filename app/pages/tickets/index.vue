@@ -10,7 +10,7 @@ const {
   deleteTarget, showDeleteModal, stateMap, totalPages,
   categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
   showInlineCreate, creating, createError, newTicket, workflowStates, total,
-  loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort,
+  loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort, loadSortFilter,
   resetNewTicket, handleInlineCreate,
   fetchTickets, fetchWorkflowStates, fetchMasterData,
   clearFilter, confirmDelete, handleDelete, handleExportCsv,
@@ -75,6 +75,7 @@ function openPrintView(ticketId: string) {
 
 onMounted(() => {
   loadStatusFilter()
+  loadSortFilter()
   fetchTickets()
   fetchWorkflowStates()
   fetchMasterData()

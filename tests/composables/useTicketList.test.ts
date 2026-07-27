@@ -434,4 +434,52 @@ describe('useTicketList', () => {
     expect(l.filter.sort_by).toBeUndefined()
     expect(l.filter.sort_desc).toBeUndefined()
   })
+
+  // Sort persistence (localStorage, Refs #232)
+  it('toggleOccurredSort persists sort state and removes it when reset to default', () => {
+    const l = useTicketList()
+
+    l.toggleOccurredSort()
+    expect(localStorage.getItem('trouble_sort_occurred')).toBe('{"sort_by":"occurred","sort_desc":true}')
+
+    l.toggleOccurredSort()
+    expect(localStorage.getItem('trouble_sort_occurred')).toBe('{"sort_by":"occurred","sort_desc":false}')
+
+    l.toggleOccurredSort()
+    expect(localStorage.getItem('trouble_sort_occurred')).toBeNull()
+  })
+
+  it('loadSortFilter restores sort state from localStorage', () => {
+    localStorage.setItem('trouble_sort_occurred', '{"sort_by":"occurred","sort_desc":false}')
+    const l = useTicketList()
+    l.loadSortFilter()
+    expect(l.filter.sort_by).toBe('occurred')
+    expect(l.filter.sort_desc).toBe(false)
+    localStorage.removeItem('trouble_sort_occurred')
+  })
+
+  it('loadSortFilter ignores invalid JSON and wrong shapes', () => {
+    localStorage.setItem('trouble_sort_occurred', 'invalid')
+    const l = useTicketList()
+    l.loadSortFilter()
+    expect(l.filter.sort_by).toBeUndefined()
+
+    localStorage.setItem('trouble_sort_occurred', '{"sort_by":"other","sort_desc":true}')
+    l.loadSortFilter()
+    expect(l.filter.sort_by).toBeUndefined()
+
+    localStorage.setItem('trouble_sort_occurred', '{"sort_by":"occurred","sort_desc":"yes"}')
+    l.loadSortFilter()
+    expect(l.filter.sort_by).toBeUndefined()
+    expect(l.filter.sort_desc).toBeUndefined()
+    localStorage.removeItem('trouble_sort_occurred')
+  })
+
+  it('loadSortFilter is a no-op when nothing is saved', () => {
+    localStorage.removeItem('trouble_sort_occurred')
+    const l = useTicketList()
+    l.loadSortFilter()
+    expect(l.filter.sort_by).toBeUndefined()
+    expect(l.filter.sort_desc).toBeUndefined()
+  })
 })
