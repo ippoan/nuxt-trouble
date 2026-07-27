@@ -4,6 +4,7 @@ import { fromDatetimeLocalInput } from '~/utils/datetime'
 import { buildCategoryOptions } from '~/utils/ticketFieldOptions'
 
 const STORAGE_KEY = 'trouble_filter_status'
+const SORT_STORAGE_KEY = 'trouble_sort_occurred'
 
 export function useTicketList() {
   const router = useRouter()
@@ -35,6 +36,32 @@ export function useTicketList() {
       filter.sort_desc = undefined
     }
     filter.page = 1
+    saveSortFilter()
+  }
+
+  // ソート状態の永続化 (localStorage、Refs #232)。ステータスフィルタと同パターン
+  function loadSortFilter() {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem(SORT_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved) as { sort_by?: unknown, sort_desc?: unknown }
+        if (parsed.sort_by === 'occurred' && typeof parsed.sort_desc === 'boolean') {
+          filter.sort_by = 'occurred'
+          filter.sort_desc = parsed.sort_desc
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  function saveSortFilter() {
+    /* v8 ignore next */
+    if (typeof window === 'undefined') return
+    if (filter.sort_by === 'occurred') {
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ sort_by: filter.sort_by, sort_desc: filter.sort_desc }))
+    } else {
+      localStorage.removeItem(SORT_STORAGE_KEY)
+    }
   }
 
   // Status filter (checkbox, localStorage)
@@ -285,7 +312,7 @@ export function useTicketList() {
     categoryOptions, createCategoryOptions, officeOptions, progressOptions, filteredTickets,
     showInlineCreate, creating, createError, newTicket,
     categories, offices, progressStatuses,
-    loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort,
+    loadStatusFilter, toggleStatus, toggleAllStatuses, toggleOccurredSort, loadSortFilter,
     resetNewTicket, handleInlineCreate,
     fetchTickets, fetchWorkflowStates, fetchMasterData,
     clearFilter, confirmDelete, handleDelete, handleExportCsv,
