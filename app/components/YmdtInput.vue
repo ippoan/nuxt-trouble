@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { CalendarDate } from '@internationalized/date'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { toHalfWidth } from '~/utils/normalize'
+import { numericInputmodeForTouch } from '~/utils/ime'
 
 const props = defineProps<{
   modelValue: string | undefined
@@ -24,6 +25,14 @@ const hourRef = ref<HTMLInputElement | null>(null)
 const minuteRef = ref<HTMLInputElement | null>(null)
 
 const popoverOpen = ref(false)
+
+// タッチ端末のみテンキー (inputmode=numeric)。物理キーボードでは付けない —
+// MS-IME が Tab 移動だけで半角英数へ自動切替し以降の欄でモードが戻らないため
+// (Refs #225 ②)。SSR では判定できないので mounted 後に確定する。
+const cellInputmode = ref<'numeric' | undefined>(undefined)
+onMounted(() => {
+  cellInputmode.value = numericInputmodeForTouch()
+})
 
 let selfUpdate = false
 
@@ -325,7 +334,7 @@ function setNowAndClose() {
       ref="yearRef"
       :value="year"
       type="text"
-      inputmode="numeric"
+      :inputmode="cellInputmode"
       maxlength="4"
       placeholder="YYYY"
       class="w-12 text-center outline-none bg-transparent"
@@ -338,7 +347,7 @@ function setNowAndClose() {
       ref="monthRef"
       :value="month"
       type="text"
-      inputmode="numeric"
+      :inputmode="cellInputmode"
       maxlength="2"
       placeholder="MM"
       class="w-6 text-center outline-none bg-transparent"
@@ -351,7 +360,7 @@ function setNowAndClose() {
       ref="dayRef"
       :value="day"
       type="text"
-      inputmode="numeric"
+      :inputmode="cellInputmode"
       maxlength="2"
       placeholder="DD"
       class="w-6 text-center outline-none bg-transparent"
@@ -364,7 +373,7 @@ function setNowAndClose() {
       ref="hourRef"
       :value="hour"
       type="text"
-      inputmode="numeric"
+      :inputmode="cellInputmode"
       maxlength="2"
       placeholder="HH"
       class="w-6 text-center outline-none bg-transparent"
@@ -377,7 +386,7 @@ function setNowAndClose() {
       ref="minuteRef"
       :value="minute"
       type="text"
-      inputmode="numeric"
+      :inputmode="cellInputmode"
       maxlength="2"
       placeholder="MM"
       class="w-6 text-center outline-none bg-transparent"
