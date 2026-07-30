@@ -17,14 +17,6 @@ export default defineNuxtConfig({
     preset: 'cloudflare_module',
   },
 
-  experimental: {
-    // 既定の 'automatic' は chunk load 失敗時に素のリロードをするだけで HTTP
-    // キャッシュをバイパスしない。release 直後に踏んだ 404 は immutable
-    // キャッシュに焼き付くためそれでは復旧できないので、'manual' にして
-    // app/plugins/chunk-reload.client.ts に制御を渡す (Refs #236)。
-    emitRouteChunkError: 'manual',
-  },
-
   // @ippoan/auth-client を SSR/Nitro 経路で transpile (root import は .ts + .vue)。
   build: {
     transpile: ['@ippoan/auth-client'],
@@ -43,6 +35,10 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxt/ui',
+    // chunk load 失敗 (immutable キャッシュされた `/_nuxt/*.js` の 404) からの自動復旧。
+    // `experimental.emitRouteChunkError = 'manual'` と transpile 登録も module 側が行う
+    // ので consumer は 1 行で済む (Refs #236 / ippoan/auth-worker#452)。
+    '@ippoan/auth-client/module',
   ],
 
   css: ['~/assets/css/main.css'],
