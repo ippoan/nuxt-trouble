@@ -328,10 +328,12 @@ describe('useTicketList', () => {
     l.newTicket.company_name = '会社A'
     l.newTicket.office_name = '営業所B'
     l.newTicket.occurred_at = '2026-01-15T09:30'
+    l.newTicket.title = 'タイトルテスト'
     l.newTicket.description = '説明テスト'
     await l.handleInlineCreate()
 
     const payload = createTicketMock.mock.calls[0][0]
+    expect(payload.title).toBe('タイトルテスト')
     expect(payload.company_name).toBe('会社A')
     expect(payload.office_name).toBe('営業所B')
     expect(payload.occurred_date).toBe('2026-01-15')
@@ -344,9 +346,11 @@ describe('useTicketList', () => {
     const l = useTicketList()
     l.newTicket.category = '貨物事故'
     l.newTicket.person_name = 'テスト'
+    l.newTicket.title = 'タイトル'
     l.resetNewTicket()
     expect(l.newTicket.category).toBe('')
     expect(l.newTicket.person_name).toBe('')
+    expect(l.newTicket.title).toBe('')
   })
 
   it('handleInlineCreate includes person_is_external flag', async () => {

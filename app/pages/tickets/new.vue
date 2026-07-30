@@ -9,11 +9,15 @@ const offices = ref<TroubleOffice[]>([])
 const progressStatuses = ref<TroubleProgressStatus[]>([])
 const employees = ref<Employee[]>([])
 
+// 入力欄の表示/非表示・ラベル・並び順は /settings の「入力フォーム表示」設定に従う (Refs #234)
+const { fieldLayout, fetchFieldLayout } = useTicketFieldLayout()
+
 onMounted(() => {
   getCategories().then(r => categories.value = r).catch(() => {})
   getOffices().then(r => offices.value = r).catch(() => {})
   getProgressStatuses().then(r => progressStatuses.value = r).catch(() => {})
   getEmployees().then(r => employees.value = r).catch(() => {})
+  fetchFieldLayout()
 })
 </script>
 
@@ -35,6 +39,7 @@ onMounted(() => {
         :offices="offices"
         :progress-statuses="progressStatuses"
         :employees="employees"
+        :field-layout="fieldLayout"
       />
 
       <div class="flex justify-end gap-2 mt-6">

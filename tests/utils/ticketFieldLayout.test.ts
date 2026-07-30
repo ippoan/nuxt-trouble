@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   FIELD_METAS,
   resolveFieldLayout,
+  resolveFieldMap,
   groupFieldsBySection,
   widthColSpanClass,
 } from '~/utils/ticketFieldLayout'
@@ -20,6 +21,11 @@ describe('resolveFieldLayout', () => {
     const resolved = resolveFieldLayout(null)
     const progress = resolved.find(f => f.key === 'progress_notes')!
     expect(progress.visible).toBe(false)
+  })
+
+  it('labels description as 内容 (一覧ヘッダーと同じ呼称、Refs #234)', () => {
+    const resolved = resolveFieldLayout(null)
+    expect(resolved.find(f => f.key === 'description')!.label).toBe('内容')
   })
 
   it('applies tenant overrides (visible/width/sort_order/label)', () => {
@@ -45,6 +51,29 @@ describe('resolveFieldLayout', () => {
     expect(title.visible).toBe(true)
     expect(title.width).toBe('full')
     expect(title.label).toBe('タイトル')
+  })
+})
+
+describe('resolveFieldMap', () => {
+  it('indexes every field by key with defaults applied', () => {
+    const map = resolveFieldMap(null)
+    expect(Object.keys(map).length).toBe(FIELD_METAS.length)
+    expect(map.description!.label).toBe('内容')
+    expect(map.title!.visible).toBe(true)
+    // 一覧の進捗状況列 / インライン新規作成の進捗状況入力欄はこれで既定非表示になる
+    expect(map.progress_notes!.visible).toBe(false)
+  })
+
+  it('reflects tenant overrides', () => {
+    const map = resolveFieldMap({
+      settings: [
+        { key: 'progress_notes', visible: true, width: 'half', sort_order: 10, label: '対応状況' },
+        { key: 'title', visible: false, width: 'full', sort_order: 20, label: null },
+      ],
+    })
+    expect(map.progress_notes!.visible).toBe(true)
+    expect(map.progress_notes!.label).toBe('対応状況')
+    expect(map.title!.visible).toBe(false)
   })
 })
 

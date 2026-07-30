@@ -176,6 +176,7 @@ export function useTicketList() {
     person_is_external: false,
     registration_number: '',
     location: '',
+    title: '',
     description: '',
     progress_notes: '',
     allowance: '',
@@ -193,7 +194,7 @@ export function useTicketList() {
     Object.assign(newTicket, {
       category: '', occurred_at: '', company_name: '', office_name: '',
       department: '', person_name: '', person_is_external: false, registration_number: '', location: '',
-      description: '', progress_notes: '', allowance: '', damage_amount: '',
+      title: '', description: '', progress_notes: '', allowance: '', damage_amount: '',
       compensation_amount: '', confirmation_notice: '', disciplinary_content: '',
       disciplinary_action: '', road_service_cost: '', counterparty: '',
       counterparty_insurance: '',
@@ -213,7 +214,7 @@ export function useTicketList() {
       const payload: Record<string, unknown> = { category: newTicket.category }
       const fields = [
         'company_name', 'office_name', 'department',
-        'person_name', 'registration_number', 'location', 'description',
+        'person_name', 'registration_number', 'location', 'title', 'description',
         'progress_notes', 'allowance', 'confirmation_notice',
         'disciplinary_content', 'disciplinary_action', 'counterparty',
         'counterparty_insurance',

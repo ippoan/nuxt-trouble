@@ -3,6 +3,7 @@ import { updateTicket } from '~/utils/api'
 import { toHalfWidth } from '~/utils/normalize'
 import { formatOccurredAt } from '~/utils/datetime'
 import { formatExpiry } from '~/utils/carInspection'
+import { resolveFieldMap } from '~/utils/ticketFieldLayout'
 import type { TroubleTicket } from '~/types'
 
 const {
@@ -22,6 +23,31 @@ const {
   lookupByRegistration: lookupCarInspection,
   registrationOptions: carInspectionRegistrations,
 } = useCarInspections()
+
+// 一覧の列とインライン新規作成行の入力欄は /settings の「入力フォーム表示」設定に連動させる
+// (Refs #234)。設定で非表示にした項目は入力欄も列も消える。
+// No / 発生日時 / ステータス / 操作列は設定対象外で常時表示 (発生日時は一覧のソート基準のため)。
+const { fieldLayout, fetchFieldLayout } = useTicketFieldLayout()
+const fieldMap = computed(() => resolveFieldMap(fieldLayout.value))
+
+const LIST_FIELD_KEYS = [
+  'company_name', 'office_name', 'department', 'person_name', 'registration_number',
+  'category', 'location', 'title', 'description', 'progress_notes', 'allowance',
+  'damage_amount', 'compensation_amount', 'confirmation_notice',
+  'disciplinary_content', 'disciplinary_action', 'road_service_cost',
+  'counterparty', 'counterparty_insurance',
+] as const
+
+function isFieldVisible(key: string): boolean {
+  return fieldMap.value[key]?.visible ?? true
+}
+
+function fieldLabel(key: string): string {
+  return fieldMap.value[key]?.label ?? key
+}
+
+// 「チケットがありません」行の colspan。固定列 5 (印刷 / No / 発生日時 / ステータス / 操作) + 可変列
+const emptyColspan = computed(() => 5 + LIST_FIELD_KEYS.filter(k => isFieldVisible(k)).length)
 
 const showBulkImport = ref(false)
 
@@ -79,6 +105,7 @@ onMounted(() => {
   fetchTickets()
   fetchWorkflowStates()
   fetchMasterData()
+  fetchFieldLayout()
   loadCarInspections()
 })
 
@@ -177,17 +204,18 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
       @click="showInlineCreate = true"
     />
     <div v-else class="overflow-x-auto p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
+      <!-- 入力欄の出し入れは /settings の「入力フォーム表示」設定に連動する (Refs #234) -->
       <div class="flex items-end gap-2 whitespace-nowrap min-w-[1600px]">
-        <USelect v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
+        <USelect v-if="isFieldVisible('category')" v-model="newTicket.category" :items="createCategoryOptions" placeholder="カテゴリ" size="sm" class="w-28" />
         <YmdtInput
           :model-value="newTicket.occurred_at || undefined"
           class="w-72"
           @update:model-value="(v: string | undefined) => { newTicket.occurred_at = v ?? '' }"
         />
-        <UInput v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
-        <UInput v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" list="ticket-office-names" />
-        <UInput v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
-        <div class="flex flex-col gap-0.5 w-24">
+        <UInput v-if="isFieldVisible('company_name')" v-model="newTicket.company_name" placeholder="会社名" size="sm" class="w-24" />
+        <UInput v-if="isFieldVisible('office_name')" v-model="newTicket.office_name" placeholder="営業所" size="sm" class="w-24" list="ticket-office-names" />
+        <UInput v-if="isFieldVisible('department')" v-model="newTicket.department" placeholder="運行課" size="sm" class="w-20" />
+        <div v-if="isFieldVisible('person_name')" class="flex flex-col gap-0.5 w-24">
           <UInput v-model="newTicket.person_name" placeholder="当事者名" size="sm" />
           <label class="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer whitespace-nowrap">
             <input v-model="newTicket.person_is_external" type="checkbox" class="rounded">
@@ -195,6 +223,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
           </label>
         </div>
         <UInput
+          v-if="isFieldVisible('registration_number')"
           :model-value="newTicket.registration_number"
           placeholder="登録番号"
           size="sm"
@@ -202,18 +231,19 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
           list="car-inspection-registrations"
           @update:model-value="(v: string | number) => { newTicket.registration_number = toHalfWidth(String(v ?? '')) }"
         />
-        <UInput v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
-        <UInput v-model="newTicket.description" placeholder="内容" size="sm" class="w-32" />
-        <USelect v-model="newTicket.progress_notes" :items="progressOptions" placeholder="進捗状況" size="sm" class="w-24" :disabled="progressOptions.length === 0" />
-        <UInput v-model="newTicket.allowance" placeholder="手当等" size="sm" class="w-20" />
-        <UInput v-model="newTicket.damage_amount" type="number" placeholder="損害額" size="sm" class="w-20" />
-        <UInput v-model="newTicket.compensation_amount" type="number" placeholder="賠償額" size="sm" class="w-20" />
-        <UInput v-model="newTicket.confirmation_notice" placeholder="確認書" size="sm" class="w-20" />
-        <UInput v-model="newTicket.disciplinary_content" placeholder="処分検討" size="sm" class="w-24" />
-        <UInput v-model="newTicket.disciplinary_action" placeholder="処分内容" size="sm" class="w-24" />
-        <UInput v-model="newTicket.road_service_cost" type="number" placeholder="ロードサービス費用" size="sm" class="w-28" />
-        <UInput v-model="newTicket.counterparty" placeholder="相手" size="sm" class="w-20" />
-        <UInput v-model="newTicket.counterparty_insurance" placeholder="相手保険" size="sm" class="w-24" />
+        <UInput v-if="isFieldVisible('location')" v-model="newTicket.location" placeholder="発生場所" size="sm" class="w-24" />
+        <UInput v-if="isFieldVisible('title')" v-model="newTicket.title" placeholder="タイトル" size="sm" class="w-28" />
+        <UInput v-if="isFieldVisible('description')" v-model="newTicket.description" :placeholder="fieldLabel('description')" size="sm" class="w-32" />
+        <USelect v-if="isFieldVisible('progress_notes')" v-model="newTicket.progress_notes" :items="progressOptions" placeholder="進捗状況" size="sm" class="w-24" :disabled="progressOptions.length === 0" />
+        <UInput v-if="isFieldVisible('allowance')" v-model="newTicket.allowance" placeholder="手当等" size="sm" class="w-20" />
+        <UInput v-if="isFieldVisible('damage_amount')" v-model="newTicket.damage_amount" type="number" placeholder="損害額" size="sm" class="w-20" />
+        <UInput v-if="isFieldVisible('compensation_amount')" v-model="newTicket.compensation_amount" type="number" placeholder="賠償額" size="sm" class="w-20" />
+        <UInput v-if="isFieldVisible('confirmation_notice')" v-model="newTicket.confirmation_notice" placeholder="確認書" size="sm" class="w-20" />
+        <UInput v-if="isFieldVisible('disciplinary_content')" v-model="newTicket.disciplinary_content" placeholder="処分検討" size="sm" class="w-24" />
+        <UInput v-if="isFieldVisible('disciplinary_action')" v-model="newTicket.disciplinary_action" placeholder="処分内容" size="sm" class="w-24" />
+        <UInput v-if="isFieldVisible('road_service_cost')" v-model="newTicket.road_service_cost" type="number" placeholder="ロードサービス費用" size="sm" class="w-28" />
+        <UInput v-if="isFieldVisible('counterparty')" v-model="newTicket.counterparty" placeholder="相手" size="sm" class="w-20" />
+        <UInput v-if="isFieldVisible('counterparty_insurance')" v-model="newTicket.counterparty_insurance" placeholder="相手保険" size="sm" class="w-24" />
         <UButton label="作成" size="sm" :loading="creating" :disabled="!newTicket.category" @click="handleInlineCreate" />
         <UButton icon="i-lucide-x" variant="ghost" size="sm" @click="showInlineCreate = false; resetNewTicket()" />
       </div>
@@ -247,24 +277,26 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                   @click="toggleOccurredSort"
                 />
               </th>
-              <th class="text-left py-2 px-2 font-medium">所属会社名</th>
-              <th class="text-left py-2 px-2 font-medium">営業所名</th>
-              <th class="text-left py-2 px-2 font-medium">運行課</th>
-              <th class="text-left py-2 px-2 font-medium">当事者名</th>
-              <th class="text-left py-2 px-2 font-medium">登録番号</th>
-              <th class="text-left py-2 px-2 font-medium">事故等分類</th>
-              <th class="text-left py-2 px-2 font-medium">発生場所</th>
-              <th class="text-left py-2 px-2 font-medium">内容</th>
-              <th class="text-left py-2 px-2 font-medium">進捗状況</th>
-              <th class="text-left py-2 px-2 font-medium">手当等</th>
-              <th class="text-right py-2 px-2 font-medium">損害額</th>
-              <th class="text-right py-2 px-2 font-medium">賠償額</th>
-              <th class="text-left py-2 px-2 font-medium">確認書</th>
-              <th class="text-left py-2 px-2 font-medium">処分検討内容</th>
-              <th class="text-left py-2 px-2 font-medium">処分内容</th>
-              <th class="text-right py-2 px-2 font-medium">ロードサービス費用</th>
-              <th class="text-left py-2 px-2 font-medium">相手</th>
-              <th class="text-left py-2 px-2 font-medium">相手保険会社</th>
+              <th v-if="isFieldVisible('company_name')" class="text-left py-2 px-2 font-medium">所属会社名</th>
+              <th v-if="isFieldVisible('office_name')" class="text-left py-2 px-2 font-medium">営業所名</th>
+              <th v-if="isFieldVisible('department')" class="text-left py-2 px-2 font-medium">運行課</th>
+              <th v-if="isFieldVisible('person_name')" class="text-left py-2 px-2 font-medium">当事者名</th>
+              <th v-if="isFieldVisible('registration_number')" class="text-left py-2 px-2 font-medium">登録番号</th>
+              <th v-if="isFieldVisible('category')" class="text-left py-2 px-2 font-medium">事故等分類</th>
+              <th v-if="isFieldVisible('location')" class="text-left py-2 px-2 font-medium">発生場所</th>
+              <!-- タイトル / 内容 のヘッダーは入力フォーム表示設定のラベルを使う (表記の食い違い防止、Refs #234) -->
+              <th v-if="isFieldVisible('title')" class="text-left py-2 px-2 font-medium">{{ fieldLabel('title') }}</th>
+              <th v-if="isFieldVisible('description')" class="text-left py-2 px-2 font-medium">{{ fieldLabel('description') }}</th>
+              <th v-if="isFieldVisible('progress_notes')" class="text-left py-2 px-2 font-medium">進捗状況</th>
+              <th v-if="isFieldVisible('allowance')" class="text-left py-2 px-2 font-medium">手当等</th>
+              <th v-if="isFieldVisible('damage_amount')" class="text-right py-2 px-2 font-medium">損害額</th>
+              <th v-if="isFieldVisible('compensation_amount')" class="text-right py-2 px-2 font-medium">賠償額</th>
+              <th v-if="isFieldVisible('confirmation_notice')" class="text-left py-2 px-2 font-medium">確認書</th>
+              <th v-if="isFieldVisible('disciplinary_content')" class="text-left py-2 px-2 font-medium">処分検討内容</th>
+              <th v-if="isFieldVisible('disciplinary_action')" class="text-left py-2 px-2 font-medium">処分内容</th>
+              <th v-if="isFieldVisible('road_service_cost')" class="text-right py-2 px-2 font-medium">ロードサービス費用</th>
+              <th v-if="isFieldVisible('counterparty')" class="text-left py-2 px-2 font-medium">相手</th>
+              <th v-if="isFieldVisible('counterparty_insurance')" class="text-left py-2 px-2 font-medium">相手保険会社</th>
               <th class="text-left py-2 px-2 font-medium">ステータス</th>
               <th class="text-right py-2 px-2 font-medium" />
             </tr>
@@ -281,10 +313,11 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               </td>
               <td class="py-2 px-2 text-gray-500">{{ ticket.ticket_no }}</td>
               <td class="py-2 px-2">{{ formatOccurredAt(ticket.occurred_at, ticket.occurred_date) }}</td>
-              <td class="py-2 px-2">{{ ticket.company_name || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.department || '-' }}</td>
+              <td v-if="isFieldVisible('company_name')" class="py-2 px-2">{{ ticket.company_name || '-' }}</td>
+              <td v-if="isFieldVisible('office_name')" class="py-2 px-2">{{ ticket.office_name || '-' }}</td>
+              <td v-if="isFieldVisible('department')" class="py-2 px-2">{{ ticket.department || '-' }}</td>
               <td
+                v-if="isFieldVisible('person_name')"
                 class="py-2 px-2"
                 :class="ticket.person_name && !ticket.person_id && !ticket.person_is_external
                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200'
@@ -306,7 +339,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                   {{ ticket.person_name || '-' }}
                 </span>
               </td>
-              <td class="py-2 px-2" @click.stop>
+              <td v-if="isFieldVisible('registration_number')" class="py-2 px-2" @click.stop>
                 <input
                   type="text"
                   list="car-inspection-registrations"
@@ -325,19 +358,20 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
                   :title="(() => { const s = lookupCarInspection(ticket.registration_number)!; return `所有者: ${s.ownerName || '-'}\n車種: ${s.carName || '-'}\n型式: ${s.model || '-'}\n車検満了日: ${formatExpiry(s.validPeriodExpirdate)}` })()"
                 />
               </td>
-              <td class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
-              <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.location || '-' }}</td>
-              <td class="py-2 px-2 max-w-[200px] truncate">{{ ticket.description || '-' }}</td>
-              <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.progress_notes || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.allowance || '-' }}</td>
-              <td class="py-2 px-2 text-right">{{ ticket.damage_amount || '-' }}</td>
-              <td class="py-2 px-2 text-right">{{ ticket.compensation_amount || '-' }}</td>
-              <td class="py-2 px-2 max-w-[100px] truncate">{{ ticket.confirmation_notice || '-' }}</td>
-              <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.disciplinary_content || '-' }}</td>
-              <td class="py-2 px-2 max-w-[120px] truncate">{{ ticket.disciplinary_action || '-' }}</td>
-              <td class="py-2 px-2 text-right">{{ ticket.road_service_cost || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.counterparty || '-' }}</td>
-              <td class="py-2 px-2">{{ ticket.counterparty_insurance || '-' }}</td>
+              <td v-if="isFieldVisible('category')" class="py-2 px-2"><TicketCategoryBadge :category="ticket.category" /></td>
+              <td v-if="isFieldVisible('location')" class="py-2 px-2 max-w-[120px] truncate">{{ ticket.location || '-' }}</td>
+              <td v-if="isFieldVisible('title')" class="py-2 px-2 max-w-[160px] truncate">{{ ticket.title || '-' }}</td>
+              <td v-if="isFieldVisible('description')" class="py-2 px-2 max-w-[200px] truncate">{{ ticket.description || '-' }}</td>
+              <td v-if="isFieldVisible('progress_notes')" class="py-2 px-2 max-w-[120px] truncate">{{ ticket.progress_notes || '-' }}</td>
+              <td v-if="isFieldVisible('allowance')" class="py-2 px-2">{{ ticket.allowance || '-' }}</td>
+              <td v-if="isFieldVisible('damage_amount')" class="py-2 px-2 text-right">{{ ticket.damage_amount || '-' }}</td>
+              <td v-if="isFieldVisible('compensation_amount')" class="py-2 px-2 text-right">{{ ticket.compensation_amount || '-' }}</td>
+              <td v-if="isFieldVisible('confirmation_notice')" class="py-2 px-2 max-w-[100px] truncate">{{ ticket.confirmation_notice || '-' }}</td>
+              <td v-if="isFieldVisible('disciplinary_content')" class="py-2 px-2 max-w-[120px] truncate">{{ ticket.disciplinary_content || '-' }}</td>
+              <td v-if="isFieldVisible('disciplinary_action')" class="py-2 px-2 max-w-[120px] truncate">{{ ticket.disciplinary_action || '-' }}</td>
+              <td v-if="isFieldVisible('road_service_cost')" class="py-2 px-2 text-right">{{ ticket.road_service_cost || '-' }}</td>
+              <td v-if="isFieldVisible('counterparty')" class="py-2 px-2">{{ ticket.counterparty || '-' }}</td>
+              <td v-if="isFieldVisible('counterparty_insurance')" class="py-2 px-2">{{ ticket.counterparty_insurance || '-' }}</td>
               <td class="py-2 px-2">
                 <UBadge
                   v-if="ticket.status_id && stateMap[ticket.status_id]"
@@ -354,7 +388,7 @@ watch(() => ({ ...filter }), () => { fetchTickets() }, { deep: true })
               </td>
             </tr>
             <tr v-if="filteredTickets.length === 0 && !loading">
-              <td colspan="23" class="py-8 text-center text-gray-400">チケットがありません</td>
+              <td :colspan="emptyColspan" class="py-8 text-center text-gray-400">チケットがありません</td>
             </tr>
           </tbody>
         </table>
