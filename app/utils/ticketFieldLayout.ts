@@ -24,7 +24,8 @@ export const FIELD_SECTIONS = ['基本情報', '関係者情報', '車両・場�
 export const FIELD_METAS: FieldMeta[] = [
   { key: 'category', label: 'カテゴリ', section: '基本情報', type: 'select', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 10 },
   { key: 'title', label: 'タイトル', section: '基本情報', type: 'text', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 20 },
-  { key: 'description', label: '説明', section: '基本情報', type: 'textarea', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 30 },
+  // ラベルは一覧テーブルのヘッダー呼称に合わせて「内容」で統一している (Refs #234)
+  { key: 'description', label: '内容', section: '基本情報', type: 'textarea', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 30 },
   { key: 'occurred_at', label: '発生日時', section: '基本情報', type: 'datetime', defaultWidth: 'full', defaultVisible: true, defaultSortOrder: 40 },
 
   { key: 'company_name', label: '会社名', section: '関係者情報', type: 'text', defaultWidth: 'half', defaultVisible: true, defaultSortOrder: 10 },
@@ -65,6 +66,17 @@ export function resolveFieldLayout(layout: TroubleFieldLayout | null | undefined
       sortOrder: o?.sort_order ?? meta.defaultSortOrder,
     }
   })
+}
+
+/**
+ * key -> ResolvedField の索引。一覧テーブルの列やインライン新規作成行のように
+ * セクション構造を使わず「この key は表示するか / ラベルは何か」だけを引きたい
+ * 呼び出し側向け (Refs #234)。
+ */
+export function resolveFieldMap(layout: TroubleFieldLayout | null | undefined): Record<string, ResolvedField> {
+  const map: Record<string, ResolvedField> = {}
+  for (const f of resolveFieldLayout(layout)) map[f.key] = f
+  return map
 }
 
 export interface FieldSectionGroup {
