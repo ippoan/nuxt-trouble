@@ -22,6 +22,3 @@ path = "app/middleware/auth.global.ts"
 
 [[files]]
 path = "app/utils/api.ts"
-
-[[files]]
-path = "app/utils/chunkReload.ts"
