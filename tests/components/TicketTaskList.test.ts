@@ -22,6 +22,7 @@ const mockUpdateTask = vi.fn().mockResolvedValue(sampleTask)
 const mockDeleteTask = vi.fn().mockResolvedValue(undefined)
 const mockGetEmployees = vi.fn().mockResolvedValue([])
 const mockGetTaskStatuses = vi.fn().mockResolvedValue([])
+const mockReorderTasks = vi.fn().mockResolvedValue([])
 
 vi.mock('~/utils/api', () => ({
   getTasks: (...args: any[]) => mockGetTasks(...args),
@@ -29,6 +30,7 @@ vi.mock('~/utils/api', () => ({
   createTask: (...args: any[]) => mockCreateTask(...args),
   updateTask: (...args: any[]) => mockUpdateTask(...args),
   deleteTask: (...args: any[]) => mockDeleteTask(...args),
+  reorderTasks: (...args: any[]) => mockReorderTasks(...args),
   getEmployees: (...args: any[]) => mockGetEmployees(...args),
   getTaskStatuses: (...args: any[]) => mockGetTaskStatuses(...args),
   getTaskFiles: vi.fn().mockResolvedValue([]),
@@ -635,4 +637,83 @@ describe('TicketTaskList', () => {
     const callArgs = mockCreateTask.mock.calls[0]
     expect(callArgs[1].due_date).toBeNull()
   })
+
+  // Refs #240: 並び替えは「隣接 2 行の sort_order 交換」ではなく、表示順の
+  // task_id 全件をサーバへ渡して採番し直す。交換方式は既存データ (全行
+  // sort_order=0) で無変化になり、テストのフィクスチャだけ 0/1/2 を持たせて
+  // 通してしまうため、ここでは全行 0 のデータで検証する。
+  describe('並び替え (Refs #240)', () => {
+    const zero1 = { ...sampleTask, id: 'task-1', title: '1件目', sort_order: 0 }
+    const zero2 = { ...sampleTask, id: 'task-2', title: '2件目', sort_order: 0 }
+    const zero3 = { ...sampleTask, id: 'task-3', title: '3件目', sort_order: 0 }
+
+    async function mountWithThreeTasks() {
+      mockGetTasks.mockResolvedValue([zero1, zero2, zero3])
+      const wrapper = mount(TicketTaskList, {
+        props: { ticketId: 'ticket-1', workflowStates: [], currentStatusId: null },
+        global: { stubs },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    it('∧ は sort_order を交換せず、1 つ上げた順の task_id 全件を送る', async () => {
+      const wrapper = await mountWithThreeTasks()
+      mockReorderTasks.mockResolvedValue([
+        { ...zero2, sort_order: 0 },
+        { ...zero1, sort_order: 1 },
+        { ...zero3, sort_order: 2 },
+      ])
+
+      await (wrapper.vm as any).handleMoveUp(1)
+      await flushPromises()
+
+      expect(mockReorderTasks).toHaveBeenCalledWith('ticket-1', ['task-2', 'task-1', 'task-3'])
+      expect(mockUpdateTask).not.toHaveBeenCalled()
+      // 応答をそのまま表示順にする (全行 0 のままでも並びが変わる)
+      expect((wrapper.vm as any).tasks.map((t: { id: string }) => t.id)).toEqual([
+        'task-2',
+        'task-1',
+        'task-3',
+      ])
+    })
+
+    it('∨ は 1 つ下げた順の task_id 全件を送る', async () => {
+      const wrapper = await mountWithThreeTasks()
+      mockReorderTasks.mockResolvedValue([zero2, zero1, zero3])
+
+      await (wrapper.vm as any).handleMoveDown(0)
+      await flushPromises()
+
+      expect(mockReorderTasks).toHaveBeenCalledWith('ticket-1', ['task-2', 'task-1', 'task-3'])
+    })
+
+    it('先頭の ∧ / 末尾の ∨ は何も送らない', async () => {
+      const wrapper = await mountWithThreeTasks()
+
+      await (wrapper.vm as any).handleMoveUp(0)
+      await (wrapper.vm as any).handleMoveDown(2)
+      await flushPromises()
+
+      expect(mockReorderTasks).not.toHaveBeenCalled()
+    })
+
+    it('失敗しても throw せず、表示順を保つ', async () => {
+      const wrapper = await mountWithThreeTasks()
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      mockReorderTasks.mockRejectedValue(new Error('boom'))
+
+      await (wrapper.vm as any).handleMoveUp(1)
+      await flushPromises()
+
+      expect(spy).toHaveBeenCalled()
+      expect((wrapper.vm as any).tasks.map((t: { id: string }) => t.id)).toEqual([
+        'task-1',
+        'task-2',
+        'task-3',
+      ])
+      spy.mockRestore()
+    })
+  })
+
 })

@@ -29,6 +29,7 @@ import type {
   TroubleTask,
   CreateTroubleTask,
   UpdateTroubleTask,
+  ReorderTroubleTasks,
   TroubleTaskType,
   TroubleTaskStatus,
   CreateTroubleTaskStatus,
@@ -488,6 +489,21 @@ export async function updateTask(taskId: string, data: UpdateTroubleTask): Promi
     method: 'PUT',
     body: JSON.stringify(data),
   })
+}
+
+/**
+ * 経過記録の並び替え。`taskIds` に並べたい順で **そのチケットの全 task_id** を
+ * 渡すと、サーバが 0 起点で sort_order を採番し直して更新後の一覧を返す。
+ *
+ * 行ごとに sort_order を PUT する形は取らない — 既存データは全行 0 なので
+ * 「隣同士の交換」が無変化になる (Refs #240)。
+ */
+export async function reorderTasks(ticketId: string, taskIds: string[]): Promise<TroubleTask[]> {
+  const body: ReorderTroubleTasks = { task_ids: taskIds }
+  return request<TroubleTask[]>(
+    `/api/trouble/tickets/${encodeURIComponent(ticketId)}/tasks/reorder`,
+    { method: 'PUT', body: JSON.stringify(body) },
+  )
 }
 
 export async function deleteTask(taskId: string): Promise<void> {

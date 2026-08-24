@@ -282,6 +282,11 @@ export interface UpdateTroubleTask {
   print_page_break_before?: boolean
 }
 
+/** 経過記録の並び替え要求。並べたい順に、そのチケットの全 task_id を渡す。 */
+export interface ReorderTroubleTasks {
+  task_ids: string[]
+}
+
 export interface TroubleTaskType {
   id: string
   tenant_id: string
