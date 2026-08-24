@@ -39,6 +39,7 @@ import {
   getTasks,
   createTask,
   updateTask,
+  reorderTasks,
   deleteTask,
   listAllTasks,
   getTaskFiles,
@@ -439,6 +440,23 @@ describe('Trouble API Phase 4', () => {
         const [url, opts] = mockFetch.mock.calls[0]
         expect(url).toBe(`${API_BASE}/api/trouble/tasks/task-1`)
         expect(opts.method).toBe('PUT')
+      })
+    })
+  })
+
+  describe('reorderTasks', () => {
+    it('reorders tasks of a ticket', async () => {
+      if (isLive) return
+      const result = await verifyApi(
+        () => reorderTasks('ticket-1', ['task-2', 'task-1']),
+        [{ id: 'task-2', sort_order: 0 }, { id: 'task-1', sort_order: 1 }],
+      )
+      expectMock(Array.isArray(result)).toBe(true)
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/trouble/tickets/ticket-1/tasks/reorder`)
+        expect(opts.method).toBe('PUT')
+        expect(JSON.parse(opts.body)).toEqual({ task_ids: ['task-2', 'task-1'] })
       })
     })
   })

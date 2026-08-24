@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TroubleTask, TroubleWorkflowState, TroubleWorkflowTransition, Employee, TroubleFile } from '~/types'
 import { DEFAULT_TASK_TYPES, TASK_STATUS_LABELS } from '~/types'
-import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
+import { getTasks, getTaskTypes, createTask, updateTask, deleteTask, reorderTasks, getEmployees, getTaskFiles, uploadTaskFile, downloadTaskFile, deleteTaskFile, restoreTaskFile, getWorkflowTransitions } from '~/utils/api'
 import { useTaskStatuses } from '~/composables/useTaskStatuses'
 import { toDatetimeLocalInput, formatOccurredAt } from '~/utils/datetime'
 
@@ -472,34 +472,27 @@ onUnmounted(() => {
 })
 
 // --- Reorder ---
-async function handleMoveUp(index: number) {
-  if (index <= 0) return
-  const current = tasks.value[index]!
-  const prev = tasks.value[index - 1]!
+// 隣接 2 行の sort_order を交換する形は使わない — 既存データは sort_order が
+// 全行 0 なので「0 と 0 の交換」になり、200 で返るのに並びが動かない (Refs #240)。
+// 表示順の task_id を並べ替えて全件渡し、採番はサーバ側でやる。
+async function moveTask(from: number, to: number) {
+  if (to < 0 || to >= tasks.value.length) return
+  const ids = tasks.value.map(t => t.id)
+  const [moved] = ids.splice(from, 1)
+  ids.splice(to, 0, moved!)
   try {
-    await Promise.all([
-      updateTask(current.id, { sort_order: prev.sort_order }),
-      updateTask(prev.id, { sort_order: current.sort_order }),
-    ])
-    await loadTasks()
+    tasks.value = await reorderTasks(props.ticketId, ids)
   } catch (e) {
     console.error('Failed to reorder tasks:', e)
   }
 }
 
-async function handleMoveDown(index: number) {
-  if (index >= tasks.value.length - 1) return
-  const current = tasks.value[index]!
-  const next = tasks.value[index + 1]!
-  try {
-    await Promise.all([
-      updateTask(current.id, { sort_order: next.sort_order }),
-      updateTask(next.id, { sort_order: current.sort_order }),
-    ])
-    await loadTasks()
-  } catch (e) {
-    console.error('Failed to reorder tasks:', e)
-  }
+function handleMoveUp(index: number) {
+  return moveTask(index, index - 1)
+}
+
+function handleMoveDown(index: number) {
+  return moveTask(index, index + 1)
 }
 
 // --- File attachments ---
