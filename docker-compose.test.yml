@@ -58,7 +58,7 @@ services:
       - ./tests/fixtures/seed.sql:/seed.sql
     entrypoint: ["sh", "-c"]
     command:
-      - PGPASSWORD=test psql -h test-db -U postgres -f /seed.sql
+      - PGPASSWORD=test psql -v ON_ERROR_STOP=1 -h test-db -U postgres -f /seed.sql
     restart: "no"
 
   api:
