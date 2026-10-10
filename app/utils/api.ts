@@ -350,13 +350,33 @@ export async function uploadFile(ticketId: string, file: File): Promise<TroubleF
   })
 }
 
+/**
+ * Content-Disposition からダウンロード名を取る (RFC 6266)。
+ * `filename*=UTF-8''<percent-encoding>` を優先し、無いか decode できなければ `filename` に落とす。
+ */
+export function filenameFromContentDisposition(disposition: string | null): string {
+  if (disposition) {
+    const encoded = disposition.match(/filename\*\s*=\s*UTF-8''([^;\s]+)/i)?.[1]
+    if (encoded) {
+      try {
+        return decodeURIComponent(encoded)
+      } catch {
+        // 壊れた percent-encoding は filename に落とす
+      }
+    }
+    const plain = disposition.match(/(?:^|;)\s*filename\s*=\s*(?:"([^"]*)"|([^;]*))/i)
+    const name = (plain?.[1] ?? plain?.[2])?.trim()
+    if (name) return name
+  }
+  return 'download'
+}
+
 export async function downloadFile(fileId: string): Promise<void> {
   const headers = buildAuthHeaders()
   const res = await fetch(`${apiBase}/api/trouble/files/${encodeURIComponent(fileId)}/download`, { headers })
   if (!res.ok) throw new Error(`ダウンロード失敗: ${res.status}`)
   const blob = await res.blob()
-  const disposition = res.headers.get('Content-Disposition')
-  const filename = disposition?.match(/filename="?(.+?)"?$/)?.[1] || 'download'
+  const filename = filenameFromContentDisposition(res.headers.get('Content-Disposition'))
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -565,8 +585,7 @@ export async function downloadTaskFile(fileId: string): Promise<void> {
   const res = await fetch(`${apiBase}/api/trouble/task-files/${encodeURIComponent(fileId)}/download`, { headers })
   if (!res.ok) throw new Error(`ダウンロード失敗: ${res.status}`)
   const blob = await res.blob()
-  const disposition = res.headers.get('Content-Disposition')
-  const filename = disposition?.match(/filename="?(.+?)"?$/)?.[1] || 'download'
+  const filename = filenameFromContentDisposition(res.headers.get('Content-Disposition'))
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
