@@ -25,6 +25,7 @@ import {
   upsertNotificationPref,
   deleteNotificationPref,
   getLineworksMembers,
+  testSendTroubleNotification,
   createSchedule,
   getTicketSchedules,
   cancelSchedule,
@@ -233,6 +234,19 @@ describe('Trouble API Phase 4', () => {
         const [url, opts] = mockFetch.mock.calls[0]
         expect(url).toBe(`${API_BASE}/api/trouble/notification-prefs/n1`)
         expect(opts.method).toBe('DELETE')
+      })
+    })
+  })
+
+  describe('testSendTroubleNotification', () => {
+    it('POSTs lineworks_user_id to test-send', async () => {
+      if (isLive) return
+      await verifyApi(() => testSendTroubleNotification('lw-user-1'), {}, { expect204: true })
+      assertMock(() => {
+        const [url, opts] = mockFetch.mock.calls[0]
+        expect(url).toBe(`${API_BASE}/api/trouble/notification-prefs/test-send`)
+        expect(opts.method).toBe('POST')
+        expect(JSON.parse(opts.body)).toEqual({ lineworks_user_id: 'lw-user-1' })
       })
     })
   })

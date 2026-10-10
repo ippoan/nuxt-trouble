@@ -422,6 +422,13 @@ export async function deleteNotificationPref(id: string): Promise<void> {
   await request<void>(`/api/trouble/notification-prefs/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
+export async function testSendTroubleNotification(lineworksUserId: string): Promise<void> {
+  await request<void>('/api/trouble/notification-prefs/test-send', {
+    method: 'POST',
+    body: JSON.stringify({ lineworks_user_id: lineworksUserId }),
+  })
+}
+
 export async function getLineworksMembers(): Promise<LineworksMember[]> {
   return request<LineworksMember[]>('/api/trouble/lineworks/members')
 }
