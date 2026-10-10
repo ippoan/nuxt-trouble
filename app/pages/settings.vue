@@ -8,8 +8,10 @@ import {
   getTaskTypes, createTaskType, deleteTaskType, updateTaskTypeSortOrder,
   getTaskStatuses, createTaskStatus, deleteTaskStatus, updateTaskStatusSortOrder,
   getNotificationPrefs, upsertNotificationPref, deleteNotificationPref, getLineworksMembers,
+  testSendTroubleNotification,
   getEmployees,
 } from '~/utils/api'
+import { testSendErrorMessage } from '~/utils/testSendError'
 
 const { authWorkerUrl } = useRuntimeConfig().public
 const activeTab = ref('categories')
@@ -319,6 +321,24 @@ function notifMemberName(userId: string): string {
   return m?.user_name || m?.email || userId
 }
 
+// テスト送信 (宛先の LINE WORKS user_id ごと)
+const testSending = ref<Record<string, boolean>>({})
+const testSendResults = ref<Record<string, { ok: boolean, message: string }>>({})
+
+async function handleTestSend(userId: string) {
+  if (testSending.value[userId]) return
+  testSending.value[userId] = true
+  delete testSendResults.value[userId]
+  try {
+    await testSendTroubleNotification(userId)
+    testSendResults.value[userId] = { ok: true, message: '送信しました' }
+  } catch (e) {
+    testSendResults.value[userId] = { ok: false, message: testSendErrorMessage(e) }
+  } finally {
+    testSending.value[userId] = false
+  }
+}
+
 function eventLabel(eventType: string): string {
   return NOTIFICATION_EVENT_TYPES.find(e => e.value === eventType)?.label || eventType
 }
@@ -560,7 +580,35 @@ onMounted(() => {
                   <UBadge color="info" variant="subtle">LINE WORKS</UBadge>
                 </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">
-                  送信先: {{ pref.lineworks_user_ids.map(id => notifMemberName(id)).join(', ') || '-' }}
+                  送信先:
+                  <span v-if="pref.lineworks_user_ids.length === 0">-</span>
+                  <ul v-else class="mt-1 space-y-1">
+                    <li
+                      v-for="userId in pref.lineworks_user_ids"
+                      :key="userId"
+                      class="flex flex-wrap items-center gap-2"
+                      data-testid="notif-recipient"
+                    >
+                      <span>{{ notifMemberName(userId) }}</span>
+                      <UButton
+                        label="テスト送信"
+                        icon="i-lucide-send"
+                        variant="outline"
+                        size="xs"
+                        :loading="!!testSending[userId]"
+                        :disabled="!!testSending[userId]"
+                        data-testid="test-send-button"
+                        @click="handleTestSend(userId)"
+                      />
+                      <span
+                        v-if="testSendResults[userId]"
+                        :class="testSendResults[userId].ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                        data-testid="test-send-result"
+                      >
+                        {{ testSendResults[userId].message }}
+                      </span>
+                    </li>
+                  </ul>
                 </div>
               </div>
               <div class="flex gap-2">
