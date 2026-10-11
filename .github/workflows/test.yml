@@ -21,14 +21,11 @@ jobs:
   ci:
     uses: ippoan/ci-workflows/.github/workflows/frontend-ci.yml@main
     with:
-      has_integration: true
-      # docker-compose.test.yml が ${API_IMAGE:-…:dev} で backend image を読むため、
-      # Release Wave compatibility edge を rust-alc-api に対して記録する。
-      compat_backend_repo: ippoan/rust-alc-api
-      compat_backend_image_env: API_IMAGE
+      # integration test (rust-alc-api の image を立てて叩く) は持たない。
+      # trouble の API は alc-trouble-worker へ移り、rust から口が消えたため
+      # (Refs ippoan/rust-alc-api#747)。API の検証は trouble-worker 側の DB テストが担う。
       install_command: 'npm install'
       post_install_script: 'npx nuxt prepare && npx wrangler types'
-      integration_env: 'API_BASE_URL=http://localhost:18080'
       # PR 時に @ippoan/auth-client@dev を overlay install する。
       # createIdentityProxyHandler (= /api/proxy/* の本体) は dev dist-tag にしか
       # 無く、committed lockfile があると "dev" 指定でも npm が古い版を再利用する
@@ -41,7 +38,6 @@ jobs:
       gcp_secret_verify_project: ${{ vars.GCP_PROJECT_ID_STAGING }}
       gcp_secret_verify_provider: ${{ vars.GCP_WIF_PROVIDER }}
       gcp_secret_verify_sa: ${{ vars.GCP_WIF_SERVICE_ACCOUNT_STAGING }}
-    # inherit で org-level secret も渡す: RELEASE_WAVE_WEBHOOK_SECRET (compat
-    # report → ci-dashboard の Compatibility グラフに出す) と CI_APP_ID /
-    # CI_APP_PRIVATE_KEY (auto-merge job)。frontend-ci の他 caller と同じ標準形。
+    # inherit で org-level secret も渡す: CI_APP_ID / CI_APP_PRIVATE_KEY
+    # (auto-merge job) 等。frontend-ci の他 caller と同じ標準形。
     secrets: inherit

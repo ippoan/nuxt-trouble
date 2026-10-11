@@ -51,7 +51,7 @@ introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker �
 ## CCoW/CI から見た立ち位置
 
 - rust-alc-api consumer (alc-app / carins / dtako の兄弟)。認証は `@ippoan/auth-client` + auth-worker。
-- CI: `.github/workflows/` (frontend-ci 系)。`coverage_100.toml` + `docker-compose.test.yml` (rust-alc-api コンテナで live テスト可能)。`.ippoan-dev.yaml` で dev 設定。
+- CI: `.github/workflows/` (frontend-ci 系)。`coverage_100.toml`。integration test は持たない (trouble の API は alc-trouble-worker 側で検証)。`.ippoan-dev.yaml` で dev 設定。
 
 ## 関連 skill
 
