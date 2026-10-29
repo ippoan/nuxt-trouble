@@ -26,7 +26,7 @@ introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker �
 | **components** | `Ticket*.vue` (FormFields / TaskList / TaskCard / StatusHistory / StatusTransition / GanttChart / CategoryBadge / CompactOverview / Files) `WorkflowManager.vue` `MasterDataManager.vue` `BulkImportModal.vue` `Ymd(t)Input.vue` | チケット UI / ワークフロー / マスタ / 一括取込 / 日付入力 |
 | **utils** | `app/utils/api.ts` (API client) `scheduleError.ts` (通知予約キャンセル失敗の文言変換、Refs #190) `scheduleDisplay.ts` (通知一覧の降順/5件折りたたみ・送信先メンバーフィルタ、Refs #198) `datetime.ts` `normalize.ts` `excel-import.ts` `carInspection.ts` | API 呼び出し本体 / エラー文言 / 日付 / 正規化 / Excel 取込 |
 | **server (proxy)** | `server/api/proxy/[...path].ts` | `/api/proxy/*` → auth-worker `/alc-proxy/*` → rust-alc-api。`@ippoan/auth-client/server` の `createAuthWorkerProxyHandler` で AUTH_WORKER service binding に thin-forward (方式 B)。introspect / ACL / OIDC mint / X-Tenant-ID + X-User-* 注入は auth-worker 側。INTERNAL_SHARED_SECRET (Secrets Store) を resolve して consumer proof として渡す。**client path が既に `/api/` を含むため `pathPrefix: '/'`** (二重 /api 防止)。AUTH_WORKER 未設定は 503 (fail-closed) (#434 step 3) |
-| **型 (生成)** | `app/types/generated/*` (Trouble* 系: Ticket/Task/Category/Office/ProgressStatus/Workflow* 等) + `app/types/index.ts` | rust-alc-api models.rs から **ts-rs 自動生成**。手動編集しない |
+| **型 (生成)** | `app/types/generated/*` (Trouble* 系: Ticket/Task/Category/Office/ProgressStatus/Workflow* 等) + `app/types/index.ts` | ts-rs 由来の生成物 (元は rust-alc-api models.rs)。同期 script は廃止済みで repo 内で保守する |
 | **middleware / layout** | `app/middleware/auth.global.ts` `app/layouts/{default,auth}.vue` | 全ルート認証ガード / レイアウト |
 
 ## entrypoint
@@ -44,7 +44,7 @@ introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker �
 - **`TicketTaskList.vue` の 1 件編集モーダル** (Refs #191): 「状況管理」見出し右の「編集」ボタン 1 個で開く (行ごとの鉛筆ボタンは廃止、grid は 9 列に戻した)。2 ペイン構成: 左にタスク一覧 (種別/ステータス/発生日時/タイトル、クリックでその行へ)、右に全フィールド編集フォーム (発生日時は `YmdtInput` で時刻込み編集、一覧項目は `tabindex=-1` で Tab 対象外)。行移動は **Ctrl+Shift+↑/↓** (Alt+↓ は select のドロップダウンが開くため不採用。window keydown を capture: true + stopPropagation で listen — select 自身の ArrowDown でドロップダウンが開くのを防ぐ。端では停止)。**Alt+S** で保存のみ (モーダルは閉じない、e.code 判定)。未保存変更は移動時に自動保存 (失敗時は移動しない)、キャンセルは破棄。`assigned_to` は employee 名 ⇄ id 変換 (追加フォームと同じ)。モーダル幅は `:ui="{ content: 'sm:max-w-4xl' }"`。
 - **通知予約キャンセルの 409** (Refs #190): 送信済み予約への cancel は backend が 409 (body 無し) を返す仕様。`[id].vue` の `handleCancelSchedule` は `cancelScheduleErrorMessage` で文言化し、成否によらず `loadSchedules()` で実状態を反映する。生の「API エラー (NNN):」を UI に出さない。
 - **`@ippoan/auth-client` は `build.transpile` + Vite `optimizeDeps.exclude` の両方** (`nuxt.config.ts`)。root import は .ts + .vue 公開で、SSR/Nitro 経路は transpile が必要、Vite dep pre-bundle は `#imports` 解決がバグり invalid JS になるため exclude する。server route は `@ippoan/auth-client/server` (.mjs) を import するので Nitro でそのまま解決できる。
-- `app/types/generated/` は ts-rs 生成物 (rust-alc-api 側 `sync-types.sh`)。手動編集禁止、差分は backend 型変更で生じる。
+- `app/types/generated/` は ts-rs 由来の生成物 (元は rust-alc-api 側)。同期 script は廃止済みで、以後は repo 内で保守する (backend 型の変更に合わせて手で直す)。
 - `typescript.tsConfig.compilerOptions.skipLibCheck = true` 設定済み (依存型の lib check を回避)。
 - `@nuxt/ui` は **4.x** (Nuxt 4 世代)。`frappe-gantt` でガントチャート (`TicketGanttChart.vue`)。
 
@@ -57,6 +57,5 @@ introspect / ACL / OIDC mint / identity (tenant + user) 注入は auth-worker �
 
 - `auth-worker-map` — `@ippoan/auth-client` の発行元
 - `nuxt-pwa-carins-map` / `nuxt_dtako_logs-map` / `alc-app-map` — 同じ rust-alc-api consumer の兄弟
-- `type-safe-pipeline` — ts-rs 型同期パイプライン (generated/ の生成元)
 - `nuxt-vitest` — Nuxt 4 + Vitest テスト作成
 - `repo-map` / `cross-repo-symbol-index` — この map の運用方針
